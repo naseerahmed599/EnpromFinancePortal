@@ -2,13 +2,15 @@
 
 ## API Credentials
 
-**Account Name:** `enprom-gmbh`
+**Account Name:** `[Your Account Name]`
 
-**API Key:** `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+**API Key:** `[Your API Key - Contact repository owner]`
 
-**API Documentation:** `https://enprom-gmbh.flowwer.de/swagger`
+**API Documentation:** `https://[your-account].flowwer.de/swagger`
 
 **HTTP Header for API Key:** `X-FLOWWER-ApiKey`
+
+> **Security Note:** This guide uses placeholder values. Replace `[Your API Key]` and `[your-account]` with your actual credentials. Never commit actual API keys to version control.
 
 ---
 
@@ -16,15 +18,13 @@
 
 ### 1. Create a New Collection in Postman
 - Name: "Flowwer API"
-- Base URL: `https://enprom-gmbh.flowwer.de`
+- Base URL: `https://[your-account].flowwer.de`
 
-### 2. Option A: Use Pre-Generated API Key (Recommended)
+### 2. Option A: Use Your API Key (Recommended)
 
-You already have a valid API key: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
-
-Simply add this to all your requests as a header:
+Add your API key to all requests as a header:
 ```
-X-FLOWWER-ApiKey: MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL
+X-FLOWWER-ApiKey: [Your API Key]
 ```
 
 ### 3. Option B: Generate New API Key via Authentication (Optional)
@@ -33,12 +33,12 @@ X-FLOWWER-ApiKey: MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL
 
 **Method:** `POST`
 
-**URL:** `https://enprom-gmbh.flowwer.de/api/v1/auth/token`
+**URL:** `https://[your-account].flowwer.de/api/v1/auth/token`
 
 **Headers:**
 ```
-username: o.heinke@enprom.com
-password: MasterHuman_2025
+username: [your-username]
+password: [your-password]
 ```
 
 **Expected Response:**
@@ -58,8 +58,8 @@ pm.collectionVariables.set("apiKey", pm.response.text().replace(/"/g, ''));
 
 Set these in your collection:
 
-- `apiKey` - `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL` (or auto-set from authentication response)
-- `baseUrl` - `https://enprom-gmbh.flowwer.de`
+- `apiKey` - `[Your API Key]` (or auto-set from authentication response)
+- `baseUrl` - `https://[your-account].flowwer.de`
 
 ---
 
@@ -73,7 +73,7 @@ Set these in your collection:
 1. In your request, click the **"Headers"** tab
 2. Add a new header:
    - **Key:** `X-FLOWWER-ApiKey`
-   - **Value:** `{{apiKey}}` (or directly: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`)
+   - **Value:** `{{apiKey}}` (or your actual API key)
 3. Make sure the checkbox next to the header is ✅ checked
 
 **Option 2: Using Auth Tab (For Collection-Level Auth)**
@@ -82,7 +82,7 @@ Set these in your collection:
 3. **Type:** Select `API Key` from dropdown
 4. Configure:
    - **Key:** `X-FLOWWER-ApiKey`
-   - **Value:** `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - **Value:** `[Your API Key]`
    - **Add to:** `Header`
 5. Save the collection
 6. For each request: In the **"Authorization"** tab, select **"Inherit auth from parent"**
@@ -93,7 +93,7 @@ Set these in your collection:
 1. In your request, click the **"Headers"** tab
 2. Add a new header by clicking in the fields:
    - In the **"Key"** field, enter: `X-FLOWWER-ApiKey` (without "Key:" prefix)
-   - In the **"Value"** field, enter: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL` (without "Value:" prefix)
+   - In the **"Value"** field, enter: `[Your API Key]` (without "Value:" prefix)
 3. Make sure the checkbox next to the header is ✅ checked
 
 **Important:** Don't type "Key:" or "Value:" - these are just labels in the guide. Postman has separate columns/fields for Key and Value.
@@ -132,15 +132,15 @@ Set these in your collection:
 
 **URL:** `{{baseUrl}}/api/v1/documents/all`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/all`
+Or directly: `https://[your-account].flowwer.de/api/v1/documents/all`
 
 #### In Postman:
 1. **Method:** Select `GET` from dropdown
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/documents/all`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/documents/all`
 3. **Authorization Tab:** Select `No Auth` (we'll use Headers instead)
 4. **Headers Tab:** Add one row:
    - Key field: `X-FLOWWER-ApiKey`
-   - Value field: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value field: `[Your API Key]`
 5. **Params Tab:** Add two rows:
    - Row 1 → Key: `includeProcessed` | Value: `false`
    - Row 2 → Key: `includeDeleted` | Value: `false`
@@ -150,7 +150,7 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/all`
 
 **Note:** After adding params, your URL will automatically become:
 ```
-https://enprom-gmbh.flowwer.de/api/v1/documents/all?includeProcessed=false&includeDeleted=false
+https://[your-account].flowwer.de/api/v1/documents/all?includeProcessed=false&includeDeleted=false
 ```
 
 **Expected Response:** Array of document objects
@@ -165,16 +165,16 @@ https://enprom-gmbh.flowwer.de/api/v1/documents/all?includeProcessed=false&inclu
 
 Replace `{documentId}` with actual ID, e.g., `123456`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/123456`
+Or directly: `https://[your-account].flowwer.de/api/v1/documents/123456`
 
 #### In Postman:
 1. **Method:** Select `GET`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/documents/123456`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/documents/123456`
    - Replace `123456` with an actual document ID
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
 5. **Params Tab:** Leave empty (no query parameters needed)
 6. Click **"Send"**
 
@@ -185,7 +185,7 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/123456`
 {
   "documentId": 123456,
   "simpleName": "Invoice_2024.pdf",
-  "companyName": "Enprom GmbH",
+  "companyName": "Your Company Name",
   "flowName": "Standard Invoice Flow",
   "currentStage": "Stage1",
   "invoiceDate": "2024-10-15T00:00:00Z",
@@ -206,15 +206,15 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/123456`
 
 **URL:** `{{baseUrl}}/api/v1/companies/activeflows/reduced`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/companies/activeflows/reduced`
+Or directly: `https://[your-account].flowwer.de/api/v1/companies/activeflows/reduced`
 
 #### In Postman:
 1. **Method:** Select `GET`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/companies/activeflows/reduced`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/companies/activeflows/reduced`
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
 5. **Params Tab:** Leave empty
 6. Click **"Send"**
 
@@ -223,7 +223,7 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/companies/activeflows/reduce
 [
   {
     "companyId": 1,
-    "companyName": "Enprom GmbH",
+    "companyName": "Your Company Name",
     "flowId": 5,
     "flowName": "Invoice Approval Flow"
   }
@@ -240,15 +240,15 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/companies/activeflows/reduce
 
 Replace `{companyId}` with actual ID, e.g., `1`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/companies/1/activeflows/reduced`
+Or directly: `https://[your-account].flowwer.de/api/v1/companies/1/activeflows/reduced`
 
 #### In Postman:
 1. **Method:** Select `GET`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/companies/1/activeflows/reduced`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/companies/1/activeflows/reduced`
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
 5. Click **"Send"**
 
 ---
@@ -259,16 +259,16 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/companies/1/activeflows/redu
 
 **URL:** `{{baseUrl}}/api/v1/download/{documentId}/download/document.pdf`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/download/123456/download/document.pdf`
+Or directly: `https://[your-account].flowwer.de/api/v1/download/123456/download/document.pdf`
 
 #### In Postman:
 1. **Method:** Select `GET`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/download/123456/download/document.pdf`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/download/123456/download/document.pdf`
    - Replace `123456` with actual document ID
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
 5. **Params Tab:**
    - Key: `uniqueId`
    - Value: `[UUID from document details]` (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
@@ -288,15 +288,15 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/download/123456/download/doc
 
 **URL:** `{{baseUrl}}/api/v1/upload`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/upload`
+Or directly: `https://[your-account].flowwer.de/api/v1/upload`
 
 #### In Postman:
 1. **Method:** Select `POST`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/upload`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/upload`
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
    - Key: `Content-Type`
    - Value: `application/octet-stream`
 5. **Params Tab (Optional):**
@@ -334,16 +334,16 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/upload`
 
 **URL:** `{{baseUrl}}/api/v1/documents/{documentId}/approve`
 
-Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/123456/approve`
+Or directly: `https://[your-account].flowwer.de/api/v1/documents/123456/approve`
 
 #### In Postman:
 1. **Method:** Select `POST`
-2. **URL:** Enter `https://enprom-gmbh.flowwer.de/api/v1/documents/123456/approve`
+2. **URL:** Enter `https://[your-account].flowwer.de/api/v1/documents/123456/approve`
    - Replace `123456` with actual document ID
 3. **Authorization Tab:** Select `No Auth`
 4. **Headers Tab:**
    - Key: `X-FLOWWER-ApiKey`
-   - Value: `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+   - Value: `[Your API Key]`
    - Key: `Content-Type`
    - Value: `application/json`
 5. **Body Tab:**
@@ -386,7 +386,7 @@ Or directly: `https://enprom-gmbh.flowwer.de/api/v1/documents/123456/approve`
 
 ## Postman Collection JSON
 
-You can import this JSON into Postman:
+You can import this JSON into Postman (remember to replace placeholder values with your actual credentials):
 
 ```json
 {
@@ -397,11 +397,11 @@ You can import this JSON into Postman:
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://enprom-gmbh.flowwer.de"
+      "value": "https://[your-account].flowwer.de"
     },
     {
       "key": "apiKey",
-      "value": "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL"
+      "value": "[Your API Key]"
     }
   ],
   "item": [
@@ -422,11 +422,11 @@ You can import this JSON into Postman:
         "header": [
           {
             "key": "username",
-            "value": "o.heinke@enprom.com"
+            "value": "[your-username]"
           },
           {
             "key": "password",
-            "value": "MasterHuman_2025"
+            "value": "[your-password]"
           }
         ],
         "url": {
@@ -505,10 +505,10 @@ You can import this JSON into Postman:
 
 ## Testing Workflow
 
-### Quick Start (Using Pre-Generated API Key)
+### Quick Start (Using Your API Key)
 
 1. **Import Collection:** Import the JSON collection above into Postman
-2. **Verify API Key:** The collection already has the API key `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL` set
+2. **Set Your Credentials:** Replace `[Your API Key]` and `[your-account]` with your actual values
 3. **Test Read Operations:**
    - Get All Documents
    - Get Companies with Flows
@@ -530,15 +530,15 @@ You can import this JSON into Postman:
 For automated file uploads via FTP:
 
 **Host:** `ftp.flowwer.de`  
-**Username:** `enprom-gmbh+ApiKeyUser`  
-**Password:** `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+**Username:** `[your-account]+ApiKeyUser`  
+**Password:** `[Your API Key]`
 
 ---
 
 ## Tips
 
-1. **API Key Ready:** You can start testing immediately with the pre-configured API key `MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL`
+1. **Security:** Replace all `[Your API Key]` and `[your-account]` placeholders with your actual credentials
 2. Use collection variables (`{{apiKey}}`, `{{baseUrl}}`) for reusability
 3. To find a valid document ID, first call "Get All Documents" and pick one
 4. The `uniqueId` for downloads must match the document - get it from document details first
-5. API Documentation is available at: `https://enprom-gmbh.flowwer.de/swagger`
+5. API Documentation is available at: `https://[your-account].flowwer.de/swagger`
