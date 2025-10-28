@@ -5,9 +5,12 @@ Python client for interacting with the Flowwer REST API.
 ## 📋 API Credentials
 
 - **Account Name:** `enprom-gmbh`
-- **API Key:** `MXrKdv77r3lTlPzdc8N8mjdT5YzA87iL`
+- **API Key:** `[Contact repository owner for API key]`
 - **Base URL:** `https://enprom-gmbh.flowwer.de`
 - **API Documentation:** `https://enprom-gmbh.flowwer.de/swagger`
+
+> **Note:** For security reasons, the API key is not included in this repository. 
+> Store your API key in an environment variable or a `.env` file (not committed to git).
 
 ## 🚀 Quick Start
 
@@ -29,10 +32,11 @@ The script will automatically use the pre-configured API key.
 
 ```python
 from flowwer_api_client import FlowwerAPIClient, DocumentHelper
+import os
 
-# Initialize client with API key
+# Initialize client with API key from environment variable
 client = FlowwerAPIClient()
-client.api_key = "MXrKdv77r3lTlPzdc8N8mjdT5YzA87iL"
+client.api_key = os.getenv("FLOWWER_API_KEY")  # Set this in your environment
 client.session.headers.update({'X-FLOWWER-ApiKey': client.api_key})
 
 # Get all documents
@@ -49,6 +53,21 @@ client.download_document(doc_id, unique_id, "output.pdf")
 
 # Upload a document
 result = client.upload_document("invoice.pdf", flow_id=5, company_id=1)
+```
+
+**Setting up the API key:**
+
+```bash
+# On macOS/Linux
+export FLOWWER_API_KEY="your-api-key-here"
+
+# On Windows
+set FLOWWER_API_KEY=your-api-key-here
+```
+
+Or create a `.env` file (add to `.gitignore`):
+```
+FLOWWER_API_KEY=your-api-key-here
 ```
 
 ## 📚 Available Methods
@@ -112,17 +131,18 @@ For automated file uploads via FTP:
 ```
 Host: ftp.flowwer.de
 Username: enprom-gmbh+ApiKeyUser
-Password: MXrKdv77r3lTlPzdc8N8mjdT5YzA87iL
+Password: [Use your API key]
 ```
 
 ## 📝 Example: Get and Export Documents
 
 ```python
 from flowwer_api_client import FlowwerAPIClient, DocumentHelper
+import os
 
 # Setup
 client = FlowwerAPIClient()
-client.api_key = "MXrKdv77r3lTlPzdc8N8mjdT5YzA87iL"
+client.api_key = os.getenv("FLOWWER_API_KEY")
 client.session.headers.update({'X-FLOWWER-ApiKey': client.api_key})
 
 # Get all unprocessed documents
@@ -147,9 +167,10 @@ for doc in filtered[:10]:
 
 ```python
 from flowwer_api_client import FlowwerAPIClient
+import os
 
 client = FlowwerAPIClient()
-client.api_key = "MXrKdv77r3lTlPzdc8N8mjdT5YzA87iL"
+client.api_key = os.getenv("FLOWWER_API_KEY")
 client.session.headers.update({'X-FLOWWER-ApiKey': client.api_key})
 
 # Get document details
