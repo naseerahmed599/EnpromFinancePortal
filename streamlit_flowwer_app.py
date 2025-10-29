@@ -2830,16 +2830,22 @@ elif page == "📊 " + t("pages.data_explorer"):
             # Quick select buttons
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("Select All"):
+                if st.button("Select All", key="btn_select_all"):
                     st.session_state.selected_columns = list(df.columns)
+                    # Set all checkbox states to True
+                    for col_name in df.columns:
+                        st.session_state[f"col_{col_name}"] = True
                     st.rerun()
             with col2:
-                if st.button("Deselect All"):
+                if st.button("Deselect All", key="btn_deselect_all"):
                     st.session_state.selected_columns = []
+                    # Set all checkbox states to False
+                    for col_name in df.columns:
+                        st.session_state[f"col_{col_name}"] = False
                     st.rerun()
             with col3:
-                if st.button("Reset to Default"):
-                    st.session_state.selected_columns = [
+                if st.button("Reset to Default", key="btn_reset_default"):
+                    default_columns = [
                         "Document ID",
                         "Display Name",
                         "Booking Text",
@@ -2851,6 +2857,10 @@ elif page == "📊 " + t("pages.data_explorer"):
                         "Supplier Name",
                         "Payment State",
                     ]
+                    st.session_state.selected_columns = default_columns
+                    # Set checkbox states: True for default columns, False for others
+                    for col_name in df.columns:
+                        st.session_state[f"col_{col_name}"] = col_name in default_columns
                     st.rerun()
 
             st.markdown("---")
@@ -2864,15 +2874,26 @@ elif page == "📊 " + t("pages.data_explorer"):
                 for idx, col_name in enumerate(columns):
                     with cols[idx % 3]:
                         if col_name in df.columns:
-                            checked = col_name in st.session_state.selected_columns
-                            if st.checkbox(
-                                col_name, value=checked, key=f"col_{col_name}"
-                            ):
-                                if col_name not in st.session_state.selected_columns:
-                                    st.session_state.selected_columns.append(col_name)
-                            else:
-                                if col_name in st.session_state.selected_columns:
-                                    st.session_state.selected_columns.remove(col_name)
+                            # Use session state as source of truth
+                            is_selected = col_name in st.session_state.selected_columns
+                            
+                            # Checkbox with explicit value from session state
+                            checkbox_key = f"col_{col_name}"
+                            # Initialize checkbox state if not exists
+                            if checkbox_key not in st.session_state:
+                                st.session_state[checkbox_key] = is_selected
+                            
+                            new_value = st.checkbox(
+                                col_name, 
+                                value=st.session_state[checkbox_key], 
+                                key=checkbox_key
+                            )
+                            
+                            # Update selected_columns list based on checkbox
+                            if new_value and col_name not in st.session_state.selected_columns:
+                                st.session_state.selected_columns.append(col_name)
+                            elif not new_value and col_name in st.session_state.selected_columns:
+                                st.session_state.selected_columns.remove(col_name)
 
                 st.markdown("")  # Spacing
 

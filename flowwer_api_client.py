@@ -53,16 +53,16 @@ class FlowwerAPIClient:
             if response.status_code == 200:
                 self.api_key = response.text.strip('"')  # Remove quotes from response
                 self.session.headers.update({"X-FLOWWER-ApiKey": self.api_key})
-                print(f"✅ Authentication successful!")
+                print(f"Authentication successful!")
                 print(f"🔑 API Key: {self.api_key[:20]}...")
                 return True
             else:
-                print(f"❌ Authentication failed: {response.status_code}")
+                print(f"Authentication failed: {response.status_code}")
                 print(f"Response: {response.text}")
                 return False
 
         except Exception as e:
-            print(f"❌ Error during authentication: {e}")
+            print(f"Error during authentication: {e}")
             return False
 
     def get_all_documents(
@@ -79,7 +79,7 @@ class FlowwerAPIClient:
             List of document dictionaries or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/documents/all"
@@ -93,15 +93,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 documents = response.json()
-                print(f"✅ Retrieved {len(documents)} documents")
+                print(f"Retrieved {len(documents)} documents")
                 return documents
             else:
-                print(f"❌ Failed to get documents: {response.status_code}")
+                print(f"Failed to get documents: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting documents: {e}")
+            print(f"Error getting documents: {e}")
             return None
 
     def get_document(self, document_id: int) -> Optional[Dict]:
@@ -115,7 +115,7 @@ class FlowwerAPIClient:
             Document dictionary or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/documents/{document_id}"
@@ -125,15 +125,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 document = response.json()
-                print(f"✅ Retrieved document {document_id}")
+                print(f"Retrieved document {document_id}")
                 return document
             else:
-                print(f"❌ Failed to get document: {response.status_code}")
+                print(f"Failed to get document: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting document: {e}")
+            print(f"Error getting document: {e}")
             return None
 
     def get_companies_with_flows(self) -> Optional[List[Dict]]:
@@ -144,7 +144,7 @@ class FlowwerAPIClient:
             List of company/flow dictionaries or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/companies/activeflows/reduced"
@@ -159,15 +159,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 companies = response.json()
-                print(f"✅ Retrieved {len(companies)} company/flow combinations")
+                print(f"Retrieved {len(companies)} company/flow combinations")
                 return companies
             else:
-                print(f"❌ Failed to get companies: {response.status_code}")
+                print(f"Failed to get companies: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting companies: {e}")
+            print(f"Error getting companies: {e}")
             return None
 
     def download_document(
@@ -185,7 +185,7 @@ class FlowwerAPIClient:
             bool: True if download successful
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return False
 
         url = f"{self.base_url}/api/v1/download/{document_id}/download/document.pdf"
@@ -198,14 +198,14 @@ class FlowwerAPIClient:
                 with open(output_path, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                print(f"✅ Document downloaded to {output_path}")
+                print(f"Document downloaded to {output_path}")
                 return True
             else:
-                print(f"❌ Failed to download document: {response.status_code}")
+                print(f"Failed to download document: {response.status_code}")
                 return False
 
         except Exception as e:
-            print(f"❌ Error downloading document: {e}")
+            print(f"Error downloading document: {e}")
             return False
 
     def upload_document(
@@ -228,7 +228,7 @@ class FlowwerAPIClient:
             Upload result dictionary or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/upload"
@@ -252,17 +252,17 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Document uploaded successfully!")
+                print(f"Document uploaded successfully!")
                 print(f"Document ID: {result.get('elementId')}")
                 print(f"Name: {result.get('name')}")
                 return result
             else:
-                print(f"❌ Failed to upload document: {response.status_code}")
+                print(f"Failed to upload document: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error uploading document: {e}")
+            print(f"Error uploading document: {e}")
             return None
 
     def get_receipt_splits(self, document_id: int) -> Optional[List[Dict]]:
@@ -278,7 +278,7 @@ class FlowwerAPIClient:
             List of split dictionaries or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/documents/{document_id}/receiptsplits"
@@ -289,16 +289,16 @@ class FlowwerAPIClient:
             if response.status_code == 200:
                 splits = response.json()
                 print(
-                    f"✅ Retrieved {len(splits)} receipt split(s) for document {document_id}"
+                    f"Retrieved {len(splits)} receipt split(s) for document {document_id}"
                 )
                 return splits
             else:
-                print(f"❌ Failed to get receipt splits: {response.status_code}")
+                print(f"Failed to get receipt splits: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting receipt splits: {e}")
+            print(f"Error getting receipt splits: {e}")
             return None
 
     def approve_document(
@@ -316,12 +316,12 @@ class FlowwerAPIClient:
             bool: True if approval successful
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return False
 
         url = f"{self.base_url}/api/v1/documents/{document_id}/approve"
 
-        payload = {"atStage": at_stage}
+        payload: Dict[str, Any] = {"atStage": at_stage}
 
         if nominees:
             payload["nominees"] = nominees
@@ -331,15 +331,15 @@ class FlowwerAPIClient:
             response = self.session.post(url, json=payload, headers=headers)
 
             if response.status_code == 200:
-                print(f"✅ Document {document_id} approved at {at_stage}")
+                print(f"Document {document_id} approved at {at_stage}")
                 return True
             else:
-                print(f"❌ Failed to approve document: {response.status_code}")
+                print(f"Failed to approve document: {response.status_code}")
                 print(f"Response: {response.text}")
                 return False
 
         except Exception as e:
-            print(f"❌ Error approving document: {e}")
+            print(f"Error approving document: {e}")
             return False
 
     def get_receipt_splitting_report(
@@ -367,7 +367,7 @@ class FlowwerAPIClient:
             List of receipt splitting report entries or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/receiptsplittingreport/report"
@@ -391,17 +391,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 report = response.json()
-                print(f"✅ Retrieved {len(report)} receipt splitting report entries")
+                print(f"Retrieved {len(report)} receipt splitting report entries")
                 return report
             else:
-                print(
-                    f"❌ Failed to get receipt splitting report: {response.status_code}"
-                )
+                print(f"Failed to get receipt splitting report: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting receipt splitting report: {e}")
+            print(f"Error getting receipt splitting report: {e}")
             return None
 
     def get_all_cost_centers(self) -> Optional[List[str]]:
@@ -412,7 +410,7 @@ class FlowwerAPIClient:
             List of cost center strings or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/receiptsplittingreport/costcenters"
@@ -422,15 +420,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 cost_centers = response.json()
-                print(f"✅ Retrieved {len(cost_centers)} cost centers")
+                print(f"Retrieved {len(cost_centers)} cost centers")
                 return cost_centers
             else:
-                print(f"❌ Failed to get cost centers: {response.status_code}")
+                print(f"Failed to get cost centers: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting cost centers: {e}")
+            print(f"Error getting cost centers: {e}")
             return None
 
     def get_all_accounts(self) -> Optional[List[str]]:
@@ -441,7 +439,7 @@ class FlowwerAPIClient:
             List of account strings or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/receiptsplittingreport/accounts"
@@ -451,15 +449,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 accounts = response.json()
-                print(f"✅ Retrieved {len(accounts)} accounts")
+                print(f"Retrieved {len(accounts)} accounts")
                 return accounts
             else:
-                print(f"❌ Failed to get accounts: {response.status_code}")
+                print(f"Failed to get accounts: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting accounts: {e}")
+            print(f"Error getting accounts: {e}")
             return None
 
     def get_approved_documents(
@@ -475,7 +473,7 @@ class FlowwerAPIClient:
             List of approved documents or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/documents/approved"
@@ -489,15 +487,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 documents = response.json()
-                print(f"✅ Retrieved {len(documents)} approved documents")
+                print(f"Retrieved {len(documents)} approved documents")
                 return documents
             else:
-                print(f"❌ Failed to get approved documents: {response.status_code}")
+                print(f"Failed to get approved documents: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting approved documents: {e}")
+            print(f"Error getting approved documents: {e}")
             return None
 
     def get_signable_documents(self, backup_list: bool = False) -> Optional[List[Dict]]:
@@ -511,7 +509,7 @@ class FlowwerAPIClient:
             List of signable documents or None if failed
         """
         if not self.api_key:
-            print("❌ No API key set. Please set api_key or call authenticate().")
+            print("No API key set. Please set api_key or call authenticate().")
             return None
 
         url = f"{self.base_url}/api/v1/documents/signable"
@@ -523,15 +521,15 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 documents = response.json()
-                print(f"✅ Retrieved {len(documents)} signable documents")
+                print(f"Retrieved {len(documents)} signable documents")
                 return documents
             else:
-                print(f"❌ Failed to get signable documents: {response.status_code}")
+                print(f"Failed to get signable documents: {response.status_code}")
                 print(f"Response: {response.text}")
                 return None
 
         except Exception as e:
-            print(f"❌ Error getting signable documents: {e}")
+            print(f"Error getting signable documents: {e}")
             return None
 
 
@@ -607,7 +605,7 @@ class DocumentHelper:
         import csv
 
         if not documents:
-            print("❌ No documents to export")
+            print("No documents to export")
             return
 
         # Define fields to export
@@ -632,6 +630,6 @@ class DocumentHelper:
                 writer.writeheader()
                 writer.writerows(documents)
 
-            print(f"✅ Exported {len(documents)} documents to {output_path}")
+            print(f"Exported {len(documents)} documents to {output_path}")
         except Exception as e:
-            print(f"❌ Error exporting to CSV: {e}")
+            print(f"Error exporting to CSV: {e}")
