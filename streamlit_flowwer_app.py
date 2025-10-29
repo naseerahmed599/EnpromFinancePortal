@@ -1,7 +1,6 @@
 """
-ENPROM Finance Portal - Professional Document Management System
-Interactive portal for financial document workflows and approvals
-With multilingual support (English/German) and professional styling
+ENPROM Finance Portal - Business Intelligence
+Interactive portal for financial document workflows
 """
 
 import streamlit as st
@@ -42,7 +41,6 @@ st.set_page_config(
 
 
 # Load language file
-@st.cache_data
 def load_languages():
     """Load language translations from JSON file"""
     try:
@@ -576,8 +574,7 @@ def apply_custom_css():
 apply_custom_css()
 
 
-# Load languages - cache it with file hash to auto-reload on changes
-@st.cache_data
+# Load languages - no caching to allow updates
 def get_languages(version=2):  # Increment version to force reload
     return load_languages()
 
@@ -784,7 +781,7 @@ with st.sidebar:
 
     # API Status
     if st.session_state.client.api_key:
-        st.success("🔐 Connected")
+        st.success("🔐 " + t("messages.connected"))
     else:
         st.error("🔐 Not Connected")
 
@@ -868,7 +865,7 @@ if page == "📋 " + t("pages.all_documents"):
                 )
                 st.session_state.documents = docs
                 if docs:
-                    st.success(f"Successfully loaded {len(docs)} documents")
+                    st.success(t("messages.successfully_loaded_docs").replace("{count}", str(len(docs))))
                 else:
                     st.warning("No documents found")
 
@@ -898,7 +895,7 @@ if page == "📋 " + t("pages.all_documents"):
 
         # Key Metrics Row - Most Important Information
         st.markdown(
-            """
+            f"""
             <h3 class="section-header" style="
                 font-size: 1.5rem;
                 font-weight: 800;
@@ -908,7 +905,7 @@ if page == "📋 " + t("pages.all_documents"):
                 gap: 0.75rem;
                 padding-bottom: 0.75rem;
             ">
-                Key Performance Metrics
+                {t('all_docs_metrics.key_performance_metrics')}
             </h3>
         """,
             unsafe_allow_html=True,
@@ -923,17 +920,17 @@ if page == "📋 " + t("pages.all_documents"):
         approval_rate = (approved_count / len(docs) * 100) if len(docs) > 0 else 0
 
         key_metrics = [
-            ("Total Documents", len(docs), "📊", "#3b82f6", "rgba(59, 130, 246, 0.04)"),
+            (t('all_docs_metrics.total_documents'), len(docs), "📊", "#3b82f6", "rgba(59, 130, 246, 0.04)"),
             (
-                "Total Value",
+                t('all_docs_metrics.total_value'),
                 f"€{total_gross:,.0f}",
                 "💰",
                 "#10b981",
                 "rgba(16, 185, 129, 0.04)",
             ),
-            ("Approved", approved_count, "✅", "#22c55e", "rgba(34, 197, 94, 0.04)"),
-            ("In Workflow", pending_count, "⏳", "#f59e0b", "rgba(245, 158, 11, 0.04)"),
-            ("Unstarted", unstarted_count, "📝", "#8b5cf6", "rgba(139, 92, 246, 0.04)"),
+            (t('all_docs_metrics.approved'), approved_count, "✅", "#22c55e", "rgba(34, 197, 94, 0.04)"),
+            (t('all_docs_metrics.in_workflow'), pending_count, "⏳", "#f59e0b", "rgba(245, 158, 11, 0.04)"),
+            (t('all_docs_metrics.unstarted'), unstarted_count, "📝", "#8b5cf6", "rgba(139, 92, 246, 0.04)"),
         ]
 
         for idx, (label, value, icon, color, bg) in enumerate(key_metrics):
@@ -992,14 +989,14 @@ if page == "📋 " + t("pages.all_documents"):
                         ">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
                                 <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700;">
-                                    In Processing Workflow
+                                    {t('all_docs_metrics.in_processing_workflow')}
                                 </h4>
                             </div>
                             <p style="margin: 0; font-size: 1.1rem; font-weight: 600;">
-                                <strong>{pending_count}</strong> document(s) in approval stages
+                                {t('all_docs_metrics.documents_in_approval').replace('{count}', f'<strong>{pending_count}</strong>')}
                             </p>
                             <p class="subtitle" style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
-                                These documents are currently in workflow stages 1-5
+                                {t('all_docs_metrics.in_workflow_stages')}
                             </p>
                         </div>
                     """,
@@ -1016,14 +1013,14 @@ if page == "📋 " + t("pages.all_documents"):
                         ">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
                                 <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700;">
-                                    Unstarted Documents
+                                    {t('all_docs_metrics.unstarted_documents')}
                                 </h4>
                             </div>
                             <p style="margin: 0; font-size: 1.1rem; font-weight: 600;">
-                                <strong>{unstarted_count}</strong> document(s) not yet started
+                                {t('all_docs_metrics.documents_not_started').replace('{count}', f'<strong>{unstarted_count}</strong>')}
                             </p>
                             <p class="subtitle" style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
-                                These documents require initial processing
+                                {t('all_docs_metrics.require_initial_processing')}
                             </p>
                         </div>
                     """,
@@ -1032,7 +1029,7 @@ if page == "📋 " + t("pages.all_documents"):
 
         # Financial Overview
         st.markdown(
-            """
+            f"""
             <h3 class="section-header" style="
                 font-size: 1.5rem;
                 font-weight: 800;
@@ -1042,7 +1039,7 @@ if page == "📋 " + t("pages.all_documents"):
                 gap: 0.75rem;
                 padding-bottom: 0.75rem;
             ">
-                Financial Summary
+                {t('all_docs_metrics.financial_summary')}
             </h3>
         """,
             unsafe_allow_html=True,
@@ -1065,7 +1062,7 @@ if page == "📋 " + t("pages.all_documents"):
                     justify-content: center;
                 ">
                     <div class="card-label" style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
-                        TOTAL GROSS
+                        {t('all_docs_metrics.total_gross')}
                     </div>
                     <div style="font-size: 2.25rem; font-weight: 900; color: #10b981; word-wrap: break-word; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                         €{total_gross:,.2f}
@@ -1090,7 +1087,7 @@ if page == "📋 " + t("pages.all_documents"):
                     justify-content: center;
                 ">
                     <div class="card-label" style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
-                        TOTAL NET
+                        {t('all_docs_metrics.total_net')}
                     </div>
                     <div style="font-size: 2.25rem; font-weight: 900; color: #3b82f6; word-wrap: break-word; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                         €{total_net:,.2f}
@@ -1116,7 +1113,7 @@ if page == "📋 " + t("pages.all_documents"):
                     justify-content: center;
                 ">
                     <div class="card-label" style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
-                        TOTAL TAX
+                        {t('all_docs_metrics.total_tax')}
                     </div>
                     <div style="font-size: 2.25rem; font-weight: 900; color: #ef4444; word-wrap: break-word; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                         €{tax_amount:,.2f}
@@ -1128,7 +1125,7 @@ if page == "📋 " + t("pages.all_documents"):
 
         # Payment Status Overview
         st.markdown(
-            """
+            f"""
             <h3 class="section-header" style="
                 font-size: 1.5rem;
                 font-weight: 800;
@@ -1138,7 +1135,7 @@ if page == "📋 " + t("pages.all_documents"):
                 gap: 0.75rem;
                 padding-bottom: 0.75rem;
             ">
-                Payment Status Breakdown
+                {t('all_docs_metrics.payment_status_overview')}
             </h3>
         """,
             unsafe_allow_html=True,
@@ -1187,7 +1184,7 @@ if page == "📋 " + t("pages.all_documents"):
         st.markdown("<br><br>", unsafe_allow_html=True)
 
         # Filter panel
-        with st.expander("Advanced Filters", expanded=True):
+        with st.expander(t('all_docs_metrics.advanced_filters'), expanded=True):
 
             # Row 1: Company, Stage, Payment State
             col1, col2, col3 = st.columns(3)
@@ -1202,9 +1199,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_company = st.selectbox(
-                    "Company",
-                    ["All"] + sorted(companies),
-                    help="Filter documents by company",
+                    t('all_docs_metrics.company'),
+                    [t('all_docs_metrics.all')] + sorted(companies),
+                    help=t('all_docs_metrics.filter_by_company_help'),
                 )
 
             with col2:
@@ -1217,9 +1214,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_stage = st.selectbox(
-                    "Stage",
-                    ["All"] + sorted(stages),
-                    help="Filter documents by current stage",
+                    t('all_docs_metrics.stage'),
+                    [t('all_docs_metrics.all')] + sorted(stages),
+                    help=t('all_docs_metrics.filter_by_stage_help'),
                 )
 
             with col3:
@@ -1232,9 +1229,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_payment = st.selectbox(
-                    "Payment State",
-                    ["All"] + sorted(payment_states),
-                    help="Filter documents by payment status",
+                    t('all_docs_metrics.payment_state'),
+                    [t('all_docs_metrics.all')] + sorted(payment_states),
+                    help=t('all_docs_metrics.filter_by_payment_help'),
                 )
 
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1253,9 +1250,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_supplier = st.selectbox(
-                    "Supplier",
-                    ["All"] + sorted(suppliers),
-                    help="Filter documents by supplier",
+                    t('all_docs_metrics.supplier'),
+                    [t('all_docs_metrics.all')] + sorted(suppliers),
+                    help=t('all_docs_metrics.filter_by_supplier_help'),
                 )
 
             with col5:
@@ -1269,9 +1266,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_currency = st.selectbox(
-                    "Currency",
-                    ["All"] + sorted(currencies),
-                    help="Filter documents by currency",
+                    t('all_docs_metrics.currency'),
+                    [t('all_docs_metrics.all')] + sorted(currencies),
+                    help=t('all_docs_metrics.filter_by_currency_help'),
                 )
 
             with col6:
@@ -1285,9 +1282,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_flow = st.selectbox(
-                    "Flow",
-                    ["All"] + sorted(flows),
-                    help="Filter documents by approval flow",
+                    t('all_docs_metrics.flow'),
+                    [t('all_docs_metrics.all')] + sorted(flows),
+                    help=t('all_docs_metrics.filter_by_flow_help'),
                 )
 
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1310,11 +1307,11 @@ if page == "📋 " + t("pages.all_documents"):
                             max_doc_date = max(valid_dates).date()
 
                             date_from = st.date_input(
-                                "Invoice Date From",
+                                t('all_docs_metrics.invoice_date_from'),
                                 value=None,
                                 min_value=min_doc_date,
                                 max_value=max_doc_date,
-                                help="Filter by invoice date (from)",
+                                help=t('all_docs_metrics.filter_by_date_from_help'),
                             )
                         else:
                             date_from = None
@@ -1328,11 +1325,11 @@ if page == "📋 " + t("pages.all_documents"):
                     try:
                         if valid_dates:
                             date_to = st.date_input(
-                                "Invoice Date To",
+                                t('all_docs_metrics.invoice_date_to'),
                                 value=None,
                                 min_value=min_doc_date,
                                 max_value=max_doc_date,
-                                help="Filter by invoice date (to)",
+                                help=t('all_docs_metrics.filter_by_date_to_help'),
                             )
                         else:
                             date_to = None
@@ -1349,12 +1346,12 @@ if page == "📋 " + t("pages.all_documents"):
                 if gross_values:
                     max_value = max(gross_values)
                     value_threshold = st.number_input(
-                        "Min Value (€)",
+                        t('all_docs_metrics.min_value'),
                         min_value=0.0,
                         max_value=float(max_value),
                         value=0.0,
                         step=100.0,
-                        help="Show only documents with value above this threshold",
+                        help=t('all_docs_metrics.filter_by_value_help'),
                     )
                 else:
                     value_threshold = 0.0
@@ -1362,42 +1359,42 @@ if page == "📋 " + t("pages.all_documents"):
         # Apply filters
         filtered_docs = st.session_state.documents
 
-        if selected_company != "All":
+        if selected_company != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("companyName") == selected_company
             ]
 
-        if selected_stage != "All":
+        if selected_stage != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("currentStage") == selected_stage
             ]
 
-        if selected_payment != "All":
+        if selected_payment != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("paymentState") == selected_payment
             ]
 
-        if selected_supplier != "All":
+        if selected_supplier != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("supplierName") == selected_supplier
             ]
 
-        if selected_currency != "All":
+        if selected_currency != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("currencyCode") == selected_currency
             ]
 
-        if selected_flow != "All":
+        if selected_flow != t('all_docs_metrics.all'):
             filtered_docs = [
                 doc for doc in filtered_docs if doc.get("flowName") == selected_flow
             ]
@@ -1449,6 +1446,7 @@ if page == "📋 " + t("pages.all_documents"):
 
         # Filter results badge
         if len(filtered_docs) != len(docs):
+            showing_text = t('all_docs_metrics.showing_of').replace('{filtered}', str(len(filtered_docs))).replace('{total}', str(len(docs)))
             st.markdown(
                 f"""
                 <div style="
@@ -1472,7 +1470,7 @@ if page == "📋 " + t("pages.all_documents"):
                 ">
                     <span style="font-size: 1.25rem;">🔎</span>
                     <span style="color: #1e40af; font-weight: 600;">
-                        Showing {len(filtered_docs)} of {len(docs)} documents
+                        {showing_text}
                     </span>
                 </div>
             """,
@@ -1502,7 +1500,7 @@ if page == "📋 " + t("pages.all_documents"):
             df = pd.DataFrame(df_data)
 
             # Modern table header
-            st.markdown("#### Documents Table")
+            st.markdown(f"#### {t('common.documents_table')}")
 
             # Display table with modern styling
             st.dataframe(
@@ -1535,7 +1533,7 @@ if page == "📋 " + t("pages.all_documents"):
             with col1:
                 csv = df.to_csv(index=False)
                 st.download_button(
-                    label="Download CSV",
+                    label=t('common.download_csv'),
                     data=csv,
                     file_name=f"flowwer_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -1545,7 +1543,7 @@ if page == "📋 " + t("pages.all_documents"):
             with col2:
                 json_data = json.dumps(filtered_docs, indent=2)
                 st.download_button(
-                    label="Download JSON",
+                    label=t('common.download_json'),
                     data=json_data,
                     file_name=f"flowwer_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
@@ -1638,7 +1636,7 @@ elif page == "🔎 " + t("pages.single_document"):
                 if doc:
                     splits = st.session_state.client.get_receipt_splits(doc_id)
                     st.session_state.receipt_splits = splits if splits else []
-                    st.success(f"Document #{doc_id} loaded successfully")
+                    st.success(t("messages.document_loaded").replace("{id}", str(doc_id)))
                 else:
                     st.error(f"❌ Document #{doc_id} not found")
 
@@ -1730,7 +1728,7 @@ elif page == "🔎 " + t("pages.single_document"):
                 splits_df = pd.DataFrame(splits)
                 csv_splits = splits_df.to_csv(index=False)
                 st.download_button(
-                    label="  Download Receipt Splits CSV",
+                    label="  " + t('single_document_page.download_receipt_splits'),
                     data=csv_splits,
                     file_name=f"document_{doc_id}_splits.csv",
                     mime="text/csv",
@@ -1738,7 +1736,7 @@ elif page == "🔎 " + t("pages.single_document"):
                 )
         else:
             st.markdown(
-                """
+                f"""
                 <div class="info-box-blue" style="
                     background: linear-gradient(135deg, 
                         rgba(255, 255, 255, 0.9) 0%, 
@@ -1757,8 +1755,7 @@ elif page == "🔎 " + t("pages.single_document"):
                 ">
                     <span style="font-size: 1.25rem;">ℹ️</span>
                     <span style="color: #1e40af; font-weight: 500;">
-                        No receipt splits (Belegaufteilung) found for this document. 
-                        The document may not have been split yet.
+                        {t('single_document_page.no_receipt_splits')}
                     </span>
                 </div>
             """,
@@ -1768,10 +1765,10 @@ elif page == "🔎 " + t("pages.single_document"):
         # Document Overview with modern header
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            """
+            f"""
             <div class="section-header">
                 <div class="section-icon">📋</div>
-                <h3>Document Overview</h3>
+                <h3>{t('single_document_page.overview')}</h3>
             </div>
         """,
             unsafe_allow_html=True,
@@ -1919,7 +1916,7 @@ elif page == "🔎 " + t("pages.single_document"):
             # Export option
             csv_data = df_details.to_csv(index=False)
             st.download_button(
-                label="  Download All Fields CSV",
+                label="  " + t('single_document_page.download_all_fields'),
                 data=csv_data,
                 file_name=f"document_{doc_id}_all_fields.csv",
                 mime="text/csv",
@@ -2150,7 +2147,7 @@ elif page == "🏢 " + t("pages.companies"):
             st.session_state.companies = companies
 
     if "companies" in st.session_state and st.session_state.companies:
-        st.success(f"Found {len(st.session_state.companies)} company/flow combinations")
+        st.success(t("messages.company_flow_found").replace("{count}", str(len(st.session_state.companies))))
 
         # Convert to DataFrame
         df_data = []
@@ -2361,33 +2358,33 @@ elif page == "  " + t("pages.download"):
         with st.spinner(f"Fetching document {download_doc_id}..."):
             doc = st.session_state.client.get_document(download_doc_id)
             if doc:
-                st.success("Document found!")
+                st.success(t("messages.document_found"))
                 st.write("**Unique ID:**")
                 st.code(doc.get("uniqueId"), language="text")
                 st.write("**Document Name:**", doc.get("simpleName"))
 
-    if unique_id and st.button("Download PDF", type="primary", key="btn_download_pdf"):
+    if unique_id and st.button(t("download_page.download"), type="primary", key="btn_download_pdf"):
         output_path = f"document_{download_doc_id}.pdf"
-        with st.spinner(f"Downloading document {download_doc_id}..."):
+        with st.spinner(t("messages.downloading_document").replace("{id}", str(download_doc_id))):
             success = st.session_state.client.download_document(
                 download_doc_id, unique_id, output_path
             )
             if success:
-                st.success(f"Document downloaded to: {output_path}")
+                st.success(t("messages.document_downloaded").replace("{path}", output_path))
 
                 # Provide download button
                 try:
                     with open(output_path, "rb") as f:
                         st.download_button(
-                            label="💾 Save to your computer",
+                            label="💾 " + t("download_page.save"),
                             data=f,
                             file_name=output_path,
                             mime="application/pdf",
                         )
                 except Exception as e:
-                    st.error(f"Error reading file: {e}")
+                    st.error(t("messages.error_reading_file").replace("{error}", str(e)))
             else:
-                st.error("❌ Download failed. Check the Document ID and Unique ID.")
+                st.error("❌ " + t("messages.download_failed"))
 
 # ============================================================================
 # PAGE: UPLOAD DOCUMENT
@@ -2489,11 +2486,11 @@ elif page == "📤 " + t("pages.upload"):
             )
 
             if result:
-                st.success("Document uploaded successfully!")
+                st.success(t("messages.document_uploaded"))
                 st.write("**Document ID:**", result.get("elementId"))
                 st.write("**Name:**", result.get("name"))
             else:
-                st.error("❌ Upload failed. Check the logs for details.")
+                st.error("❌ " + t("upload_page.failed"))
 
         # Clean up temp file
         import os
@@ -2830,21 +2827,21 @@ elif page == "📊 " + t("pages.data_explorer"):
             # Quick select buttons
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("Select All", key="btn_select_all"):
+                if st.button(t('common.select_all'), key="btn_select_all"):
                     st.session_state.selected_columns = list(df.columns)
                     # Set all checkbox states to True
                     for col_name in df.columns:
                         st.session_state[f"col_{col_name}"] = True
                     st.rerun()
             with col2:
-                if st.button("Deselect All", key="btn_deselect_all"):
+                if st.button(t('common.deselect_all'), key="btn_deselect_all"):
                     st.session_state.selected_columns = []
                     # Set all checkbox states to False
                     for col_name in df.columns:
                         st.session_state[f"col_{col_name}"] = False
                     st.rerun()
             with col3:
-                if st.button("Reset to Default", key="btn_reset_default"):
+                if st.button(t('common.reset_to_default'), key="btn_reset_default"):
                     default_columns = [
                         "Document ID",
                         "Display Name",
@@ -2924,7 +2921,7 @@ elif page == "📊 " + t("pages.data_explorer"):
             with col1:
                 csv_data = display_df.to_csv(index=False)
                 st.download_button(
-                    label="  Download CSV",
+                    label="  " + t('common.download_csv'),
                     data=csv_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -2934,16 +2931,16 @@ elif page == "📊 " + t("pages.data_explorer"):
             with col2:
                 json_data = display_df.to_json(orient="records", indent=2)
                 st.download_button(
-                    label="  Download JSON",
+                    label="  " + t('common.download_json'),
                     data=json_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
                     use_container_width=True,
                 )
         else:
-            st.warning("⚠️ Please select at least one column to display")
+            st.warning("⚠️ " + t("messages.please_select_column"))
     else:
-        st.info(" Click 'Load All Documents' above to start exploring data")
+        st.info(" " + t("messages.click_load_documents"))
 
 # ============================================================================
 # PAGE: RECEIPT SPLITTING REPORT
@@ -3010,7 +3007,7 @@ elif page == "📑 " + t("pages.receipt_report"):
                 cost_centers = st.session_state.client.get_all_cost_centers()
                 if cost_centers:
                     st.session_state.cost_centers = cost_centers
-                    st.success(f"Loaded {len(cost_centers)} cost centers")
+                    st.success(t("messages.loaded_cost_centers").replace("{count}", str(len(cost_centers))))
 
     with col2:
         if st.button(
@@ -3020,7 +3017,7 @@ elif page == "📑 " + t("pages.receipt_report"):
                 accounts = st.session_state.client.get_all_accounts()
                 if accounts:
                     st.session_state.accounts = accounts
-                    st.success(f"Loaded {len(accounts)} accounts")
+                    st.success(t("messages.loaded_accounts").replace("{count}", str(len(accounts))))
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -3274,7 +3271,7 @@ elif page == "✅ " + t("pages.approved_docs"):
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  Download CSV",
+                label="  " + t('common.download_csv'),
                 data=csv,
                 file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -3284,7 +3281,7 @@ elif page == "✅ " + t("pages.approved_docs"):
         with col2:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
-                label="  Download JSON",
+                label="  " + t('common.download_json'),
                 data=json_data,
                 file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -3404,7 +3401,7 @@ elif page == "⏳ " + t("pages.signable_docs"):
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  Download as CSV",
+                label="  " + t('signable_docs_page.download_as_csv'),
                 data=csv,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -3414,7 +3411,7 @@ elif page == "⏳ " + t("pages.signable_docs"):
         with col2:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
-                label="  Download as JSON",
+                label="  " + t('signable_docs_page.download_as_json'),
                 data=json_data,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -4151,7 +4148,7 @@ elif page == "📈 " + t("pages.analytics"):
 
             csv_data = df_export.to_csv(index=False)
             st.download_button(
-                label="📥 Download Full Data (CSV)",
+                label="📥 " + t('analytics_page.download_full_data'),
                 data=csv_data,
                 file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -4164,7 +4161,7 @@ elif page == "📈 " + t("pages.analytics"):
                 df_supplier_export = pd.DataFrame(supplier_summary)
                 csv_supplier = df_supplier_export.to_csv(index=False)
                 st.download_button(
-                    label="📥 Download Supplier Report (CSV)",
+                    label="📥 " + t('analytics_page.download_supplier_report'),
                     data=csv_supplier,
                     file_name=f"supplier_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -4187,7 +4184,7 @@ elif page == "📈 " + t("pages.analytics"):
             )
             csv_workflow = workflow_export.to_csv(index=False)
             st.download_button(
-                label="📥 Download Workflow Report (CSV)",
+                label="📥 " + t('analytics_page.download_workflow_report'),
                 data=csv_workflow,
                 file_name=f"workflow_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -4289,7 +4286,7 @@ elif page == "⚙️ " + t("pages.settings"):
             st.session_state.client.session.headers.update(
                 {"X-FLOWWER-ApiKey": new_api_key}
             )
-            st.success("API Key updated!")
+            st.success(t("messages.api_key_updated"))
             st.rerun()
 
     with tab2:
@@ -4316,7 +4313,7 @@ elif page == "⚙️ " + t("pages.settings"):
         ):
             with st.spinner("Authenticating..."):
                 if st.session_state.client.authenticate(username, password):
-                    st.success("Authentication successful!")
+                    st.success(t("messages.auth_successful"))
                     st.write("**New API Key:**")
                     st.code(st.session_state.client.api_key, language="text")
                 else:
