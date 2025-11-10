@@ -57,7 +57,7 @@ def load_languages():
         return None
 
 
-# Custom CSS for modern professional styling
+# Custom CSS for styling
 def apply_custom_css():
     st.markdown(
         """
@@ -629,13 +629,13 @@ with st.sidebar:
 
     # Language selector - elegant selectbox
     current_lang = st.session_state.language
-    lang_options = {"en": "🇬🇧 English", "de": "🇩🇪 Deutsch"}
+    lang_options = {"en": "🇬🇧 English", "de": "🇩🇪 Deutsch", "pl": "🇵🇱 Polski"}
 
     selected_lang = st.selectbox(
-        "Language / Sprache",
-        options=["en", "de"],
+        "Language / Sprache / Język",
+        options=["en", "de", "pl"],
         format_func=lambda x: lang_options[x],
-        index=0 if current_lang == "en" else 1,
+        index=0 if current_lang == "en" else (1 if current_lang == "de" else 2),
         key="language_selector",
         label_visibility="collapsed",
     )
@@ -794,7 +794,7 @@ page = st.session_state.current_page
 if page == "📋 " + t("pages.all_documents"):
     # Apply all theme-adaptive glassmorphic styles for this page
     st.markdown(get_all_document_page_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card - Theme Adaptive
     st.markdown(
         f"""
@@ -854,18 +854,22 @@ if page == "📋 " + t("pages.all_documents"):
 
     with col3:
         if st.button(
-            "Refresh Documents",
+            t("all_documents_page.refresh"),
             type="primary",
             use_container_width=True,
             key="btn_refresh_all_docs",
         ):
-            with st.spinner("Fetching documents..."):
+            with st.spinner(t("all_documents_page.loading")):
                 docs = st.session_state.client.get_all_documents(
                     include_processed=include_processed, include_deleted=include_deleted
                 )
                 st.session_state.documents = docs
                 if docs:
-                    st.success(t("messages.successfully_loaded_docs").replace("{count}", str(len(docs))))
+                    st.success(
+                        t("messages.successfully_loaded_docs").replace(
+                            "{count}", str(len(docs))
+                        )
+                    )
                 else:
                     st.warning("No documents found")
 
@@ -920,17 +924,41 @@ if page == "📋 " + t("pages.all_documents"):
         approval_rate = (approved_count / len(docs) * 100) if len(docs) > 0 else 0
 
         key_metrics = [
-            (t('all_docs_metrics.total_documents'), len(docs), "📊", "#3b82f6", "rgba(59, 130, 246, 0.04)"),
             (
-                t('all_docs_metrics.total_value'),
+                t("all_docs_metrics.total_documents"),
+                len(docs),
+                "📊",
+                "#3b82f6",
+                "rgba(59, 130, 246, 0.04)",
+            ),
+            (
+                t("all_docs_metrics.total_value"),
                 f"€{total_gross:,.0f}",
                 "💰",
                 "#10b981",
                 "rgba(16, 185, 129, 0.04)",
             ),
-            (t('all_docs_metrics.approved'), approved_count, "✅", "#22c55e", "rgba(34, 197, 94, 0.04)"),
-            (t('all_docs_metrics.in_workflow'), pending_count, "⏳", "#f59e0b", "rgba(245, 158, 11, 0.04)"),
-            (t('all_docs_metrics.unstarted'), unstarted_count, "📝", "#8b5cf6", "rgba(139, 92, 246, 0.04)"),
+            (
+                t("all_docs_metrics.approved"),
+                approved_count,
+                "✅",
+                "#22c55e",
+                "rgba(34, 197, 94, 0.04)",
+            ),
+            (
+                t("all_docs_metrics.in_workflow"),
+                pending_count,
+                "⏳",
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.04)",
+            ),
+            (
+                t("all_docs_metrics.unstarted"),
+                unstarted_count,
+                "📝",
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.04)",
+            ),
         ]
 
         for idx, (label, value, icon, color, bg) in enumerate(key_metrics):
@@ -1184,7 +1212,7 @@ if page == "📋 " + t("pages.all_documents"):
         st.markdown("<br><br>", unsafe_allow_html=True)
 
         # Filter panel
-        with st.expander(t('all_docs_metrics.advanced_filters'), expanded=True):
+        with st.expander(t("all_docs_metrics.advanced_filters"), expanded=True):
 
             # Row 1: Company, Stage, Payment State
             col1, col2, col3 = st.columns(3)
@@ -1199,9 +1227,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_company = st.selectbox(
-                    t('all_docs_metrics.company'),
-                    [t('all_docs_metrics.all')] + sorted(companies),
-                    help=t('all_docs_metrics.filter_by_company_help'),
+                    t("all_docs_metrics.company"),
+                    [t("all_docs_metrics.all")] + sorted(companies),
+                    help=t("all_docs_metrics.filter_by_company_help"),
                 )
 
             with col2:
@@ -1214,9 +1242,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_stage = st.selectbox(
-                    t('all_docs_metrics.stage'),
-                    [t('all_docs_metrics.all')] + sorted(stages),
-                    help=t('all_docs_metrics.filter_by_stage_help'),
+                    t("all_docs_metrics.stage"),
+                    [t("all_docs_metrics.all")] + sorted(stages),
+                    help=t("all_docs_metrics.filter_by_stage_help"),
                 )
 
             with col3:
@@ -1229,9 +1257,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_payment = st.selectbox(
-                    t('all_docs_metrics.payment_state'),
-                    [t('all_docs_metrics.all')] + sorted(payment_states),
-                    help=t('all_docs_metrics.filter_by_payment_help'),
+                    t("all_docs_metrics.payment_state"),
+                    [t("all_docs_metrics.all")] + sorted(payment_states),
+                    help=t("all_docs_metrics.filter_by_payment_help"),
                 )
 
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1250,9 +1278,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_supplier = st.selectbox(
-                    t('all_docs_metrics.supplier'),
-                    [t('all_docs_metrics.all')] + sorted(suppliers),
-                    help=t('all_docs_metrics.filter_by_supplier_help'),
+                    t("all_docs_metrics.supplier"),
+                    [t("all_docs_metrics.all")] + sorted(suppliers),
+                    help=t("all_docs_metrics.filter_by_supplier_help"),
                 )
 
             with col5:
@@ -1266,9 +1294,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_currency = st.selectbox(
-                    t('all_docs_metrics.currency'),
-                    [t('all_docs_metrics.all')] + sorted(currencies),
-                    help=t('all_docs_metrics.filter_by_currency_help'),
+                    t("all_docs_metrics.currency"),
+                    [t("all_docs_metrics.all")] + sorted(currencies),
+                    help=t("all_docs_metrics.filter_by_currency_help"),
                 )
 
             with col6:
@@ -1282,9 +1310,9 @@ if page == "📋 " + t("pages.all_documents"):
                     )
                 )
                 selected_flow = st.selectbox(
-                    t('all_docs_metrics.flow'),
-                    [t('all_docs_metrics.all')] + sorted(flows),
-                    help=t('all_docs_metrics.filter_by_flow_help'),
+                    t("all_docs_metrics.flow"),
+                    [t("all_docs_metrics.all")] + sorted(flows),
+                    help=t("all_docs_metrics.filter_by_flow_help"),
                 )
 
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1307,11 +1335,11 @@ if page == "📋 " + t("pages.all_documents"):
                             max_doc_date = max(valid_dates).date()
 
                             date_from = st.date_input(
-                                t('all_docs_metrics.invoice_date_from'),
+                                t("all_docs_metrics.invoice_date_from"),
                                 value=None,
                                 min_value=min_doc_date,
                                 max_value=max_doc_date,
-                                help=t('all_docs_metrics.filter_by_date_from_help'),
+                                help=t("all_docs_metrics.filter_by_date_from_help"),
                             )
                         else:
                             date_from = None
@@ -1325,11 +1353,11 @@ if page == "📋 " + t("pages.all_documents"):
                     try:
                         if valid_dates:
                             date_to = st.date_input(
-                                t('all_docs_metrics.invoice_date_to'),
+                                t("all_docs_metrics.invoice_date_to"),
                                 value=None,
                                 min_value=min_doc_date,
                                 max_value=max_doc_date,
-                                help=t('all_docs_metrics.filter_by_date_to_help'),
+                                help=t("all_docs_metrics.filter_by_date_to_help"),
                             )
                         else:
                             date_to = None
@@ -1346,12 +1374,12 @@ if page == "📋 " + t("pages.all_documents"):
                 if gross_values:
                     max_value = max(gross_values)
                     value_threshold = st.number_input(
-                        t('all_docs_metrics.min_value'),
+                        t("all_docs_metrics.min_value"),
                         min_value=0.0,
                         max_value=float(max_value),
                         value=0.0,
                         step=100.0,
-                        help=t('all_docs_metrics.filter_by_value_help'),
+                        help=t("all_docs_metrics.filter_by_value_help"),
                     )
                 else:
                     value_threshold = 0.0
@@ -1359,42 +1387,42 @@ if page == "📋 " + t("pages.all_documents"):
         # Apply filters
         filtered_docs = st.session_state.documents
 
-        if selected_company != t('all_docs_metrics.all'):
+        if selected_company != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("companyName") == selected_company
             ]
 
-        if selected_stage != t('all_docs_metrics.all'):
+        if selected_stage != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("currentStage") == selected_stage
             ]
 
-        if selected_payment != t('all_docs_metrics.all'):
+        if selected_payment != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("paymentState") == selected_payment
             ]
 
-        if selected_supplier != t('all_docs_metrics.all'):
+        if selected_supplier != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("supplierName") == selected_supplier
             ]
 
-        if selected_currency != t('all_docs_metrics.all'):
+        if selected_currency != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc
                 for doc in filtered_docs
                 if doc.get("currencyCode") == selected_currency
             ]
 
-        if selected_flow != t('all_docs_metrics.all'):
+        if selected_flow != t("all_docs_metrics.all"):
             filtered_docs = [
                 doc for doc in filtered_docs if doc.get("flowName") == selected_flow
             ]
@@ -1446,7 +1474,11 @@ if page == "📋 " + t("pages.all_documents"):
 
         # Filter results badge
         if len(filtered_docs) != len(docs):
-            showing_text = t('all_docs_metrics.showing_of').replace('{filtered}', str(len(filtered_docs))).replace('{total}', str(len(docs)))
+            showing_text = (
+                t("all_docs_metrics.showing_of")
+                .replace("{filtered}", str(len(filtered_docs)))
+                .replace("{total}", str(len(docs)))
+            )
             st.markdown(
                 f"""
                 <div style="
@@ -1533,7 +1565,7 @@ if page == "📋 " + t("pages.all_documents"):
             with col1:
                 csv = df.to_csv(index=False)
                 st.download_button(
-                    label=t('common.download_csv'),
+                    label=t("common.download_csv"),
                     data=csv,
                     file_name=f"flowwer_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -1543,7 +1575,7 @@ if page == "📋 " + t("pages.all_documents"):
             with col2:
                 json_data = json.dumps(filtered_docs, indent=2)
                 st.download_button(
-                    label=t('common.download_json'),
+                    label=t("common.download_json"),
                     data=json_data,
                     file_name=f"flowwer_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
@@ -1556,16 +1588,16 @@ if page == "📋 " + t("pages.all_documents"):
 elif page == "🔎 " + t("pages.single_document"):
     # Apply all styles at once to minimize spacing
     st.markdown(
-        get_page_header_purple() + 
-        get_action_bar_styles() + 
-        get_info_box_styles() + 
-        get_card_styles() + 
-        get_metric_styles() + 
-        get_tab_styles() +
-        get_theme_text_styles(),
+        get_page_header_purple()
+        + get_action_bar_styles()
+        + get_info_box_styles()
+        + get_card_styles()
+        + get_metric_styles()
+        + get_tab_styles()
+        + get_theme_text_styles(),
         unsafe_allow_html=True,
     )
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -1636,7 +1668,9 @@ elif page == "🔎 " + t("pages.single_document"):
                 if doc:
                     splits = st.session_state.client.get_receipt_splits(doc_id)
                     st.session_state.receipt_splits = splits if splits else []
-                    st.success(t("messages.document_loaded").replace("{id}", str(doc_id)))
+                    st.success(
+                        t("messages.document_loaded").replace("{id}", str(doc_id))
+                    )
                 else:
                     st.error(f"❌ Document #{doc_id} not found")
 
@@ -1728,7 +1762,7 @@ elif page == "🔎 " + t("pages.single_document"):
                 splits_df = pd.DataFrame(splits)
                 csv_splits = splits_df.to_csv(index=False)
                 st.download_button(
-                    label="  " + t('single_document_page.download_receipt_splits'),
+                    label="  " + t("single_document_page.download_receipt_splits"),
                     data=csv_splits,
                     file_name=f"document_{doc_id}_splits.csv",
                     mime="text/csv",
@@ -1808,7 +1842,7 @@ elif page == "🔎 " + t("pages.single_document"):
         """,
             unsafe_allow_html=True,
         )
-        
+
         st.markdown("<br>", unsafe_allow_html=True)
 
         tab1, tab2, tab3, tab4, tab5 = st.tabs(
@@ -1916,7 +1950,7 @@ elif page == "🔎 " + t("pages.single_document"):
             # Export option
             csv_data = df_details.to_csv(index=False)
             st.download_button(
-                label="  " + t('single_document_page.download_all_fields'),
+                label="  " + t("single_document_page.download_all_fields"),
                 data=csv_data,
                 file_name=f"document_{doc_id}_all_fields.csv",
                 mime="text/csv",
@@ -2091,7 +2125,7 @@ elif page == "🏢 " + t("pages.companies"):
         get_card_styles() + get_theme_text_styles() + get_section_header_styles(),
         unsafe_allow_html=True,
     )
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -2147,7 +2181,11 @@ elif page == "🏢 " + t("pages.companies"):
             st.session_state.companies = companies
 
     if "companies" in st.session_state and st.session_state.companies:
-        st.success(t("messages.company_flow_found").replace("{count}", str(len(st.session_state.companies))))
+        st.success(
+            t("messages.company_flow_found").replace(
+                "{count}", str(len(st.session_state.companies))
+            )
+        )
 
         # Convert to DataFrame
         df_data = []
@@ -2182,7 +2220,7 @@ elif page == "🏢 " + t("pages.companies"):
         """,
             unsafe_allow_html=True,
         )
-        
+
         col1, col2 = st.columns(2)
 
         unique_companies = df["Company Name"].nunique()
@@ -2277,7 +2315,7 @@ elif page == "  " + t("pages.download"):
     # Apply cyan header styles
     st.markdown(get_page_header_cyan(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -2318,10 +2356,10 @@ elif page == "  " + t("pages.download"):
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Apply info box styles
     st.markdown(get_info_box_styles(), unsafe_allow_html=True)
-    
+
     # Info box with glassmorphic styling
     st.markdown(
         f"""
@@ -2348,7 +2386,7 @@ elif page == "  " + t("pages.download"):
     st.write(
         "**Tip:** Get the Unique ID by first viewing the document details in the 'Single Document' page"
     )
-    
+
     # Apply action bar styles
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
@@ -2363,14 +2401,20 @@ elif page == "  " + t("pages.download"):
                 st.code(doc.get("uniqueId"), language="text")
                 st.write("**Document Name:**", doc.get("simpleName"))
 
-    if unique_id and st.button(t("download_page.download"), type="primary", key="btn_download_pdf"):
+    if unique_id and st.button(
+        t("download_page.download"), type="primary", key="btn_download_pdf"
+    ):
         output_path = f"document_{download_doc_id}.pdf"
-        with st.spinner(t("messages.downloading_document").replace("{id}", str(download_doc_id))):
+        with st.spinner(
+            t("messages.downloading_document").replace("{id}", str(download_doc_id))
+        ):
             success = st.session_state.client.download_document(
                 download_doc_id, unique_id, output_path
             )
             if success:
-                st.success(t("messages.document_downloaded").replace("{path}", output_path))
+                st.success(
+                    t("messages.document_downloaded").replace("{path}", output_path)
+                )
 
                 # Provide download button
                 try:
@@ -2382,7 +2426,9 @@ elif page == "  " + t("pages.download"):
                             mime="application/pdf",
                         )
                 except Exception as e:
-                    st.error(t("messages.error_reading_file").replace("{error}", str(e)))
+                    st.error(
+                        t("messages.error_reading_file").replace("{error}", str(e))
+                    )
             else:
                 st.error("❌ " + t("messages.download_failed"))
 
@@ -2392,7 +2438,7 @@ elif page == "  " + t("pages.download"):
 elif page == "📤 " + t("pages.upload"):
     # Apply rose header styles
     st.markdown(get_page_header_rose(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -2436,7 +2482,7 @@ elif page == "📤 " + t("pages.upload"):
 
     # Apply alert box styles
     st.markdown(get_alert_box_styles(), unsafe_allow_html=True)
-    
+
     # Feature disabled notice with glassmorphic styling
     st.markdown(
         """
@@ -2507,7 +2553,7 @@ elif page == "📊 " + t("pages.data_explorer"):
     # Apply teal header styles
     st.markdown(get_page_header_teal(), unsafe_allow_html=True)
     st.markdown(get_export_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -2548,31 +2594,34 @@ elif page == "📊 " + t("pages.data_explorer"):
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Apply card styles (includes section headers) and action bar styles
     st.markdown(get_card_styles(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
     # Load Data Section
-    st.markdown('<div class="section-header"><span class="section-icon">1️⃣</span> Load Data</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header"><span class="section-icon">1️⃣</span> Load Data</div>',
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3 = st.columns(3)
     with col1:
         include_processed = st.checkbox(
-            "Include Processed Documents", value=True, key="explorer_processed"
+            t("data_explorer_page.include_processed"), value=True, key="explorer_processed"
         )
     with col2:
         include_deleted = st.checkbox(
-            "Include Deleted Documents", value=False, key="explorer_deleted"
+            t("data_explorer_page.include_deleted"), value=False, key="explorer_deleted"
         )
     with col3:
         if st.button(
-            "Load All Documents",
+            t("data_explorer_page.load_all_documents"),
             type="primary",
             use_container_width=True,
             key="btn_load_explorer_docs",
         ):
-            with st.spinner("Loading documents and receipt splits..."):
+            with st.spinner(t("data_explorer_page.loading")):
                 # Fetch all documents
                 docs = st.session_state.client.get_all_documents(
                     include_processed=include_processed, include_deleted=include_deleted
@@ -2827,21 +2876,21 @@ elif page == "📊 " + t("pages.data_explorer"):
             # Quick select buttons
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button(t('common.select_all'), key="btn_select_all"):
+                if st.button(t("common.select_all"), key="btn_select_all"):
                     st.session_state.selected_columns = list(df.columns)
                     # Set all checkbox states to True
                     for col_name in df.columns:
                         st.session_state[f"col_{col_name}"] = True
                     st.rerun()
             with col2:
-                if st.button(t('common.deselect_all'), key="btn_deselect_all"):
+                if st.button(t("common.deselect_all"), key="btn_deselect_all"):
                     st.session_state.selected_columns = []
                     # Set all checkbox states to False
                     for col_name in df.columns:
                         st.session_state[f"col_{col_name}"] = False
                     st.rerun()
             with col3:
-                if st.button(t('common.reset_to_default'), key="btn_reset_default"):
+                if st.button(t("common.reset_to_default"), key="btn_reset_default"):
                     default_columns = [
                         "Document ID",
                         "Display Name",
@@ -2857,7 +2906,9 @@ elif page == "📊 " + t("pages.data_explorer"):
                     st.session_state.selected_columns = default_columns
                     # Set checkbox states: True for default columns, False for others
                     for col_name in df.columns:
-                        st.session_state[f"col_{col_name}"] = col_name in default_columns
+                        st.session_state[f"col_{col_name}"] = (
+                            col_name in default_columns
+                        )
                     st.rerun()
 
             st.markdown("---")
@@ -2873,23 +2924,29 @@ elif page == "📊 " + t("pages.data_explorer"):
                         if col_name in df.columns:
                             # Use session state as source of truth
                             is_selected = col_name in st.session_state.selected_columns
-                            
+
                             # Checkbox with explicit value from session state
                             checkbox_key = f"col_{col_name}"
                             # Initialize checkbox state if not exists
                             if checkbox_key not in st.session_state:
                                 st.session_state[checkbox_key] = is_selected
-                            
+
                             new_value = st.checkbox(
-                                col_name, 
-                                value=st.session_state[checkbox_key], 
-                                key=checkbox_key
+                                col_name,
+                                value=st.session_state[checkbox_key],
+                                key=checkbox_key,
                             )
-                            
+
                             # Update selected_columns list based on checkbox
-                            if new_value and col_name not in st.session_state.selected_columns:
+                            if (
+                                new_value
+                                and col_name not in st.session_state.selected_columns
+                            ):
                                 st.session_state.selected_columns.append(col_name)
-                            elif not new_value and col_name in st.session_state.selected_columns:
+                            elif (
+                                not new_value
+                                and col_name in st.session_state.selected_columns
+                            ):
                                 st.session_state.selected_columns.remove(col_name)
 
                 st.markdown("")  # Spacing
@@ -2900,7 +2957,10 @@ elif page == "📊 " + t("pages.data_explorer"):
 
         # Display Data Section
         st.markdown("---")
-        st.markdown(f'<div class="section-header"><span class="section-icon">3️⃣</span> {t("common.view_export_data")}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-header"><span class="section-icon">3️⃣</span> {t("common.view_export_data")}</div>',
+            unsafe_allow_html=True,
+        )
 
         # Filter data by selected columns
         if st.session_state.selected_columns:
@@ -2914,14 +2974,17 @@ elif page == "📊 " + t("pages.data_explorer"):
 
             # Export options
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown('<div class="section-header"><span class="section-icon">📦</span> Export Options</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="section-header"><span class="section-icon">📦</span> Export Options</div>',
+                unsafe_allow_html=True,
+            )
 
             col1, col2 = st.columns(2)
 
             with col1:
                 csv_data = display_df.to_csv(index=False)
                 st.download_button(
-                    label="  " + t('common.download_csv'),
+                    label="  " + t("common.download_csv"),
                     data=csv_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -2931,7 +2994,7 @@ elif page == "📊 " + t("pages.data_explorer"):
             with col2:
                 json_data = display_df.to_json(orient="records", indent=2)
                 st.download_button(
-                    label="  " + t('common.download_json'),
+                    label="  " + t("common.download_json"),
                     data=json_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
@@ -2949,7 +3012,7 @@ elif page == "📑 " + t("pages.receipt_report"):
     # Apply indigo header styles
     st.markdown(get_page_header_indigo(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -2990,12 +3053,15 @@ elif page == "📑 " + t("pages.receipt_report"):
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Apply card styles (includes section headers)
     st.markdown(get_card_styles(), unsafe_allow_html=True)
 
     # Load filter options first
-    st.markdown(f'<div class="section-header"><span class="section-icon">1️⃣</span> {t("receipt_report_page.load_options")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="section-header"><span class="section-icon">1️⃣</span> {t("receipt_report_page.load_options")}</div>',
+        unsafe_allow_html=True,
+    )
 
     col1, col2 = st.columns(2)
 
@@ -3007,7 +3073,11 @@ elif page == "📑 " + t("pages.receipt_report"):
                 cost_centers = st.session_state.client.get_all_cost_centers()
                 if cost_centers:
                     st.session_state.cost_centers = cost_centers
-                    st.success(t("messages.loaded_cost_centers").replace("{count}", str(len(cost_centers))))
+                    st.success(
+                        t("messages.loaded_cost_centers").replace(
+                            "{count}", str(len(cost_centers))
+                        )
+                    )
 
     with col2:
         if st.button(
@@ -3017,12 +3087,19 @@ elif page == "📑 " + t("pages.receipt_report"):
                 accounts = st.session_state.client.get_all_accounts()
                 if accounts:
                     st.session_state.accounts = accounts
-                    st.success(t("messages.loaded_accounts").replace("{count}", str(len(accounts))))
+                    st.success(
+                        t("messages.loaded_accounts").replace(
+                            "{count}", str(len(accounts))
+                        )
+                    )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Filter Section
-    st.markdown(f'<div class="section-header"><span class="section-icon">2️⃣</span> {t("receipt_report_page.filters")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="section-header"><span class="section-icon">2️⃣</span> {t("receipt_report_page.filters")}</div>',
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3 = st.columns(3)
 
@@ -3141,7 +3218,7 @@ elif page == "✅ " + t("pages.approved_docs"):
     # Apply green header styles
     st.markdown(get_page_header_green(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -3271,7 +3348,7 @@ elif page == "✅ " + t("pages.approved_docs"):
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  " + t('common.download_csv'),
+                label="  " + t("common.download_csv"),
                 data=csv,
                 file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -3281,7 +3358,7 @@ elif page == "✅ " + t("pages.approved_docs"):
         with col2:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
-                label="  " + t('common.download_json'),
+                label="  " + t("common.download_json"),
                 data=json_data,
                 file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -3297,7 +3374,7 @@ elif page == "⏳ " + t("pages.signable_docs"):
     # Apply amber header styles
     st.markdown(get_page_header_amber(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -3401,7 +3478,7 @@ elif page == "⏳ " + t("pages.signable_docs"):
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  " + t('signable_docs_page.download_as_csv'),
+                label="  " + t("signable_docs_page.download_as_csv"),
                 data=csv,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -3411,7 +3488,7 @@ elif page == "⏳ " + t("pages.signable_docs"):
         with col2:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
-                label="  " + t('signable_docs_page.download_as_json'),
+                label="  " + t("signable_docs_page.download_as_json"),
                 data=json_data,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -3427,7 +3504,7 @@ elif page == "📈 " + t("pages.analytics"):
     # Apply amber header styles
     st.markdown(get_page_header_amber(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -3468,15 +3545,15 @@ elif page == "📈 " + t("pages.analytics"):
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Apply card styles (for section headers) and tab styles
     st.markdown(
-        get_card_styles() + 
-        get_tab_styles() + 
-        get_metric_styles() + 
-        get_theme_text_styles() + 
-        get_section_header_styles(), 
-        unsafe_allow_html=True
+        get_card_styles()
+        + get_tab_styles()
+        + get_metric_styles()
+        + get_theme_text_styles()
+        + get_section_header_styles(),
+        unsafe_allow_html=True,
     )
 
     # Load controls
@@ -3484,17 +3561,17 @@ elif page == "📈 " + t("pages.analytics"):
 
     with col1:
         include_processed_analytics = st.checkbox(
-            "Include Processed", value=True, key="analytics_processed"
+            t("analytics_page.include_processed"), value=True, key="analytics_processed"
         )
 
     with col2:
         include_deleted_analytics = st.checkbox(
-            "Include Deleted", value=False, key="analytics_deleted"
+            t("analytics_page.include_deleted"), value=False, key="analytics_deleted"
         )
 
     with col3:
         if st.button(
-            "Load Data",
+            t("analytics_page.load_data"),
             type="primary",
             use_container_width=True,
             key="btn_load_analytics_docs",
@@ -3592,10 +3669,30 @@ elif page == "📈 " + t("pages.analytics"):
 
         kpis = [
             ("Total Documents", len(docs), "#3b82f6", "rgba(59, 130, 246, 0.04)"),
-            ("Total Value", f"€{total_gross:,.0f}", "#10b981", "rgba(16, 185, 129, 0.04)"),
-            ("Avg Invoice", f"€{avg_invoice_value:,.0f}", "#8b5cf6", "rgba(139, 92, 246, 0.04)"),
-            ("Approval Rate", f"{approval_rate:.1f}%", "#22c55e", "rgba(34, 197, 94, 0.04)"),
-            ("Pending Payments", f"€{pending_payment_value:,.0f}", "#f59e0b", "rgba(245, 158, 11, 0.04)"),
+            (
+                "Total Value",
+                f"€{total_gross:,.0f}",
+                "#10b981",
+                "rgba(16, 185, 129, 0.04)",
+            ),
+            (
+                "Avg Invoice",
+                f"€{avg_invoice_value:,.0f}",
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.04)",
+            ),
+            (
+                "Approval Rate",
+                f"{approval_rate:.1f}%",
+                "#22c55e",
+                "rgba(34, 197, 94, 0.04)",
+            ),
+            (
+                "Pending Payments",
+                f"€{pending_payment_value:,.0f}",
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.04)",
+            ),
             ("Total Tax", f"€{total_tax:,.0f}", "#ef4444", "rgba(239, 68, 68, 0.04)"),
         ]
 
@@ -3696,7 +3793,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col1:
                 # Payment Status Distribution (Donut Chart)
-                st.markdown('<div class="section-header"><span class="section-icon">💳</span> Payment Status</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">💳</span> Payment Status</div>',
+                    unsafe_allow_html=True,
+                )
                 if payment_counts:
                     fig_payment = px.pie(
                         values=list(payment_counts.values()),
@@ -3716,7 +3816,10 @@ elif page == "📈 " + t("pages.analytics"):
                     st.plotly_chart(fig_payment, use_container_width=True)
 
                 # Currency Breakdown
-                st.markdown('<div class="section-header"><span class="section-icon">💱</span> Currency Distribution</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">💱</span> Currency Distribution</div>',
+                    unsafe_allow_html=True,
+                )
                 currency_totals = {}
                 for doc in docs:
                     currency = doc.get("currencyCode", "EUR")
@@ -3747,7 +3850,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col2:
                 # Payment State by Value (Bar Chart)
-                st.markdown('<div class="section-header"><span class="section-icon">💵</span> Payment Value by Status</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">💵</span> Payment Value by Status</div>',
+                    unsafe_allow_html=True,
+                )
                 if payment_totals:
                     fig_payment_value = px.bar(
                         x=list(payment_totals.keys()),
@@ -3760,7 +3866,10 @@ elif page == "📈 " + t("pages.analytics"):
                     st.plotly_chart(fig_payment_value, use_container_width=True)
 
                 # Top 5 Invoices
-                st.markdown('<div class="section-header"><span class="section-icon">🏆</span> Top 5 Largest Invoices</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">🏆</span> Top 5 Largest Invoices</div>',
+                    unsafe_allow_html=True,
+                )
                 sorted_docs = sorted(
                     docs, key=lambda x: x.get("totalGross", 0), reverse=True
                 )[:5]
@@ -3810,7 +3919,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col1:
                 # Workflow Funnel
-                st.markdown('<div class="section-header"><span class="section-icon">📊</span> Document Workflow Funnel</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">📊</span> Document Workflow Funnel</div>',
+                    unsafe_allow_html=True,
+                )
 
                 funnel_data = {
                     "Stage": [
@@ -3840,7 +3952,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col2:
                 # Stage Distribution (Pie)
-                st.markdown('<div class="section-header"><span class="section-icon">🎯</span> Current Stage Distribution</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">🎯</span> Current Stage Distribution</div>',
+                    unsafe_allow_html=True,
+                )
 
                 if stage_counts:
                     fig_stages = px.pie(
@@ -3857,7 +3972,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             # Workflow Metrics
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown('<div class="section-header"><span class="section-icon">📈</span> Workflow Efficiency Metrics</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="section-header"><span class="section-icon">📈</span> Workflow Efficiency Metrics</div>',
+                unsafe_allow_html=True,
+            )
 
             metric_cols = st.columns(4)
 
@@ -3872,10 +3990,25 @@ elif page == "📈 " + t("pages.analytics"):
             in_progress_rate = (in_workflow / len(docs) * 100) if len(docs) > 0 else 0
 
             workflow_metrics = [
-                ("Completion Rate", f"{completion_rate:.1f}%", "#22c55e", "rgba(34, 197, 94, 0.04)"),
-                ("In Progress", f"{in_progress_rate:.1f}%", "#3b82f6", "rgba(59, 130, 246, 0.04)"),
+                (
+                    "Completion Rate",
+                    f"{completion_rate:.1f}%",
+                    "#22c55e",
+                    "rgba(34, 197, 94, 0.04)",
+                ),
+                (
+                    "In Progress",
+                    f"{in_progress_rate:.1f}%",
+                    "#3b82f6",
+                    "rgba(59, 130, 246, 0.04)",
+                ),
                 ("Bottleneck", bottleneck_stage, "#f59e0b", "rgba(245, 158, 11, 0.04)"),
-                ("Avg Stages", f"{(in_workflow / 5):.1f}", "#8b5cf6", "rgba(139, 92, 246, 0.04)"),
+                (
+                    "Avg Stages",
+                    f"{(in_workflow / 5):.1f}",
+                    "#8b5cf6",
+                    "rgba(139, 92, 246, 0.04)",
+                ),
             ]
 
             for idx, (label, value, color, bg) in enumerate(workflow_metrics):
@@ -3944,7 +4077,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col1:
                 # Top 10 Suppliers by Value
-                st.markdown('<div class="section-header"><span class="section-icon">🏆</span> Top 10 Suppliers by Value</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">🏆</span> Top 10 Suppliers by Value</div>',
+                    unsafe_allow_html=True,
+                )
 
                 supplier_values = {}
                 supplier_counts = {}
@@ -3972,7 +4108,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             with col2:
                 # Top 10 Suppliers by Document Count
-                st.markdown('<div class="section-header"><span class="section-icon">📊</span> Top 10 Suppliers by Document Count</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">📊</span> Top 10 Suppliers by Document Count</div>',
+                    unsafe_allow_html=True,
+                )
 
                 top_suppliers_count = sorted(
                     supplier_counts.items(), key=lambda x: x[1], reverse=True
@@ -3992,7 +4131,10 @@ elif page == "📈 " + t("pages.analytics"):
 
             # Supplier Statistics Table
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown('<div class="section-header"><span class="section-icon">📋</span> Supplier Statistics Summary</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="section-header"><span class="section-icon">📋</span> Supplier Statistics Summary</div>',
+                unsafe_allow_html=True,
+            )
 
             supplier_summary = []
             for supplier in sorted(
@@ -4040,7 +4182,10 @@ elif page == "📈 " + t("pages.analytics"):
 
                 with col1:
                     # Invoice Timeline Scatter
-                    st.markdown('<div class="section-header"><span class="section-icon">📈</span> Invoice Value Timeline</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="section-header"><span class="section-icon">📈</span> Invoice Value Timeline</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     timeline_data = []
                     for doc in docs_with_dates:
@@ -4078,7 +4223,10 @@ elif page == "📈 " + t("pages.analytics"):
 
                 with col2:
                     # Monthly Summary
-                    st.markdown('<div class="section-header"><span class="section-icon">📊</span> Monthly Summary</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="section-header"><span class="section-icon">📊</span> Monthly Summary</div>',
+                        unsafe_allow_html=True,
+                    )
 
                     df_timeline["Month"] = (
                         df_timeline["Date"].dt.to_period("M").astype(str)
@@ -4098,7 +4246,10 @@ elif page == "📈 " + t("pages.analytics"):
 
                 # Monthly Trend Line Chart
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown('<div class="section-header"><span class="section-icon">📈</span> Monthly Invoice Trends</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-header"><span class="section-icon">📈</span> Monthly Invoice Trends</div>',
+                    unsafe_allow_html=True,
+                )
 
                 monthly_trend = (
                     df_timeline.groupby("Month").agg({"Value": "sum"}).reset_index()
@@ -4148,7 +4299,7 @@ elif page == "📈 " + t("pages.analytics"):
 
             csv_data = df_export.to_csv(index=False)
             st.download_button(
-                label="📥 " + t('analytics_page.download_full_data'),
+                label="📥 " + t("analytics_page.download_full_data"),
                 data=csv_data,
                 file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -4161,7 +4312,7 @@ elif page == "📈 " + t("pages.analytics"):
                 df_supplier_export = pd.DataFrame(supplier_summary)
                 csv_supplier = df_supplier_export.to_csv(index=False)
                 st.download_button(
-                    label="📥 " + t('analytics_page.download_supplier_report'),
+                    label="📥 " + t("analytics_page.download_supplier_report"),
                     data=csv_supplier,
                     file_name=f"supplier_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -4184,7 +4335,7 @@ elif page == "📈 " + t("pages.analytics"):
             )
             csv_workflow = workflow_export.to_csv(index=False)
             st.download_button(
-                label="📥 " + t('analytics_page.download_workflow_report'),
+                label="📥 " + t("analytics_page.download_workflow_report"),
                 data=csv_workflow,
                 file_name=f"workflow_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -4197,7 +4348,7 @@ elif page == "📈 " + t("pages.analytics"):
 elif page == "⚙️ " + t("pages.settings"):
     # Apply slate header styles
     st.markdown(get_page_header_slate(), unsafe_allow_html=True)
-    
+
     # Glossy page header card
     st.markdown(
         f"""
@@ -4238,7 +4389,7 @@ elif page == "⚙️ " + t("pages.settings"):
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Apply card styles (for section headers), tab styles, and alert box styles
     st.markdown(get_card_styles(), unsafe_allow_html=True)
     st.markdown(get_tab_styles(), unsafe_allow_html=True)
@@ -4255,7 +4406,10 @@ elif page == "⚙️ " + t("pages.settings"):
         unsafe_allow_html=True,
     )
 
-    st.markdown(f'<div class="section-header"><span class="section-icon">🔐</span> {t("settings_page.api_config")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="section-header"><span class="section-icon">🔐</span> {t("settings_page.api_config")}</div>',
+        unsafe_allow_html=True,
+    )
 
     current_key = st.session_state.client.api_key
     st.write("**Current API Key:**")
@@ -4267,7 +4421,10 @@ elif page == "⚙️ " + t("pages.settings"):
         st.code("Not set", language="text")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-header"><span class="section-icon">🔑</span> Change API Key</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header"><span class="section-icon">🔑</span> Change API Key</div>',
+        unsafe_allow_html=True,
+    )
 
     tab1, tab2 = st.tabs(["Use Existing Key", "Generate New Key"])
 

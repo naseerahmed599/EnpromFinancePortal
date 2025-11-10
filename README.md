@@ -2,7 +2,7 @@
 
 Python client for interacting with the Flowwer REST API.
 
-## 📋 API Credentials
+##  API Credentials
 
 - **Account Name:** `enprom-gmbh`
 - **API Key:** `[Contact repository owner for API key]`
@@ -12,7 +12,7 @@ Python client for interacting with the Flowwer REST API.
 > **Note:** For security reasons, the API key is not included in this repository. 
 > Store your API key in an environment variable or a `.env` file (not committed to git).
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Install Requirements
 
@@ -70,7 +70,7 @@ Or create a `.env` file (add to `.gitignore`):
 FLOWWER_API_KEY=your-api-key-here
 ```
 
-## 📚 Available Methods
+##  Available Methods
 
 ### FlowwerAPIClient
 
@@ -95,7 +95,7 @@ FLOWWER_API_KEY=your-api-key-here
 - `filter_documents_by_stage(documents, stage)` - Filter by stage
 - `export_to_csv(documents, output_path)` - Export documents to CSV
 
-## 🧪 Testing with Postman
+##  Testing with Postman
 
 See [POSTMAN_GUIDE.md](POSTMAN_GUIDE.md) for complete Postman testing instructions.
 
@@ -104,7 +104,7 @@ Quick steps:
 2. The API key is already configured
 3. Start testing endpoints!
 
-## 📖 Document Stages
+##  Document Stages
 
 Documents in Flowwer go through various stages:
 - `Draft` - Initial upload
@@ -114,7 +114,7 @@ Documents in Flowwer go through various stages:
 - `Processed` - Document processed
 - `DeletedAfterRejection` - Deleted after rejection
 
-## 💳 Payment States
+##  Payment States
 
 - `Unset` - Not set
 - `ToBePaid` - Needs payment
@@ -124,7 +124,7 @@ Documents in Flowwer go through various stages:
 - `DoneWithoutPayment` - No payment needed
 - `ToBePaidExternal` - External payment
 
-## 🌐 FTP Access (Optional)
+##  FTP Access (Optional)
 
 For automated file uploads via FTP:
 
@@ -134,7 +134,7 @@ Username: enprom-gmbh+ApiKeyUser
 Password: [Use your API key]
 ```
 
-## 📝 Example: Get and Export Documents
+##  Example: Get and Export Documents
 
 ```python
 from flowwer_api_client import FlowwerAPIClient, DocumentHelper
@@ -163,7 +163,7 @@ for doc in filtered[:10]:
     DocumentHelper.print_document_summary(doc)
 ```
 
-## 📝 Example: Download Invoices
+##  Example: Download Invoices
 
 ```python
 from flowwer_api_client import FlowwerAPIClient
@@ -184,7 +184,7 @@ if doc:
     client.download_document(123456, unique_id, filename)
 ```
 
-## 🔧 Error Handling
+## Error Handling
 
 Common response codes:
 - `200` - Success
@@ -193,11 +193,11 @@ Common response codes:
 - `404` - Not found
 - `503` - Service unavailable
 
-## 📞 Support
+##  Support
 
 For API support, contact: support@flowwer.de
 
-## 📄 Files
+##  Files
 
 - `flowwer_api_client.py` - Main API client library
 - `test_flowwer_api.py` - Interactive test script
