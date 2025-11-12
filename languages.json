@@ -26,7 +26,15 @@
       "receipt_report": "Receipt Splitting Report",
       "approved_docs": "Approved Documents",
       "signable_docs": "Pending Approvals",
-      "settings": "Settings"
+      "settings": "Settings",
+      "test": "Test Comparison"
+    },
+    "test_page": {
+      "title": "Test & Data Comparison",
+      "subtitle": "Compare imported data with Excel booking data",
+      "load_excel": "Load Excel Data",
+      "excel_file": "Booking DataTable Excel File",
+      "rows_loaded": "Rows loaded"
     },
     "receipt_report_page": {
       "title": "Receipt Splitting Report",
@@ -348,7 +356,15 @@
       "receipt_report": "Belegaufteilungsbericht",
       "approved_docs": "Genehmigte Dokumente",
       "signable_docs": "Ausstehende Genehmigungen",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "test": "Test Vergleich"
+    },
+    "test_page": {
+      "title": "Test & Datenvergleich",
+      "subtitle": "Vergleichen Sie importierte Daten mit Excel-Buchungsdaten",
+      "load_excel": "Excel-Daten laden",
+      "excel_file": "Booking DataTable Excel-Datei",
+      "rows_loaded": "Zeilen geladen"
     },
     "receipt_report_page": {
       "title": "Belegaufteilungsbericht",
@@ -670,7 +686,15 @@
       "receipt_report": "Raport Podziału Paragonu",
       "approved_docs": "Zatwierdzone Dokumenty",
       "signable_docs": "Oczekujące Zatwierdzenia",
-      "settings": "Ustawienia"
+      "settings": "Ustawienia",
+      "test": "Test Porównania"
+    },
+    "test_page": {
+      "title": "Test i Porównanie Danych",
+      "subtitle": "Porównaj zaimportowane dane z danymi księgowymi Excel",
+      "load_excel": "Załaduj Dane Excel",
+      "excel_file": "Plik Excel Booking DataTable",
+      "rows_loaded": "Załadowane wiersze"
     },
     "receipt_report_page": {
       "title": "Raport Podziału Paragonu",
