@@ -24,6 +24,7 @@ import json
 import plotly.express as px
 import plotly.graph_objects as go
 import openpyxl
+from io import BytesIO
 from styles import (
     get_all_document_page_styles,
     get_page_header_purple,
@@ -44,6 +45,16 @@ from styles import (
     get_theme_text_styles,
     get_section_header_styles,
 )
+
+
+# Helper function to convert DataFrame to Excel
+def to_excel(df: pd.DataFrame) -> bytes:
+    """Convert DataFrame to Excel file bytes"""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Data")
+    return output.getvalue()
+
 
 # Page config
 st.set_page_config(
@@ -1578,7 +1589,7 @@ if page == "📋 " + t("pages.all_documents"):
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(f"#### {t('common.export_options')}")
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
 
             with col1:
                 csv = df.to_csv(index=False)
@@ -1591,6 +1602,16 @@ if page == "📋 " + t("pages.all_documents"):
                 )
 
             with col2:
+                excel_data = to_excel(df)
+                st.download_button(
+                    label=t("common.download_excel"),
+                    data=excel_data,
+                    file_name=f"flowwer_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+
+            with col3:
                 json_data = json.dumps(filtered_docs, indent=2)
                 st.download_button(
                     label=t("common.download_json"),
@@ -1658,39 +1679,95 @@ elif page == "🔎 " + t("pages.single_document"):
     )
 
     # Search panel
+    st.markdown("### Search by Document ID or Invoice Number")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        search_type = st.radio(
+            "Search by:",
+            options=["Document ID", "Invoice Number"],
+            horizontal=True,
+            help="Choose whether to search by Document ID or Invoice Number",
+        )
+
+    with col2:
+        pass  # Empty for spacing
+
     col1, col2 = st.columns([4, 1])
 
     with col1:
-        doc_id = st.number_input(
-            "🔢 " + t("single_document_page.enter_id"),
-            min_value=1,
-            step=1,
-            value=1,
-            help="Enter the unique document ID to retrieve details",
-            label_visibility="visible",
-        )
+        if search_type == "Document ID":
+            search_value = st.number_input(
+                "Document ID",
+                min_value=1,
+                step=1,
+                value=1,
+                help="Enter the unique document ID to retrieve details",
+            )
+        else:
+            search_value = st.text_input(
+                "Invoice Number",
+                placeholder="Enter invoice number...",
+                help="Enter the invoice number to search for the document",
+            )
 
     with col2:
         # Align button with input field
         st.markdown('<div style="margin-top: 1.85rem;"></div>', unsafe_allow_html=True)
         if st.button(
-            t("common.get_document"),
+            "Search",
             type="primary",
             use_container_width=True,
             key="btn_get_document_details",
         ):
-            with st.spinner("🔍 " + t("common.loading")):
-                doc = st.session_state.client.get_document(doc_id)
-                st.session_state.selected_document = doc
-                # Also get receipt splits (Belegaufteilung)
-                if doc:
-                    splits = st.session_state.client.get_receipt_splits(doc_id)
-                    st.session_state.receipt_splits = splits if splits else []
-                    st.success(
-                        t("messages.document_loaded").replace("{id}", str(doc_id))
-                    )
+            with st.spinner("🔍 Searching..."):
+                doc = None
+
+                if search_type == "Document ID":
+                    doc = st.session_state.client.get_document(int(search_value))
+                    doc_id = int(search_value)
                 else:
-                    st.error(f"❌ Document #{doc_id} not found")
+                    # Search by invoice number - get all documents and filter
+                    if search_value:
+                        all_docs = st.session_state.client.get_all_documents(
+                            include_processed=True
+                        )
+                        if all_docs:
+                            matching_docs = [
+                                d
+                                for d in all_docs
+                                if d.get("invoiceNumber") == search_value
+                            ]
+                            if matching_docs:
+                                doc = matching_docs[0]  # Take first match
+                                doc_id = doc.get("documentId")
+                            else:
+                                st.error(
+                                    f"❌ No document found with invoice number: {search_value}"
+                                )
+                        else:
+                            st.error("❌ Failed to retrieve documents")
+                    else:
+                        st.warning("⚠️ Please enter an invoice number")
+
+                if doc:
+                    st.session_state.selected_document = doc
+                    # Also get receipt splits (Belegaufteilung)
+                    if "doc_id" in locals() and doc_id:
+                        splits = st.session_state.client.get_receipt_splits(int(doc_id))
+                        st.session_state.receipt_splits = splits if splits else []
+                    else:
+                        st.session_state.receipt_splits = []
+
+                    if search_type == "Document ID":
+                        st.success(f"✅ Document #{doc_id} loaded successfully")
+                    else:
+                        st.success(
+                            f"✅ Document found! (ID: {doc_id}, Invoice: {search_value})"
+                        )
+                elif search_type == "Document ID":
+                    st.error(f"❌ Document #{search_value} not found")
 
     if st.session_state.selected_document:
         doc = st.session_state.selected_document
@@ -1776,16 +1853,30 @@ elif page == "🔎 " + t("pages.single_document"):
                     if idx < len(splits):
                         st.markdown("---")
 
-                # Download splits as CSV
+                # Download splits
                 splits_df = pd.DataFrame(splits)
-                csv_splits = splits_df.to_csv(index=False)
-                st.download_button(
-                    label="  " + t("single_document_page.download_receipt_splits"),
-                    data=csv_splits,
-                    file_name=f"document_{doc_id}_splits.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    csv_splits = splits_df.to_csv(index=False)
+                    st.download_button(
+                        label=t("common.download_csv"),
+                        data=csv_splits,
+                        file_name=f"document_{doc.get('documentId', 'unknown')}_splits.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
+
+                with col2:
+                    excel_splits = to_excel(splits_df)
+                    st.download_button(
+                        label=t("common.download_excel"),
+                        data=excel_splits,
+                        file_name=f"document_{doc.get('documentId', 'unknown')}_splits.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                    )
         else:
             st.markdown(
                 f"""
@@ -1825,6 +1916,8 @@ elif page == "🔎 " + t("pages.single_document"):
         """,
             unsafe_allow_html=True,
         )
+
+        st.markdown("<br>", unsafe_allow_html=True)
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -1966,14 +2059,27 @@ elif page == "🔎 " + t("pages.single_document"):
                         st.markdown("---")
 
             # Export option
-            csv_data = df_details.to_csv(index=False)
-            st.download_button(
-                label="  " + t("single_document_page.download_all_fields"),
-                data=csv_data,
-                file_name=f"document_{doc_id}_all_fields.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+            col1, col2 = st.columns(2)
+
+            with col1:
+                csv_data = df_details.to_csv(index=False)
+                st.download_button(
+                    label=t("common.download_csv"),
+                    data=csv_data,
+                    file_name=f"document_{doc.get('documentId', 'unknown')}_all_fields.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+
+            with col2:
+                excel_data = to_excel(df_details)
+                st.download_button(
+                    label=t("common.download_excel"),
+                    data=excel_data,
+                    file_name=f"document_{doc.get('documentId', 'unknown')}_all_fields.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
 
             # Show raw field names for debugging
             with st.expander("🔍 View Raw Field Names (for debugging)"):
@@ -2808,13 +2914,10 @@ elif page == "📊 " + t("pages.data_explorer"):
 
                     for col in date_columns:
                         if col in df_export.columns:
-                            # Convert to datetime and format as YYYY-MM-DD (or empty string if invalid)
                             df_export[col] = pd.to_datetime(
                                 df_export[col], errors="coerce"
                             ).dt.strftime("%Y-%m-%d")
-                            df_export[col] = df_export[col].fillna(
-                                ""
-                            )  # Replace NaT with empty string
+                            df_export[col] = df_export[col].fillna("")
 
                     st.session_state.explorer_data = df_export
                     st.success(
@@ -2928,7 +3031,6 @@ elif page == "📊 " + t("pages.data_explorer"):
                         "Payment State",
                     ]
                     st.session_state.selected_columns = default_columns
-                    # Set checkbox states: True for default columns, False for others
                     for col_name in df.columns:
                         st.session_state[f"col_{col_name}"] = (
                             col_name in default_columns
@@ -3003,12 +3105,12 @@ elif page == "📊 " + t("pages.data_explorer"):
                 unsafe_allow_html=True,
             )
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
 
             with col1:
                 csv_data = display_df.to_csv(index=False)
                 st.download_button(
-                    label="  " + t("common.download_csv"),
+                    label=t("common.download_csv"),
                     data=csv_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -3016,9 +3118,19 @@ elif page == "📊 " + t("pages.data_explorer"):
                 )
 
             with col2:
+                excel_data = to_excel(display_df)
+                st.download_button(
+                    label=t("common.download_excel"),
+                    data=excel_data,
+                    file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+
+            with col3:
                 json_data = display_df.to_json(orient="records", indent=2)
                 st.download_button(
-                    label="  " + t("common.download_json"),
+                    label=t("common.download_json"),
                     data=json_data,
                     file_name=f"flowwer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
@@ -3081,132 +3193,170 @@ elif page == "📑 " + t("pages.receipt_report"):
     # Apply card styles (includes section headers)
     st.markdown(get_card_styles(), unsafe_allow_html=True)
 
-    # Load filter options first
-    st.markdown(
-        f'<div class="section-header"><span class="section-icon">1️⃣</span> {t("receipt_report_page.load_options")}</div>',
-        unsafe_allow_html=True,
-    )
-
-    col1, col2 = st.columns(2)
-
+    # Load Cost Centers - Clean and minimal
+    col1, col2 = st.columns([3, 1])
     with col1:
+        st.markdown("### Load Cost Centers")
+        st.caption("Fetch available cost centers from the system")
+    with col2:
         if st.button(
-            "Load Cost Centers", use_container_width=True, key="btn_load_cost_centers"
+            "Load Data",
+            use_container_width=True,
+            key="btn_load_cost_centers_new",
         ):
-            with st.spinner("Loading cost centers..."):
+            with st.spinner("Loading..."):
                 cost_centers = st.session_state.client.get_all_cost_centers()
                 if cost_centers:
-                    st.session_state.cost_centers = cost_centers
-                    st.success(
-                        t("messages.loaded_cost_centers").replace(
-                            "{count}", str(len(cost_centers))
-                        )
+                    # Clean and sort cost centers
+                    cleaned_cc = [
+                        str(cc)
+                        for cc in cost_centers
+                        if cc and str(cc).strip() not in ["", "None", "nan"]
+                    ]
+                    st.session_state.cost_centers = sorted(cleaned_cc)
+                    st.toast(
+                        f"Loaded {len(st.session_state.cost_centers)} cost centers",
+                        icon="✅",
                     )
 
-    with col2:
-        if st.button(
-            "Load Accounts", use_container_width=True, key="btn_load_accounts"
-        ):
-            with st.spinner("Loading accounts..."):
-                accounts = st.session_state.client.get_all_accounts()
-                if accounts:
-                    st.session_state.accounts = accounts
-                    st.success(
-                        t("messages.loaded_accounts").replace(
-                            "{count}", str(len(accounts))
-                        )
-                    )
+    st.divider()
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    cost_center_list = st.session_state.get("cost_centers", [])
 
-    # Filter Section
-    st.markdown(
-        f'<div class="section-header"><span class="section-icon">2️⃣</span> {t("receipt_report_page.filters")}</div>',
-        unsafe_allow_html=True,
-    )
+    # Report Filters
+    st.markdown("### Report Filters")
 
-    col1, col2, col3 = st.columns(3)
+    if cost_center_list:
+        # Cost Center Selection
+        st.markdown("**Cost Centers**")
 
+        col1, col2 = st.columns([2, 3])
+        with col1:
+            search_term = st.text_input(
+                "Search",
+                placeholder="Filter cost centers...",
+                help="Search to filter the dropdown",
+            )
+        with col2:
+            if search_term:
+                filtered_list = [
+                    cc for cc in cost_center_list if str(cc).startswith(search_term)
+                ]
+                st.caption(f"Found {len(filtered_list)} matching")
+            else:
+                filtered_list = cost_center_list
+                st.caption(f"{len(cost_center_list)} available")
+
+        selected_cost_centers = st.multiselect(
+            "Select Cost Centers",
+            options=filtered_list if search_term else cost_center_list,
+            help="Leave empty to include all cost centers",
+        )
+
+        if selected_cost_centers:
+            st.caption(f"Selected: {len(selected_cost_centers)} cost center(s)")
+    else:
+        st.warning("Load cost centers first to enable filtering")
+
+    # Date Range
+    st.markdown("**Date Range**")
+
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        # Cost Center filter
-        cost_center_list = st.session_state.get("cost_centers", [])
-        # Ensure all items are strings
-        cost_center_options = ["All Cost Centers"] + [
-            str(cc) for cc in cost_center_list if cc
-        ]
-        selected_cost_center = st.selectbox(
-            t("receipt_report_page.cost_center"), cost_center_options
+        from_month = st.selectbox(
+            "From Month",
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=0,
         )
-        # Convert back to empty string for API if "All" selected
-        if selected_cost_center == "All Cost Centers":
-            selected_cost_center = ""
-
     with col2:
-        # Account filter
-        account_list = st.session_state.get("accounts", [])
-        # Ensure all items are strings
-        account_options = ["All Accounts"] + [str(acc) for acc in account_list if acc]
-        selected_account = st.selectbox(
-            t("receipt_report_page.account"), account_options
+        from_year = st.selectbox(
+            "From Year",
+            options=list(range(2020, datetime.now().year + 1)),
+            index=3,  # 2023
         )
-        # Convert back to empty string for API if "All" selected
-        if selected_account == "All Accounts":
-            selected_account = ""
-
     with col3:
-        # Company filter
-        selected_company = st.text_input(
-            t("receipt_report_page.company"), placeholder="e.g., Enprom GmbH"
+        to_month = st.selectbox(
+            "To Month",
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=datetime.now().month - 1,
+        )
+    with col4:
+        to_year = st.selectbox(
+            "To Year",
+            options=list(range(2020, datetime.now().year + 1)),
+            index=len(list(range(2020, datetime.now().year + 1))) - 1,
         )
 
-    # Date range filter
-    st.markdown("**" + t("receipt_report_page.date_range") + "**")
-    col1, col2 = st.columns(2)
-    with col1:
-        min_date = st.date_input(
-            "📅 " + t("receipt_report_page.from_date"),
-            value=datetime.now() - timedelta(days=30),
-        )
-    with col2:
-        max_date = st.date_input(
-            "📅 " + t("receipt_report_page.to_date"), value=datetime.now()
-        )
+    # Calculate date range
+    from datetime import date
+    import calendar
+
+    min_date = date(from_year, from_month, 1)
+    last_day = calendar.monthrange(to_year, to_month)[1]
+    max_date = date(to_year, to_month, last_day)
+
+    st.divider()
 
     # Generate Report Button
-    if st.button(
-        t("receipt_report_page.generate"),
-        type="primary",
-        key="btn_generate_receipt_report",
-    ):
-        with st.spinner(t("receipt_report_page.loading")):
-            # Prepare filter parameters
-            filter_params = {}
-            if selected_cost_center:
-                filter_params["cost_center"] = selected_cost_center
-            if selected_account:
-                filter_params["account"] = selected_account
-            if selected_company:
-                filter_params["company"] = selected_company
-            if min_date:
-                filter_params["min_date"] = min_date.isoformat()
-            if max_date:
-                filter_params["max_date"] = max_date.isoformat()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button(
+            "Generate Report",
+            type="primary",
+            key="btn_generate_receipt_report",
+            use_container_width=True,
+        ):
+            with st.spinner("Fetching data from API..."):
+                # Prepare filter parameters
+                filter_params = {
+                    "min_date": min_date.isoformat(),
+                    "max_date": max_date.isoformat(),
+                }
 
-            # Get report
-            report = st.session_state.client.get_receipt_splitting_report(
-                **filter_params
-            )
+                # Get report from API
+                report = st.session_state.client.get_receipt_splitting_report(
+                    **filter_params
+                )
 
-            if report:
-                st.session_state.receipt_report = report
-                st.success(f"{len(report)} " + t("receipt_report_page.found"))
+                if report:
+                    total_records = len(report)
+
+                    # Filter by selected cost centers (client-side)
+                    if selected_cost_centers:
+                        report = [
+                            r
+                            for r in report
+                            if str(r.get("costCenter", "")) in selected_cost_centers
+                        ]
+                        st.session_state.receipt_report = report
+                        st.session_state.filtered_cost_centers = selected_cost_centers
+                        # Auto-dismiss message with toast
+                        st.toast(
+                            f"Filtered to {len(report):,} of {total_records:,} records",
+                            icon="✅",
+                        )
+                    else:
+                        st.session_state.receipt_report = report
+                        st.session_state.filtered_cost_centers = []
+                        st.toast(f"Retrieved {len(report):,} records", icon="✅")
+                else:
+                    st.toast("No data found", icon="❌")
 
     # Display Report
     if "receipt_report" in st.session_state and st.session_state.receipt_report:
-        st.markdown("---")
-        st.subheader("3️⃣ Report Results")
+        st.divider()
+        st.markdown("### Report Results")
 
         report_data = st.session_state.receipt_report
+
+        # Show filter info
+        filtered_cc = st.session_state.get("filtered_cost_centers", [])
+        if filtered_cc:
+            st.info(f"Filtered by {len(filtered_cc)} cost center(s)")
+        else:
+            st.info("Showing all cost centers")
 
         # Convert to DataFrame
         df = pd.DataFrame(report_data)
@@ -3217,23 +3367,39 @@ elif page == "📑 " + t("pages.receipt_report"):
                 df["invoiceDate"], errors="coerce"
             ).dt.strftime("%Y-%m-%d")
 
-        # Display
+        # Show record count only
+        st.metric("Total Records", f"{len(df):,}")
+
+        # Display table
         st.dataframe(df, use_container_width=True, height=500)
 
         # Export
-        st.markdown("---")
-        st.subheader("  " + t("receipt_report_page.export"))
+        st.divider()
+        st.markdown("### Export Data")
 
-        csv_data = df.to_csv(index=False)
-        st.download_button(
-            label=t("receipt_report_page.download_csv"),
-            data=csv_data,
-            file_name=f"receipt_splitting_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+        col1, col2 = st.columns(2)
+
+        with col1:
+            csv_data = df.to_csv(index=False)
+            st.download_button(
+                label=t("common.download_csv"),
+                data=csv_data,
+                file_name=f"receipt_splitting_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+        with col2:
+            excel_data = to_excel(df)
+            st.download_button(
+                label=t("common.download_excel"),
+                data=excel_data,
+                file_name=f"receipt_splitting_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
     else:
-        st.info(" " + t("receipt_report_page.no_data"))
+        st.info("No data to display. Generate a report first.")
 
 # ============================================================================
 # PAGE: APPROVED DOCUMENTS
@@ -3367,15 +3533,25 @@ elif page == "✅ " + t("pages.approved_docs"):
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"#### 💾 {t('common.export_options')}")
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  " + t("common.download_csv"),
+                label=t("common.download_csv"),
                 data=csv,
                 file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
+                use_container_width=True,
+            )
+
+        with col2:
+            excel_data = to_excel(df)
+            st.download_button(
+                label=t("common.download_excel"),
+                data=excel_data,
+                file_name=f"approved_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
             )
 
@@ -3497,12 +3673,12 @@ elif page == "⏳ " + t("pages.signable_docs"):
         st.markdown("---")
         st.subheader("  " + t("signable_docs_page.export"))
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="  " + t("signable_docs_page.download_as_csv"),
+                label=t("common.download_csv"),
                 data=csv,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -3510,9 +3686,19 @@ elif page == "⏳ " + t("pages.signable_docs"):
             )
 
         with col2:
+            excel_data = to_excel(df)
+            st.download_button(
+                label=t("common.download_excel"),
+                data=excel_data,
+                file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+
+        with col3:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
-                label="  " + t("signable_docs_page.download_as_json"),
+                label=t("common.download_json"),
                 data=json_data,
                 file_name=f"signable_documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -4323,10 +4509,19 @@ elif page == "📈 " + t("pages.analytics"):
 
             csv_data = df_export.to_csv(index=False)
             st.download_button(
-                label="📥 " + t("analytics_page.download_full_data"),
+                label="📥 CSV - " + t("analytics_page.download_full_data"),
                 data=csv_data,
                 file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
+                use_container_width=True,
+            )
+
+            excel_data = to_excel(df_export)
+            st.download_button(
+                label="📥 Excel - " + t("analytics_page.download_full_data"),
+                data=excel_data,
+                file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
             )
 
@@ -4336,10 +4531,19 @@ elif page == "📈 " + t("pages.analytics"):
                 df_supplier_export = pd.DataFrame(supplier_summary)
                 csv_supplier = df_supplier_export.to_csv(index=False)
                 st.download_button(
-                    label="📥 " + t("analytics_page.download_supplier_report"),
+                    label="📥 CSV - " + t("analytics_page.download_supplier_report"),
                     data=csv_supplier,
                     file_name=f"supplier_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
+                    use_container_width=True,
+                )
+
+                excel_supplier = to_excel(df_supplier_export)
+                st.download_button(
+                    label="📥 Excel - " + t("analytics_page.download_supplier_report"),
+                    data=excel_supplier,
+                    file_name=f"supplier_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                 )
 
@@ -4359,10 +4563,19 @@ elif page == "📈 " + t("pages.analytics"):
             )
             csv_workflow = workflow_export.to_csv(index=False)
             st.download_button(
-                label="📥 " + t("analytics_page.download_workflow_report"),
+                label="📥 CSV - " + t("analytics_page.download_workflow_report"),
                 data=csv_workflow,
                 file_name=f"workflow_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
+                use_container_width=True,
+            )
+
+            excel_workflow = to_excel(workflow_export)
+            st.download_button(
+                label="📥 Excel - " + t("analytics_page.download_workflow_report"),
+                data=excel_workflow,
+                file_name=f"workflow_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
             )
 
@@ -4871,14 +5084,27 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         )
 
                         # Export all mismatches
-                        csv_all = mismatch_df.to_csv(index=False)
-                        st.download_button(
-                            label="📥 Download All Mismatches",
-                            data=csv_all,
-                            file_name=f"all_mismatches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            use_container_width=True,
-                        )
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            csv_all = mismatch_df.to_csv(index=False)
+                            st.download_button(
+                                label="📥 CSV - All Mismatches",
+                                data=csv_all,
+                                file_name=f"all_mismatches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                            )
+
+                        with col2:
+                            excel_all = to_excel(mismatch_df)
+                            st.download_button(
+                                label="📥 Excel - All Mismatches",
+                                data=excel_all,
+                                file_name=f"all_mismatches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True,
+                            )
 
                     with tab2:
                         cc_issues = mismatch_df[~mismatch_df["CC_Match"]]
@@ -4933,25 +5159,52 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     )
 
                     # Export
-                    csv_not_found = not_in_excel_df.to_csv(index=False)
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        csv_not_found = not_in_excel_df.to_csv(index=False)
+                        st.download_button(
+                            label="📥 CSV - Not in Excel",
+                            data=csv_not_found,
+                            file_name=f"not_in_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                        )
+
+                    with col2:
+                        excel_not_found = to_excel(not_in_excel_df)
+                        st.download_button(
+                            label="📥 Excel - Not in Excel",
+                            data=excel_not_found,
+                            file_name=f"not_in_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                        )
+
+                # Export full results
+                st.markdown("### 💾 Export Complete Cross-Check Report")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    csv_full = df_results.to_csv(index=False)
                     st.download_button(
-                        label="📥 Download Records Not in Excel",
-                        data=csv_not_found,
-                        file_name=f"not_in_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        label="📥 CSV - Complete Report",
+                        data=csv_full,
+                        file_name=f"crosscheck_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv",
                         use_container_width=True,
                     )
 
-                # Export full results
-                st.markdown("### � Export Complete Cross-Check Report")
-                csv_full = df_results.to_csv(index=False)
-                st.download_button(
-                    label="📥 Download Complete Report",
-                    data=csv_full,
-                    file_name=f"crosscheck_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                )
+                with col2:
+                    excel_full = to_excel(df_results)
+                    st.download_button(
+                        label="📥 Excel - Complete Report",
+                        data=excel_full,
+                        file_name=f"crosscheck_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                    )
 
     elif "excel_data" in st.session_state and st.session_state.excel_data is not None:
         st.info("ℹ️ Load Flowwer data to enable comparison")
