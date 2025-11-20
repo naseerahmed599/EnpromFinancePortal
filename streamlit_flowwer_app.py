@@ -4862,14 +4862,53 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 )
                 if report:
                     df_flowwer = pd.DataFrame(report)
+
+                    # Fetch currency codes for all unique documents
+                    unique_doc_ids = df_flowwer["documentId"].unique()
+                    currency_map = {}
+
+                    with st.spinner(
+                        f"Fetching currency information for {len(unique_doc_ids)} documents..."
+                    ):
+                        progress_bar = st.progress(0)
+                        for i, doc_id in enumerate(unique_doc_ids):
+                            try:
+                                doc_details = st.session_state.client.get_document(
+                                    doc_id
+                                )
+                                if doc_details and "currencyCode" in doc_details:
+                                    currency_map[doc_id] = doc_details["currencyCode"]
+                                else:
+                                    currency_map[doc_id] = "EUR"  # Default to EUR
+                            except:
+                                currency_map[doc_id] = "EUR"  # Default to EUR on error
+
+                            # Update progress every 10 documents
+                            if i % 10 == 0:
+                                progress_bar.progress((i + 1) / len(unique_doc_ids))
+
+                        progress_bar.progress(1.0)
+
+                    # Add currency code to dataframe
+                    df_flowwer["currencyCode"] = df_flowwer["documentId"].map(
+                        currency_map
+                    )
+
                     st.session_state.flowwer_data = df_flowwer
+
                     # Extract unique cost centers
                     unique_cost_centers = sorted(
                         df_flowwer["costCenter"].dropna().unique().tolist()
                     )
                     st.session_state.available_cost_centers = unique_cost_centers
+
+                    # Show currency breakdown
+                    currency_counts = df_flowwer["currencyCode"].value_counts()
                     st.success(f"Loaded {len(df_flowwer):,} rows from Flowwer API")
                     st.info(f"Found {len(unique_cost_centers)} unique cost centers")
+                    st.info(
+                        f"Currencies: {', '.join([f'{curr}: {count}' for curr, count in currency_counts.items()])}"
+                    )
                 else:
                     st.error("Failed to load data from Flowwer API")
         except Exception as e:
@@ -5061,7 +5100,10 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
                 # Convert PLN to EUR (divide by 4.23 if currency is PL)
                 if "currencyCode" in df_flowwer_clean.columns:
-                    pln_mask = df_flowwer_clean["currencyCode"].str.upper() == "PL"
+                    # Check for both "PL" and "PLN" currency codes
+                    pln_mask = (
+                        df_flowwer_clean["currencyCode"].str.upper().isin(["PL", "PLN"])
+                    )
                     df_flowwer_clean.loc[pln_mask, "Amount"] = (
                         df_flowwer_clean.loc[pln_mask, "Amount"] / 4.23
                     )
@@ -5084,9 +5126,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     )
                     .agg(
                         {
-                            "Invoice_Date": "first",  
-                            "Cost_Center": "first",  
-                            "Amount": "sum", 
+                            "Invoice_Date": "first",
+                            "Cost_Center": "first",
+                            "Amount": "sum",
                         }
                     )
                     .copy()
@@ -5501,8 +5543,11 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
                         # Convert PLN to EUR
                         if "currencyCode" in df_flowwer_inspect.columns:
+                            # Check for both "PL" and "PLN" currency codes
                             pln_mask = (
-                                df_flowwer_inspect["currencyCode"].str.upper() == "PL"
+                                df_flowwer_inspect["currencyCode"]
+                                .str.upper()
+                                .isin(["PL", "PLN"])
                             )
                             df_flowwer_inspect.loc[pln_mask, "Amount"] = (
                                 df_flowwer_inspect.loc[pln_mask, "Amount"] / 4.23
@@ -5728,6 +5773,17 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         display_df["Excel_Date"]
                     ).dt.strftime("%Y-%m-%d")
 
+                    # Format amounts to 2 decimal places
+                    display_df["Flowwer_Amount"] = display_df["Flowwer_Amount"].apply(
+                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
+                    )
+                    display_df["Excel_Amount"] = display_df["Excel_Amount"].apply(
+                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
+                    )
+                    display_df["Amount_Diff"] = display_df["Amount_Diff"].apply(
+                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
+                    )
+
                     st.dataframe(
                         display_df,
                         use_container_width=True,
@@ -5756,6 +5812,12 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         display_date_df["Excel_Date"] = pd.to_datetime(
                             display_date_df["Excel_Date"]
                         ).dt.strftime("%Y-%m-%d")
+
+                        # Format amounts to 2 decimal places
+                        display_date_df["Flowwer_Amount"] = display_date_df[
+                            "Flowwer_Amount"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+
                         st.dataframe(
                             display_date_df,
                             use_container_width=True,
@@ -5780,6 +5842,15 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             .head(100)
                             .copy()
                         )
+
+                        # Format amounts to 2 decimal places
+                        display_cc_df["Flowwer_Amount"] = display_cc_df[
+                            "Flowwer_Amount"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+                        display_cc_df["Excel_Amount"] = display_cc_df[
+                            "Excel_Amount"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+
                         st.dataframe(
                             display_cc_df,
                             use_container_width=True,
@@ -5804,6 +5875,18 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             .head(100)
                             .copy()
                         )
+
+                        # Format amounts to 2 decimal places
+                        display_amount_df["Flowwer_Amount"] = display_amount_df[
+                            "Flowwer_Amount"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+                        display_amount_df["Excel_Amount"] = display_amount_df[
+                            "Excel_Amount"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+                        display_amount_df["Amount_Diff"] = display_amount_df[
+                            "Amount_Diff"
+                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+
                         st.dataframe(
                             display_amount_df,
                             use_container_width=True,
@@ -5833,6 +5916,12 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 display_not_found_df["Flowwer_Date"] = pd.to_datetime(
                     display_not_found_df["Flowwer_Date"]
                 ).dt.strftime("%Y-%m-%d")
+
+                # Format amounts to 2 decimal places
+                display_not_found_df["Flowwer_Amount"] = display_not_found_df[
+                    "Flowwer_Amount"
+                ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+
                 st.dataframe(
                     display_not_found_df,
                     use_container_width=True,
