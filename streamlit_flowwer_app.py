@@ -4744,44 +4744,115 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
     st.markdown("---")
 
-    # Step 1: Load Excel Data
+    # Step 1: Date Range Selection
     st.markdown(
-        f'<div class="section-header"><span class="section-icon">1️⃣</span> Load Excel Data</div>',
+        f'<div class="section-header">Select Date Range</div>',
         unsafe_allow_html=True,
     )
 
-    excel_file_path = "Booking_DataTable.xlsx"
+    # Month and Year selection
+    col1, col2, col3, col4 = st.columns(4)
+
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+
+    with col1:
+        from_month = st.selectbox(
+            "From Month",
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=0,
+            key="from_month",
+        )
+
+    with col2:
+        from_year = st.selectbox(
+            "From Year",
+            options=list(range(2020, current_year + 1)),
+            index=3,  # Default to 2023
+            key="from_year",
+        )
+
+    with col3:
+        to_month = st.selectbox(
+            "To Month",
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=current_month - 1,
+            key="to_month",
+        )
+
+    with col4:
+        to_year = st.selectbox(
+            "To Year",
+            options=list(range(2020, current_year + 1)),
+            index=len(list(range(2020, current_year + 1)))
+            - 1,  # Default to current year
+            key="to_year",
+        )
+
+    # Convert month/year to dates
+    from_date = datetime(from_year, from_month, 1)
+    # Get last day of to_month
+    if to_month == 12:
+        to_date = datetime(to_year, 12, 31)
+    else:
+        to_date = datetime(to_year, to_month + 1, 1) - timedelta(days=1)
+
+    st.info(
+        f"Selected date range: {from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}"
+    )
+
+    # Step 2: Load Excel Data
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="section-header">Load Excel Data</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Excel file is in the same directory as the app
+    excel_file_path = "Financial_Dashboard_Latest.xlsx"
 
     if st.button(
-        "📂 " + t("test_page.load_excel"),
+        t("test_page.load_excel"),
         key="btn_load_excel",
-        use_container_width=True,
     ):
         try:
             with st.spinner("Loading Excel file..."):
-                df_excel = pd.read_excel(excel_file_path, engine="openpyxl", header=1)
+                df_excel = pd.read_excel(
+                    excel_file_path,
+                    sheet_name="Booking General",
+                    engine="openpyxl",
+                    header=1,
+                )
+                # Filter by date range
+                df_excel["Belegdatum"] = pd.to_datetime(
+                    df_excel["Belegdatum"], errors="coerce"
+                )
+                df_excel = df_excel[
+                    (df_excel["Belegdatum"] >= from_date)
+                    & (df_excel["Belegdatum"] <= to_date)
+                ]
+                # Filter where PnL_Type is not empty
+                # if "PnL_Type" in df_excel.columns:
+                #     df_excel = df_excel[
+                #         df_excel["PnL_Type"].notna() & (df_excel["PnL_Type"] != "")
+                #     ]
                 st.session_state.excel_data = df_excel
-                st.success(f"✅ {t('test_page.rows_loaded')}: {len(df_excel):,}")
+                st.success(f"{t('test_page.rows_loaded')}: {len(df_excel):,}")
         except Exception as e:
             st.error(f"Error loading Excel file: {e}")
 
-    # Step 2: Load Flowwer API Data
+    # Step 3: Load Flowwer API Data
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
-        f'<div class="section-header"><span class="section-icon">2️⃣</span> Load Flowwer API Data</div>',
+        f'<div class="section-header">Load Flowwer API Data</div>',
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        from_date = st.date_input("📅 From Date", value=datetime(2023, 1, 1))
-    with col2:
-        to_date = st.date_input("📅 To Date", value=datetime.now())
-
     if st.button(
-        "🔄 Load Flowwer Data",
+        "Load Flowwer Data",
         key="btn_load_flowwer",
-        use_container_width=True,
         type="primary",
     ):
         try:
@@ -4792,13 +4863,43 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 if report:
                     df_flowwer = pd.DataFrame(report)
                     st.session_state.flowwer_data = df_flowwer
-                    st.success(f"✅ Loaded {len(df_flowwer):,} rows from Flowwer API")
+                    # Extract unique cost centers
+                    unique_cost_centers = sorted(
+                        df_flowwer["costCenter"].dropna().unique().tolist()
+                    )
+                    st.session_state.available_cost_centers = unique_cost_centers
+                    st.success(f"Loaded {len(df_flowwer):,} rows from Flowwer API")
+                    st.info(f"Found {len(unique_cost_centers)} unique cost centers")
                 else:
                     st.error("Failed to load data from Flowwer API")
         except Exception as e:
             st.error(f"Error loading Flowwer data: {e}")
 
-    # Step 3: Compare Data
+    # Step 4: Select Cost Center (if Flowwer data is loaded)
+    if (
+        "flowwer_data" in st.session_state
+        and st.session_state.flowwer_data is not None
+        and "available_cost_centers" in st.session_state
+    ):
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-header">Select Cost Center (Optional)</div>',
+            unsafe_allow_html=True,
+        )
+
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            selected_cost_center = st.selectbox(
+                "Filter by Cost Center",
+                options=["All Cost Centers"] + st.session_state.available_cost_centers,
+                key="selected_cost_center",
+            )
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if selected_cost_center != "All Cost Centers":
+                st.info(f"Filtering: {selected_cost_center}")
+
+    # Step 5: Compare Data
     if (
         "excel_data" in st.session_state
         and st.session_state.excel_data is not None
@@ -4808,23 +4909,37 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            f'<div class="section-header"><span class="section-icon">3️⃣</span> Data Comparison</div>',
+            f'<div class="section-header">Data Comparison</div>',
             unsafe_allow_html=True,
         )
 
         df_excel = st.session_state.excel_data
         df_flowwer = st.session_state.flowwer_data
 
+        # Apply cost center filter if selected
+        if (
+            "selected_cost_center" in st.session_state
+            and st.session_state.selected_cost_center != "All Cost Centers"
+        ):
+            df_flowwer = df_flowwer[
+                df_flowwer["costCenter"] == st.session_state.selected_cost_center
+            ].copy()
+
         # Show data overview
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**📊 Excel Data**")
+            st.markdown("**Excel Data**")
             st.metric("Total Rows", f"{len(df_excel):,}")
             st.metric("Date Range", "All available data")
 
         with col2:
-            st.markdown("**🌐 Flowwer API Data**")
+            st.markdown("**Flowwer API Data**")
             st.metric("Total Rows", f"{len(df_flowwer):,}")
+            cost_center_filter = st.session_state.get(
+                "selected_cost_center", "All Cost Centers"
+            )
+            if cost_center_filter != "All Cost Centers":
+                st.metric("Cost Center", cost_center_filter)
             st.metric(
                 "Date Range",
                 f"{from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}",
@@ -4834,34 +4949,108 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         if st.button(
             "🔍 Cross-Check Data",
             key="btn_compare",
-            use_container_width=True,
             type="primary",
         ):
             with st.spinner("Cross-checking data..."):
                 # Prepare Excel data - filter out invalid invoice numbers
                 df_excel_clean = df_excel.copy()
+
+                # Store in session state for inspector
+                st.session_state.df_excel_clean_for_inspector = df_excel_clean.copy()
                 df_excel_clean["Invoice_Number"] = (
                     df_excel_clean["Belegfeld 1"].astype(str).str.strip()
                 )
-                df_excel_clean["Cost_Center"] = (
-                    df_excel_clean["KOST1 - Kostenstelle"].astype(str).str.strip()
+                df_excel_clean["Invoice_Date"] = pd.to_datetime(
+                    df_excel_clean["Belegdatum"], errors="coerce"
                 )
-                df_excel_clean["Amount"] = pd.to_numeric(
-                    df_excel_clean["Amount"], errors="coerce"
+                # Convert cost center to integer to remove .0, then to string
+                df_excel_clean["Cost_Center"] = (
+                    pd.to_numeric(
+                        df_excel_clean["KOST1 - Kostenstelle"], errors="coerce"
+                    )
+                    .fillna(0)
+                    .astype(int)
+                    .astype(str)
+                    .str.replace("^0$", "", regex=True)
                 )
 
-                # Filter out invalid invoice numbers (empty, '0', 'nan', etc.)
+                # Handle Amount column - convert parentheses notation to negative values
+                # (182.44) -> -182.44
+                # Keep all rows with valid invoice numbers, even if amount is missing
+                df_excel_clean["Amount"] = df_excel_clean["Amount"].astype(str)
+                # Remove parentheses and make negative if they existed
+                df_excel_clean["Amount"] = df_excel_clean["Amount"].apply(
+                    lambda x: (
+                        -float(
+                            x.replace("(", "").replace(")", "").replace(",", "").strip()
+                        )
+                        if "(" in str(x) and ")" in str(x)
+                        else (
+                            float(str(x).replace(",", "").strip())
+                            if str(x).strip() and str(x) != "nan" and str(x) != "None"
+                            else 0
+                        )
+                    )
+                )
+
+                # Only filter out rows WITHOUT a valid invoice number
+                # Keep ALL rows that have a valid invoice number, even if other fields are missing
                 df_excel_clean = df_excel_clean[
                     (df_excel_clean["Invoice_Number"] != "")
                     & (df_excel_clean["Invoice_Number"] != "0")
                     & (df_excel_clean["Invoice_Number"] != "nan")
+                    & (df_excel_clean["Invoice_Number"] != "None")
                     & (df_excel_clean["Invoice_Number"].notna())
                 ]
 
+                # Apply cost center filter to Excel data (same as Flowwer filter)
+                if (
+                    "selected_cost_center" in st.session_state
+                    and st.session_state.selected_cost_center != "All Cost Centers"
+                ):
+                    df_excel_clean = df_excel_clean[
+                        df_excel_clean["Cost_Center"]
+                        == st.session_state.selected_cost_center
+                    ].copy()
+
+                # Aggregate Excel data by Invoice Number only
+                # Sum ALL amounts for the same invoice, regardless of date/cost center variations
+                df_excel_aggregated = (
+                    df_excel_clean.groupby(
+                        ["Invoice_Number"],
+                        as_index=False,
+                        dropna=False,
+                    )
+                    .agg(
+                        {
+                            "Invoice_Date": "first",  # Take first date
+                            "Cost_Center": "first",  # Take first cost center
+                            "Amount": "sum",  # Sum all amounts (respects +/-)
+                        }
+                    )
+                    .copy()
+                )
+
                 # Prepare Flowwer data
                 df_flowwer_clean = df_flowwer.copy()
+
+                # Store original for inspector (before further processing)
+                st.session_state.df_flowwer_clean_for_inspector = (
+                    df_flowwer_clean.copy()
+                )
+
+                # Filter only processed documents
+                if "currentStage" in df_flowwer_clean.columns:
+                    df_flowwer_clean = df_flowwer_clean[
+                        df_flowwer_clean["currentStage"] == "Processed"
+                    ].copy()
+
                 df_flowwer_clean["Invoice_Number"] = (
                     df_flowwer_clean["invoiceNumber"].astype(str).str.strip()
+                )
+                # Parse invoice date from Flowwer (format: DD.MM.YYYY)
+                df_flowwer_clean["Invoice_Date"] = pd.to_datetime(
+                    df_flowwer_clean["invoiceDate"], format="%d.%m.%Y", errors="coerce"
                 )
                 df_flowwer_clean["Cost_Center"] = (
                     df_flowwer_clean["costCenter"].astype(str).str.strip()
@@ -4869,6 +5058,13 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 df_flowwer_clean["Amount"] = pd.to_numeric(
                     df_flowwer_clean["grossValue"], errors="coerce"
                 )
+
+                # Convert PLN to EUR (divide by 4.23 if currency is PL)
+                if "currencyCode" in df_flowwer_clean.columns:
+                    pln_mask = df_flowwer_clean["currencyCode"].str.upper() == "PL"
+                    df_flowwer_clean.loc[pln_mask, "Amount"] = (
+                        df_flowwer_clean.loc[pln_mask, "Amount"] / 4.23
+                    )
 
                 # Filter out invalid invoice numbers
                 df_flowwer_clean = df_flowwer_clean[
@@ -4878,29 +5074,50 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     & (df_flowwer_clean["Invoice_Number"].notna())
                 ]
 
-                st.markdown("### 📋 Cross-Check Results")
+                # Aggregate Flowwer data by Invoice Number only
+                # Sum all amounts for the same invoice (handles multiple cost center splits)
+                df_flowwer_aggregated = (
+                    df_flowwer_clean.groupby(
+                        ["Invoice_Number"],
+                        as_index=False,
+                        dropna=False,
+                    )
+                    .agg(
+                        {
+                            "Invoice_Date": "first",  
+                            "Cost_Center": "first",  
+                            "Amount": "sum", 
+                        }
+                    )
+                    .copy()
+                )
+
+                st.markdown("### Cross-Check Results")
 
                 # Show filtered data counts
-                col1, col2 = st.columns(2)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.info(f"📊 Excel: {len(df_excel_clean):,} valid invoice records")
+                    st.info(f"Excel: {len(df_excel_clean):,} raw records")
                 with col2:
-                    st.info(
-                        f"🌐 Flowwer: {len(df_flowwer_clean):,} valid invoice records"
-                    )
+                    st.info(f"Excel: {len(df_excel_aggregated):,} unique invoices")
+                with col3:
+                    st.info(f"Flowwer: {len(df_flowwer_clean):,} raw records")
+                with col4:
+                    st.info(f"Flowwer: {len(df_flowwer_aggregated):,} unique invoices")
 
                 # Cross-check: For each Flowwer record, check if it exists in Excel with same amount and cost center
-                st.markdown("### 🔍 Cross-Checking Flowwer Records Against Excel...")
+                st.markdown("### Cross-Checking Flowwer Records Against Excel")
 
                 results = []
-                for idx, flowwer_row in df_flowwer_clean.iterrows():
+                for idx, flowwer_row in df_flowwer_aggregated.iterrows():
                     invoice_num = flowwer_row["Invoice_Number"]
+                    flowwer_date = flowwer_row["Invoice_Date"]
                     flowwer_cc = flowwer_row["Cost_Center"]
                     flowwer_amount = flowwer_row["Amount"]
 
-                    # Find matching invoice in Excel
-                    excel_matches = df_excel_clean[
-                        df_excel_clean["Invoice_Number"] == invoice_num
+                    # Find matching invoice in aggregated Excel data
+                    excel_matches = df_excel_aggregated[
+                        df_excel_aggregated["Invoice_Number"] == invoice_num
                     ]
 
                     if len(excel_matches) == 0:
@@ -4909,6 +5126,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             {
                                 "Invoice_Number": invoice_num,
                                 "Status": "Not in Excel",
+                                "Flowwer_Date": flowwer_date,
+                                "Excel_Date": None,
+                                "Date_Match": False,
                                 "Flowwer_CC": flowwer_cc,
                                 "Excel_CC": "",
                                 "CC_Match": False,
@@ -4919,50 +5139,112 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             }
                         )
                     else:
-                        # Found in Excel - check if any row matches cost center and amount
+                        # Found in Excel - check if any aggregated row matches date, cost center and amount
                         exact_match = False
                         best_match = None
 
                         for _, excel_row in excel_matches.iterrows():
+                            excel_date = excel_row["Invoice_Date"]
                             excel_cc = excel_row["Cost_Center"]
                             excel_amount = excel_row["Amount"]
+
+                            # Check if Excel amount is zero (invoice was paid, status not updated)
+                            excel_is_paid = (
+                                abs(excel_amount) <= 0.01
+                                if pd.notna(excel_amount)
+                                else False
+                            )
+
+                            # Compare absolute values for amounts
                             amount_diff = (
-                                abs(flowwer_amount - excel_amount)
+                                abs(abs(flowwer_amount) - abs(excel_amount))
                                 if pd.notna(excel_amount)
                                 else None
                             )
+
+                            # Compare dates (only date part, ignore time)
+                            date_match = False
+                            if pd.notna(flowwer_date) and pd.notna(excel_date):
+                                date_match = flowwer_date.date() == excel_date.date()
 
                             cc_match = str(flowwer_cc) == str(excel_cc)
                             amount_match = (
                                 amount_diff is not None and amount_diff <= 0.01
                             )
 
-                            if cc_match and amount_match:
+                            # If Excel amount is zero (paid), consider it a match regardless of Flowwer amount
+                            # (invoice was paid, status not updated yet in Flowwer)
+                            # Otherwise, only require amount to match - date and cost center can differ
+                            # (cost center may change after payment is processed)
+                            if excel_is_paid or amount_match:
                                 exact_match = True
+                                # Update best_match with this match
+                                best_match = {
+                                    "excel_date": excel_date,
+                                    "excel_cc": excel_cc,
+                                    "excel_amount": excel_amount,
+                                    "date_match": date_match,
+                                    "cc_match": cc_match,
+                                    "amount_match": amount_match,
+                                    "amount_diff": amount_diff,
+                                }
                                 break
 
                             # Keep track of best match (even if not exact)
                             if best_match is None:
                                 best_match = {
+                                    "excel_date": excel_date,
                                     "excel_cc": excel_cc,
                                     "excel_amount": excel_amount,
+                                    "excel_is_paid": excel_is_paid,
+                                    "date_match": date_match,
                                     "cc_match": cc_match,
                                     "amount_match": amount_match,
                                     "amount_diff": amount_diff,
                                 }
 
                         if exact_match:
+                            # Determine status based on whether invoice was paid
+                            status = (
+                                "Paid (Excel)"
+                                if best_match and best_match.get("excel_is_paid", False)
+                                else "Match"
+                            )
+
                             results.append(
                                 {
                                     "Invoice_Number": invoice_num,
-                                    "Status": "Match",
+                                    "Status": status,
+                                    "Flowwer_Date": flowwer_date,
+                                    "Excel_Date": excel_date if best_match else None,
+                                    "Date_Match": (
+                                        best_match["date_match"]
+                                        if best_match
+                                        else False
+                                    ),
                                     "Flowwer_CC": flowwer_cc,
-                                    "Excel_CC": excel_cc,
-                                    "CC_Match": True,
+                                    "Excel_CC": (
+                                        best_match["excel_cc"] if best_match else ""
+                                    ),
+                                    "CC_Match": (
+                                        best_match["cc_match"] if best_match else False
+                                    ),
                                     "Flowwer_Amount": flowwer_amount,
-                                    "Excel_Amount": excel_amount,
-                                    "Amount_Match": True,
-                                    "Amount_Diff": amount_diff,
+                                    "Excel_Amount": (
+                                        best_match["excel_amount"]
+                                        if best_match
+                                        else None
+                                    ),
+                                    "Amount_Match": (
+                                        best_match["amount_match"]
+                                        if best_match
+                                        else False
+                                    ),
+                                    "Amount_Diff": (
+                                        best_match["amount_diff"]
+                                        if best_match
+                                        else None
+                                    ),
                                 }
                             )
                         elif best_match is not None:
@@ -4971,6 +5253,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 {
                                     "Invoice_Number": invoice_num,
                                     "Status": "Mismatch",
+                                    "Flowwer_Date": flowwer_date,
+                                    "Excel_Date": best_match["excel_date"],
+                                    "Date_Match": best_match["date_match"],
                                     "Flowwer_CC": flowwer_cc,
                                     "Excel_CC": best_match["excel_cc"],
                                     "CC_Match": best_match["cc_match"],
@@ -4986,6 +5271,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 {
                                     "Invoice_Number": invoice_num,
                                     "Status": "Mismatch",
+                                    "Flowwer_Date": flowwer_date,
+                                    "Excel_Date": None,
+                                    "Date_Match": False,
                                     "Flowwer_CC": flowwer_cc,
                                     "Excel_CC": "",
                                     "CC_Match": False,
@@ -4999,197 +5287,567 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 # Create results dataframe
                 df_results = pd.DataFrame(results)
 
-                # Calculate statistics
-                total_checked = len(df_results)
-                exact_matches = len(df_results[df_results["Status"] == "Match"])
-                mismatches = len(df_results[df_results["Status"] == "Mismatch"])
-                not_in_excel = len(df_results[df_results["Status"] == "Not in Excel"])
+                # Store results in session state so they persist across reruns
+                st.session_state.comparison_results = df_results
+                st.session_state.df_excel_aggregated = df_excel_aggregated
+                st.session_state.df_flowwer_aggregated = df_flowwer_aggregated
 
-                # Display summary statistics
-                col1, col2, col3 = st.columns(3)
+        # Display results if they exist in session state (persists across reruns)
+        if (
+            "comparison_results" in st.session_state
+            and st.session_state.comparison_results is not None
+        ):
+            df_results = st.session_state.comparison_results
+
+            # Calculate statistics with enhanced categorization
+            total_checked = len(df_results)
+            exact_matches = len(df_results[df_results["Status"] == "Match"])
+            paid_invoices = len(df_results[df_results["Status"] == "Paid (Excel)"])
+            mismatches = len(df_results[df_results["Status"] == "Mismatch"])
+            not_in_excel = len(df_results[df_results["Status"] == "Not in Excel"])
+
+            # Display summary statistics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric(
+                    "✅ Exact Matches",
+                    f"{exact_matches:,}",
+                    delta=f"{(exact_matches/total_checked*100):.1f}%",
+                )
+            with col2:
+                st.metric(
+                    "💰 Paid (Excel)",
+                    f"{paid_invoices:,}",
+                    delta=f"{(paid_invoices/total_checked*100):.1f}%",
+                    help="Invoices with zero balance in Excel (payment completed)",
+                )
+            with col3:
+                st.metric(
+                    "⚠️ Mismatches",
+                    f"{mismatches:,}",
+                    delta=f"{(mismatches/total_checked*100):.1f}%",
+                    delta_color="inverse",
+                )
+            with col4:
+                st.metric(
+                    "❌ Not in Excel",
+                    f"{not_in_excel:,}",
+                    delta=f"{(not_in_excel/total_checked*100):.1f}%",
+                    delta_color="inverse",
+                )
+
+            # Detailed breakdown of mismatches
+            st.markdown("### Mismatch Details")
+
+            mismatch_df = df_results[df_results["Status"] == "Mismatch"]
+
+            if len(mismatch_df) > 0:
+                date_only_mismatch = len(
+                    mismatch_df[
+                        ~mismatch_df["Date_Match"]
+                        & mismatch_df["CC_Match"]
+                        & mismatch_df["Amount_Match"]
+                    ]
+                )
+                cc_only_mismatch = len(
+                    mismatch_df[
+                        mismatch_df["Date_Match"]
+                        & ~mismatch_df["CC_Match"]
+                        & mismatch_df["Amount_Match"]
+                    ]
+                )
+                amount_only_mismatch = len(
+                    mismatch_df[
+                        mismatch_df["Date_Match"]
+                        & mismatch_df["CC_Match"]
+                        & ~mismatch_df["Amount_Match"]
+                    ]
+                )
+                multiple_mismatch = len(
+                    mismatch_df[
+                        ~(
+                            mismatch_df["Date_Match"]
+                            & mismatch_df["CC_Match"]
+                            & mismatch_df["Amount_Match"]
+                        )
+                        & ~(
+                            ~mismatch_df["Date_Match"]
+                            & mismatch_df["CC_Match"]
+                            & mismatch_df["Amount_Match"]
+                        )
+                        & ~(
+                            mismatch_df["Date_Match"]
+                            & ~mismatch_df["CC_Match"]
+                            & mismatch_df["Amount_Match"]
+                        )
+                        & ~(
+                            mismatch_df["Date_Match"]
+                            & mismatch_df["CC_Match"]
+                            & ~mismatch_df["Amount_Match"]
+                        )
+                    ]
+                )
+
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric(
-                        "✅ Exact Matches",
-                        f"{exact_matches:,}",
-                        delta=f"{(exact_matches/total_checked*100):.1f}%",
+                    st.metric("Date Only", f"{date_only_mismatch:,}")
+                with col2:
+                    st.metric("Cost Center Only", f"{cc_only_mismatch:,}")
+                with col3:
+                    st.metric("Amount Only", f"{amount_only_mismatch:,}")
+                with col4:
+                    st.metric("Multiple Fields", f"{multiple_mismatch:,}")
+
+                # Add drill-down inspector for specific invoices
+                st.markdown("---")
+                st.markdown("### 🔍 Invoice Detail Inspector")
+                st.caption(
+                    "Enter an invoice number to see all raw records from both systems"
+                )
+
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    inspect_invoice = st.text_input(
+                        "Invoice Number to Inspect",
+                        placeholder="e.g., 121/2025 or 00238/25",
+                        key="inspect_invoice",
                     )
                 with col2:
-                    st.metric(
-                        "⚠️ Mismatches",
-                        f"{mismatches:,}",
-                        delta=f"{(mismatches/total_checked*100):.1f}%",
-                        delta_color="inverse",
-                    )
-                with col3:
-                    st.metric(
-                        "❌ Not in Excel",
-                        f"{not_in_excel:,}",
-                        delta=f"{(not_in_excel/total_checked*100):.1f}%",
-                        delta_color="inverse",
-                    )
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    inspect_button = st.button("🔎 Inspect", type="primary")
 
-                # Detailed breakdown of mismatches
-                st.markdown("### ⚠️ Mismatch Details")
+                if inspect_button and inspect_invoice:
+                    inspect_invoice = inspect_invoice.strip()
 
-                mismatch_df = df_results[df_results["Status"] == "Mismatch"]
+                    # Process Excel data for inspector
+                    if "df_excel_clean_for_inspector" in st.session_state:
+                        df_excel_inspect = (
+                            st.session_state.df_excel_clean_for_inspector.copy()
+                        )
 
-                if len(mismatch_df) > 0:
-                    cc_only_mismatch = len(
-                        mismatch_df[
-                            ~mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]
+                        # Apply same transformations
+                        df_excel_inspect["Invoice_Number"] = (
+                            df_excel_inspect["Belegfeld 1"].astype(str).str.strip()
+                        )
+                        df_excel_inspect["Invoice_Date"] = pd.to_datetime(
+                            df_excel_inspect["Belegdatum"], errors="coerce"
+                        )
+                        df_excel_inspect["Cost_Center"] = (
+                            pd.to_numeric(
+                                df_excel_inspect["KOST1 - Kostenstelle"],
+                                errors="coerce",
+                            )
+                            .fillna(0)
+                            .astype(int)
+                            .astype(str)
+                            .str.replace("^0$", "", regex=True)
+                        )
+
+                        # Handle Amount column
+                        df_excel_inspect["Amount"] = df_excel_inspect["Amount"].astype(
+                            str
+                        )
+                        df_excel_inspect["Amount"] = df_excel_inspect["Amount"].apply(
+                            lambda x: (
+                                -float(
+                                    x.replace("(", "")
+                                    .replace(")", "")
+                                    .replace(",", "")
+                                    .strip()
+                                )
+                                if "(" in str(x) and ")" in str(x)
+                                else (
+                                    float(str(x).replace(",", "").strip())
+                                    if str(x).strip()
+                                    and str(x) != "nan"
+                                    and str(x) != "None"
+                                    else 0
+                                )
+                            )
+                        )
+
+                        excel_raw_records = df_excel_inspect[
+                            df_excel_inspect["Invoice_Number"] == inspect_invoice
                         ]
-                    )
-                    amount_only_mismatch = len(
-                        mismatch_df[
-                            mismatch_df["CC_Match"] & ~mismatch_df["Amount_Match"]
+                    else:
+                        excel_raw_records = pd.DataFrame()
+
+                    # Process Flowwer data for inspector
+                    if "df_flowwer_clean_for_inspector" in st.session_state:
+                        df_flowwer_inspect = (
+                            st.session_state.df_flowwer_clean_for_inspector.copy()
+                        )
+
+                        # Filter processed only
+                        if "currentStage" in df_flowwer_inspect.columns:
+                            df_flowwer_inspect = df_flowwer_inspect[
+                                df_flowwer_inspect["currentStage"] == "Processed"
+                            ].copy()
+
+                        df_flowwer_inspect["Invoice_Number"] = (
+                            df_flowwer_inspect["invoiceNumber"].astype(str).str.strip()
+                        )
+                        df_flowwer_inspect["Invoice_Date"] = pd.to_datetime(
+                            df_flowwer_inspect["invoiceDate"],
+                            format="%d.%m.%Y",
+                            errors="coerce",
+                        )
+                        df_flowwer_inspect["Cost_Center"] = (
+                            df_flowwer_inspect["costCenter"].astype(str).str.strip()
+                        )
+                        df_flowwer_inspect["Amount"] = pd.to_numeric(
+                            df_flowwer_inspect["grossValue"], errors="coerce"
+                        )
+
+                        # Convert PLN to EUR
+                        if "currencyCode" in df_flowwer_inspect.columns:
+                            pln_mask = (
+                                df_flowwer_inspect["currencyCode"].str.upper() == "PL"
+                            )
+                            df_flowwer_inspect.loc[pln_mask, "Amount"] = (
+                                df_flowwer_inspect.loc[pln_mask, "Amount"] / 4.23
+                            )
+
+                        flowwer_raw_records = df_flowwer_inspect[
+                            df_flowwer_inspect["Invoice_Number"] == inspect_invoice
                         ]
-                    )
-                    both_mismatch = len(
+                    else:
+                        flowwer_raw_records = pd.DataFrame()
+
+                    if len(excel_raw_records) > 0 or len(flowwer_raw_records) > 0:
+                        st.markdown(f"### Invoice Breakdown: `{inspect_invoice}`")
+                        st.caption(
+                            "Comparing all transaction records from both systems"
+                        )
+
+                        # Summary metrics first
+                        if len(excel_raw_records) > 0 and len(flowwer_raw_records) > 0:
+                            excel_sum = excel_raw_records["Amount"].sum()
+                            flowwer_sum = flowwer_raw_records["Amount"].sum()
+                            difference = abs(excel_sum - flowwer_sum)
+
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1:
+                                st.metric("Excel Records", len(excel_raw_records))
+                            with col2:
+                                st.metric("Excel Total", f"€{excel_sum:,.2f}")
+                            with col3:
+                                st.metric("Flowwer Records", len(flowwer_raw_records))
+                            with col4:
+                                st.metric("Flowwer Total", f"€{flowwer_sum:,.2f}")
+
+                            # Status message
+                            if difference <= 0.01:
+                                st.success(
+                                    f"**Amounts Match** - Both systems show the same total (difference: €{difference:,.2f})"
+                                )
+                            elif abs(excel_sum) <= 0.01:
+                                st.info(
+                                    "**Invoice Paid** - Excel shows zero balance (payment completed with offsetting entries)"
+                                )
+                            else:
+                                st.warning(
+                                    f"**Amounts Differ** - Difference of €{difference:,.2f} between systems"
+                                )
+
+                        st.markdown("---")
+
+                        # Side by side data tables
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            st.markdown("#### Excel System Records")
+                            if len(excel_raw_records) > 0:
+                                excel_display = excel_raw_records[
+                                    ["Invoice_Date", "Cost_Center", "Amount"]
+                                ].copy()
+                                excel_display.columns = [
+                                    "Date",
+                                    "Cost Center",
+                                    "Amount (EUR)",
+                                ]
+                                excel_display["Date"] = pd.to_datetime(
+                                    excel_display["Date"]
+                                ).dt.strftime("%Y-%m-%d")
+
+                                # Format amount column
+                                excel_display["Amount (EUR)"] = excel_display[
+                                    "Amount (EUR)"
+                                ].apply(
+                                    lambda x: (
+                                        f"€{x:,.2f}" if x >= 0 else f"-€{abs(x):,.2f}"
+                                    )
+                                )
+
+                                st.dataframe(
+                                    excel_display,
+                                    use_container_width=True,
+                                    height=300,
+                                    hide_index=True,
+                                )
+
+                                total = excel_raw_records["Amount"].sum()
+                                st.caption(
+                                    f"**Total of {len(excel_raw_records)} records:** €{total:,.2f}"
+                                )
+                            else:
+                                st.info("No records found in Excel for this invoice")
+
+                        with col2:
+                            st.markdown("#### Flowwer System Records")
+                            if len(flowwer_raw_records) > 0:
+                                flowwer_display = flowwer_raw_records[
+                                    ["Invoice_Date", "Cost_Center", "Amount"]
+                                ].copy()
+                                flowwer_display.columns = [
+                                    "Date",
+                                    "Cost Center",
+                                    "Amount (EUR)",
+                                ]
+                                flowwer_display["Date"] = pd.to_datetime(
+                                    flowwer_display["Date"]
+                                ).dt.strftime("%Y-%m-%d")
+
+                                # Format amount column
+                                flowwer_display["Amount (EUR)"] = flowwer_display[
+                                    "Amount (EUR)"
+                                ].apply(
+                                    lambda x: (
+                                        f"€{x:,.2f}" if x >= 0 else f"-€{abs(x):,.2f}"
+                                    )
+                                )
+
+                                st.dataframe(
+                                    flowwer_display,
+                                    use_container_width=True,
+                                    height=300,
+                                    hide_index=True,
+                                )
+
+                                total = flowwer_raw_records["Amount"].sum()
+                                st.caption(
+                                    f"**Total of {len(flowwer_raw_records)} records:** €{total:,.2f}"
+                                )
+                            else:
+                                st.info("No records found in Flowwer for this invoice")
+
+                        # Analysis section - only if there's a difference
+                        if len(excel_raw_records) > 0 and len(flowwer_raw_records) > 0:
+                            excel_sum = excel_raw_records["Amount"].sum()
+                            flowwer_sum = flowwer_raw_records["Amount"].sum()
+                            difference = abs(excel_sum - flowwer_sum)
+
+                            if difference > 0.01:
+                                st.markdown("---")
+                                st.markdown("#### Why Do the Amounts Differ?")
+
+                                reasons = []
+                                if len(excel_raw_records) != len(flowwer_raw_records):
+                                    reasons.append(
+                                        f"Different number of transaction records: Excel has {len(excel_raw_records)}, Flowwer has {len(flowwer_raw_records)}"
+                                    )
+
+                                if abs(excel_sum) <= 0.01:
+                                    reasons.append(
+                                        "Excel balance is zero - invoice has been paid with offsetting credit/debit entries"
+                                    )
+
+                                if len(excel_raw_records) > len(flowwer_raw_records):
+                                    reasons.append(
+                                        "Excel contains additional correction or reversal entries that haven't been synchronized to Flowwer yet"
+                                    )
+                                elif len(flowwer_raw_records) > len(excel_raw_records):
+                                    reasons.append(
+                                        "Flowwer contains additional line items or cost center splits not yet in Excel"
+                                    )
+
+                                # Check for cost center differences
+                                excel_ccs = set(
+                                    excel_raw_records["Cost_Center"].unique()
+                                )
+                                flowwer_ccs = set(
+                                    flowwer_raw_records["Cost_Center"].unique()
+                                )
+                                if excel_ccs != flowwer_ccs:
+                                    reasons.append(
+                                        f"Different cost centers used: Excel has {len(excel_ccs)} unique, Flowwer has {len(flowwer_ccs)} unique"
+                                    )
+
+                                for i, reason in enumerate(reasons, 1):
+                                    st.write(f"{i}. {reason}")
+
+                                if not reasons:
+                                    st.write(
+                                        "The records exist in both systems but the calculated totals differ. This may require manual investigation."
+                                    )
+                    else:
+                        st.error(
+                            f"Invoice number `{inspect_invoice}` was not found in either Excel or Flowwer system"
+                        )
+
+                # Show detailed mismatches in tabs
+                st.markdown("---")
+                st.markdown("### 📑 View Side-by-Side Comparison")
+
+                tab1, tab2, tab3, tab4 = st.tabs(
+                    [
+                        "All Mismatches",
+                        "Date Issues",
+                        "Cost Center Issues",
+                        "Amount Issues",
+                    ]
+                )
+
+                with tab1:
+                    # Show side-by-side comparison
+                    display_df = (
                         mismatch_df[
-                            ~mismatch_df["CC_Match"] & ~mismatch_df["Amount_Match"]
+                            [
+                                "Invoice_Number",
+                                "Flowwer_Date",
+                                "Excel_Date",
+                                "Date_Match",
+                                "Flowwer_CC",
+                                "Excel_CC",
+                                "CC_Match",
+                                "Flowwer_Amount",
+                                "Excel_Amount",
+                                "Amount_Diff",
+                                "Amount_Match",
+                            ]
                         ]
+                        .head(100)
+                        .copy()
                     )
 
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Cost Center Only", f"{cc_only_mismatch:,}")
-                    with col2:
-                        st.metric("Amount Only", f"{amount_only_mismatch:,}")
-                    with col3:
-                        st.metric("Both Fields", f"{both_mismatch:,}")
+                    # Format dates for better display
+                    display_df["Flowwer_Date"] = pd.to_datetime(
+                        display_df["Flowwer_Date"]
+                    ).dt.strftime("%Y-%m-%d")
+                    display_df["Excel_Date"] = pd.to_datetime(
+                        display_df["Excel_Date"]
+                    ).dt.strftime("%Y-%m-%d")
 
-                    # Show detailed mismatches in tabs
-                    st.markdown("### 🔍 View Mismatches")
-
-                    tab1, tab2, tab3 = st.tabs(
-                        ["All Mismatches", "Cost Center Issues", "Amount Issues"]
+                    st.dataframe(
+                        display_df,
+                        use_container_width=True,
+                        height=400,
                     )
 
-                    with tab1:
+                with tab2:
+                    date_issues = mismatch_df[~mismatch_df["Date_Match"]]
+                    if len(date_issues) > 0:
+                        display_date_df = (
+                            date_issues[
+                                [
+                                    "Invoice_Number",
+                                    "Flowwer_Date",
+                                    "Excel_Date",
+                                    "Flowwer_CC",
+                                    "Flowwer_Amount",
+                                ]
+                            ]
+                            .head(100)
+                            .copy()
+                        )
+                        display_date_df["Flowwer_Date"] = pd.to_datetime(
+                            display_date_df["Flowwer_Date"]
+                        ).dt.strftime("%Y-%m-%d")
+                        display_date_df["Excel_Date"] = pd.to_datetime(
+                            display_date_df["Excel_Date"]
+                        ).dt.strftime("%Y-%m-%d")
                         st.dataframe(
-                            mismatch_df[
+                            display_date_df,
+                            use_container_width=True,
+                            height=400,
+                        )
+                    else:
+                        st.success("All Invoice Dates match!")
+
+                with tab3:
+                    cc_issues = mismatch_df[~mismatch_df["CC_Match"]]
+                    if len(cc_issues) > 0:
+                        display_cc_df = (
+                            cc_issues[
                                 [
                                     "Invoice_Number",
                                     "Flowwer_CC",
                                     "Excel_CC",
-                                    "CC_Match",
                                     "Flowwer_Amount",
                                     "Excel_Amount",
-                                    "Amount_Diff",
-                                    "Amount_Match",
                                 ]
-                            ].head(100),
+                            ]
+                            .head(100)
+                            .copy()
+                        )
+                        st.dataframe(
+                            display_cc_df,
                             use_container_width=True,
                             height=400,
                         )
+                    else:
+                        st.success("All Cost Centers match!")
 
-                        # Export all mismatches
-                        col1, col2 = st.columns(2)
-
-                        with col1:
-                            csv_all = mismatch_df.to_csv(index=False)
-                            st.download_button(
-                                label="📥 CSV - All Mismatches",
-                                data=csv_all,
-                                file_name=f"all_mismatches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                mime="text/csv",
-                                use_container_width=True,
-                            )
-
-                        with col2:
-                            excel_all = to_excel(mismatch_df)
-                            st.download_button(
-                                label="📥 Excel - All Mismatches",
-                                data=excel_all,
-                                file_name=f"all_mismatches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True,
-                            )
-
-                    with tab2:
-                        cc_issues = mismatch_df[~mismatch_df["CC_Match"]]
-                        if len(cc_issues) > 0:
-                            st.dataframe(
-                                cc_issues[
-                                    [
-                                        "Invoice_Number",
-                                        "Flowwer_CC",
-                                        "Excel_CC",
-                                        "Flowwer_Amount",
-                                        "Excel_Amount",
-                                    ]
-                                ].head(100),
-                                use_container_width=True,
-                                height=400,
-                            )
-                        else:
-                            st.success("✅ All Cost Centers match!")
-
-                    with tab3:
-                        amount_issues = mismatch_df[~mismatch_df["Amount_Match"]]
-                        if len(amount_issues) > 0:
-                            st.dataframe(
-                                amount_issues[
-                                    [
-                                        "Invoice_Number",
-                                        "Flowwer_Amount",
-                                        "Excel_Amount",
-                                        "Amount_Diff",
-                                        "Flowwer_CC",
-                                    ]
-                                ].head(100),
-                                use_container_width=True,
-                                height=400,
-                            )
-                        else:
-                            st.success("✅ All Amounts match!")
-                else:
-                    st.success("🎉 Perfect! All Flowwer records match Excel exactly!")
-
-                # Show records not found in Excel
-                not_in_excel_df = df_results[df_results["Status"] == "Not in Excel"]
-                if len(not_in_excel_df) > 0:
-                    st.markdown("### ❌ Flowwer Records Not Found in Excel")
-                    st.dataframe(
-                        not_in_excel_df[
-                            ["Invoice_Number", "Flowwer_CC", "Flowwer_Amount"]
-                        ].head(50),
-                        use_container_width=True,
-                        height=300,
-                    )
-
-                    # Export
-                    col1, col2 = st.columns(2)
-
-                    with col1:
-                        csv_not_found = not_in_excel_df.to_csv(index=False)
-                        st.download_button(
-                            label="📥 CSV - Not in Excel",
-                            data=csv_not_found,
-                            file_name=f"not_in_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            use_container_width=True,
+                with tab4:
+                    amount_issues = mismatch_df[~mismatch_df["Amount_Match"]]
+                    if len(amount_issues) > 0:
+                        display_amount_df = (
+                            amount_issues[
+                                [
+                                    "Invoice_Number",
+                                    "Flowwer_Amount",
+                                    "Excel_Amount",
+                                    "Amount_Diff",
+                                    "Flowwer_CC",
+                                ]
+                            ]
+                            .head(100)
+                            .copy()
                         )
-
-                    with col2:
-                        excel_not_found = to_excel(not_in_excel_df)
-                        st.download_button(
-                            label="📥 Excel - Not in Excel",
-                            data=excel_not_found,
-                            file_name=f"not_in_excel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        st.dataframe(
+                            display_amount_df,
                             use_container_width=True,
+                            height=400,
                         )
+                    else:
+                        st.success("All Amounts match!")
+            else:
+                st.success("Perfect! All Flowwer records match Excel exactly!")
+
+            # Show records not found in Excel
+            not_in_excel_df = df_results[df_results["Status"] == "Not in Excel"]
+            if len(not_in_excel_df) > 0:
+                st.markdown("### Flowwer Records Not Found in Excel")
+                display_not_found_df = (
+                    not_in_excel_df[
+                        [
+                            "Invoice_Number",
+                            "Flowwer_Date",
+                            "Flowwer_CC",
+                            "Flowwer_Amount",
+                        ]
+                    ]
+                    .head(50)
+                    .copy()
+                )
+                display_not_found_df["Flowwer_Date"] = pd.to_datetime(
+                    display_not_found_df["Flowwer_Date"]
+                ).dt.strftime("%Y-%m-%d")
+                st.dataframe(
+                    display_not_found_df,
+                    use_container_width=True,
+                    height=300,
+                )
 
                 # Export full results
-                st.markdown("### 💾 Export Complete Cross-Check Report")
+                st.markdown("### Export Complete Cross-Check Report")
 
                 col1, col2 = st.columns(2)
 
                 with col1:
                     csv_full = df_results.to_csv(index=False)
                     st.download_button(
-                        label="📥 CSV - Complete Report",
+                        label="CSV - Complete Report",
                         data=csv_full,
                         file_name=f"crosscheck_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv",
@@ -5199,7 +5857,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 with col2:
                     excel_full = to_excel(df_results)
                     st.download_button(
-                        label="📥 Excel - Complete Report",
+                        label="Excel - Complete Report",
                         data=excel_full,
                         file_name=f"crosscheck_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -5207,13 +5865,13 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     )
 
     elif "excel_data" in st.session_state and st.session_state.excel_data is not None:
-        st.info("ℹ️ Load Flowwer data to enable comparison")
+        st.info("Load Flowwer data to enable comparison")
     elif (
         "flowwer_data" in st.session_state and st.session_state.flowwer_data is not None
     ):
-        st.info("ℹ️ Load Excel data to enable comparison")
+        st.info("Load Excel data to enable comparison")
     else:
-        st.info("ℹ️ Load both Excel and Flowwer data to start comparison")
+        st.info("Load both Excel and Flowwer data to start comparison")
 
 # footer
 st.markdown("---")
