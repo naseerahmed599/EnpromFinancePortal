@@ -26,6 +26,7 @@ import plotly.graph_objects as go
 import openpyxl
 from io import BytesIO
 import requests
+import os
 from styles import (
     get_all_document_page_styles,
     get_page_header_purple,
@@ -4896,14 +4897,26 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         unsafe_allow_html=True,
     )
 
-    # DATEV file is in the same directory as the app
+    # DATEV file path - check if exists locally
     excel_file_path = "Financial_Dashboard_Latest.xlsx"
+    
+    # Show warning if file doesn't exist (only when comparison feature is enabled)
+    if not os.path.exists(excel_file_path):
+        if ENABLE_TEST_SECTION:
+            st.warning(
+                "⚠️ **DATEV Data File Not Found**\n\n"
+                "The file `Financial_Dashboard_Latest.xlsx` is not available. "
+                "This file contains sensitive data and is not included in the public repository.\n\n"
+                "**For local development:** Place the Excel file in the `project-flowwer` directory.\n\n"
+                "**For deployment:** You can modify the code to use alternative data sources or upload the file through Streamlit's file uploader."
+            )
 
     if st.button(
         "Load Both Datasets",
         key="btn_load_both",
         type="primary",
         use_container_width=True,
+        disabled=not os.path.exists(excel_file_path),
     ):
         # Clear previous data
         if "excel_data" in st.session_state:
