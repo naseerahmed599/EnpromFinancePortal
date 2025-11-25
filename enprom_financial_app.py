@@ -99,6 +99,199 @@ st.set_page_config(
 )
 
 
+# ============================================================================
+# AUTHENTICATION SYSTEM
+# ============================================================================
+import hashlib
+
+
+def hash_password(password: str) -> str:
+    """Hash a password for secure storage"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def verify_password(stored_hash: str, provided_password: str) -> bool:
+    """Verify a provided password against stored hash"""
+    return stored_hash == hash_password(provided_password)
+
+
+def check_authentication():
+    """Check if user is authenticated, show login page if not"""
+    # Initialize session state for authentication
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if "username" not in st.session_state:
+        st.session_state.username = None
+    if "user_role" not in st.session_state:
+        st.session_state.user_role = None
+    if "user_name" not in st.session_state:
+        st.session_state.user_name = None
+
+    # If not authenticated, show login page
+    if not st.session_state.authenticated:
+        show_login_page()
+        return False
+    
+    return True
+
+
+def show_login_page():
+    """Display the login page"""
+    # Custom CSS for login page
+    st.markdown(
+        """
+        <style>
+        /* Login page specific styles */
+        [data-testid="stAppViewContainer"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-container {
+            max-width: 450px;
+            margin: 8rem auto;
+            padding: 3rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-header h1 {
+            color: #1e293b;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: #64748b;
+            font-size: 1rem;
+        }
+        
+        .stTextInput > div > div > input {
+            border-radius: 12px !important;
+            border: 2px solid #e2e8f0 !important;
+            padding: 0.75rem 1rem !important;
+            font-size: 1rem !important;
+        }
+        
+        .stTextInput > div > div > input:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Login container
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown(
+            """
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>🔐 ENPROM Finance Portal</h1>
+                    <p>Please sign in to continue</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        
+        # Login form
+        with st.form("login_form"):
+            username = st.text_input("Username / Email", placeholder="Enter your username or email")
+            password = st.text_input("Password", type="password", placeholder="Enter your password")
+            submit = st.form_submit_button("Sign In", use_container_width=True)
+            
+            if submit:
+                if authenticate_user(username, password):
+                    st.success("✅ Login successful! Redirecting...")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid username or password")
+
+
+def authenticate_user(username: str, password: str) -> bool:
+    """Authenticate user against secrets"""
+    try:
+        # Get users from secrets
+        users = st.secrets.get("users", {})
+        
+        # Check if user exists
+        for user_key, user_data in users.items():
+            if user_data.get("username") == username:
+                # Verify password
+                stored_password = user_data.get("password")
+                
+                # Check if password is hashed or plain text (for migration)
+                if len(stored_password) == 64:  # SHA-256 hash length
+                    password_match = verify_password(stored_password, password)
+                else:
+                    # Plain text comparison (less secure, for initial setup)
+                    password_match = stored_password == password
+                
+                if password_match:
+                    # Set session state
+                    st.session_state.authenticated = True
+                    st.session_state.username = username
+                    st.session_state.user_role = user_data.get("role", "viewer")
+                    st.session_state.user_name = user_data.get("name", username)
+                    return True
+        
+        return False
+    except Exception as e:
+        st.error(f"Authentication error: {e}")
+        return False
+
+
+def logout():
+    """Logout user and clear session"""
+    st.session_state.authenticated = False
+    st.session_state.username = None
+    st.session_state.user_role = None
+    st.session_state.user_name = None
+    st.rerun()
+
+
+def check_permission(required_role: str = None) -> bool:
+    """Check if user has required permission level"""
+    if not st.session_state.authenticated:
+        return False
+    
+    if required_role is None:
+        return True
+    
+    # Define role hierarchy
+    role_hierarchy = {
+        "viewer": 1,
+        "editor": 2,
+        "finance": 3,
+        "admin": 4
+    }
+    
+    user_level = role_hierarchy.get(st.session_state.user_role, 0)
+    required_level = role_hierarchy.get(required_role, 999)
+    
+    return user_level >= required_level
+
+
+# Check authentication before loading the app
+if not check_authentication():
+    st.stop()
+
+# ============================================================================
+# END AUTHENTICATION SYSTEM
+# ============================================================================
+
+
 # Load language file
 def load_languages():
     """Load language translations from JSON file"""
@@ -686,6 +879,36 @@ with st.sidebar:
 
     # App title and branding
     st.title("ENPROM Finance Portal")
+    
+    # User info and logout
+    st.markdown(
+        f"""
+        <div style="
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        ">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.5rem;">👤</span>
+                <div>
+                    <div style="color: #ffffff; font-weight: 600; font-size: 0.95rem;">
+                        {st.session_state.user_name}
+                    </div>
+                    <div style="color: #93c5fd; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                        {st.session_state.user_role}
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    if st.button("🚪 Logout", use_container_width=True, key="logout_btn"):
+        logout()
 
     # Language selector - elegant selectbox
     current_lang = st.session_state.language
