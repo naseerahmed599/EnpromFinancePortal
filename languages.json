@@ -27,13 +27,13 @@
       "approved_docs": "Approved Documents",
       "signable_docs": "Pending Approvals",
       "settings": "Settings",
-      "test": "Test Comparison"
+      "test": "Comparison"
     },
     "test_page": {
-      "title": "Test & Data Comparison",
-      "subtitle": "Compare imported data with Excel booking data",
-      "load_excel": "Load Excel Data",
-      "excel_file": "Booking DataTable Excel File",
+      "title": "Data Comparison",
+      "subtitle": "Compare imported data with DATEV booking data",
+      "load_excel": "Load DATEV Data",
+      "excel_file": "Booking DataTable DATEV File",
       "rows_loaded": "Rows loaded"
     },
     "receipt_report_page": {
@@ -358,13 +358,13 @@
       "approved_docs": "Genehmigte Dokumente",
       "signable_docs": "Ausstehende Genehmigungen",
       "settings": "Einstellungen",
-      "test": "Test Vergleich"
+      "test": "Vergleich"
     },
     "test_page": {
-      "title": "Test & Datenvergleich",
-      "subtitle": "Vergleichen Sie importierte Daten mit Excel-Buchungsdaten",
-      "load_excel": "Excel-Daten laden",
-      "excel_file": "Booking DataTable Excel-Datei",
+      "title": "Datenvergleich",
+      "subtitle": "Vergleichen Sie importierte Daten mit DATEV-Buchungsdaten",
+      "load_excel": "DATEV-Daten laden",
+      "excel_file": "Booking DataTable DATEV-Datei",
       "rows_loaded": "Zeilen geladen"
     },
     "receipt_report_page": {
@@ -689,13 +689,13 @@
       "approved_docs": "Zatwierdzone Dokumenty",
       "signable_docs": "Oczekujące Zatwierdzenia",
       "settings": "Ustawienia",
-      "test": "Test Porównania"
+      "test": "Porównanie"
     },
     "test_page": {
-      "title": "Test i Porównanie Danych",
-      "subtitle": "Porównaj zaimportowane dane z danymi księgowymi Excel",
-      "load_excel": "Załaduj Dane Excel",
-      "excel_file": "Plik Excel Booking DataTable",
+      "title": "Porównanie Danych",
+      "subtitle": "Porównaj zaimportowane dane z danymi księgowymi DATEV",
+      "load_excel": "Załaduj Dane DATEV",
+      "excel_file": "Plik DATEV Booking DataTable",
       "rows_loaded": "Załadowane wiersze"
     },
     "receipt_report_page": {

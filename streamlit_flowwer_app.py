@@ -12,7 +12,7 @@ Interactive portal for financial document workflows
 #   - Set to False: Test section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-ENABLE_TEST_SECTION = True  # Set to True to enable Test/Comparison section
+ENABLE_TEST_SECTION = True  # Set to True to enable Comparison section
 
 # ============================================================================
 
@@ -25,6 +25,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import openpyxl
 from io import BytesIO
+import requests
 from styles import (
     get_all_document_page_styles,
     get_page_header_purple,
@@ -45,6 +46,38 @@ from styles import (
     get_theme_text_styles,
     get_section_header_styles,
 )
+
+
+# Helper function to get PLN to EUR exchange rate for a specific date
+@st.cache_data(ttl=86400)  # Cache for 24 hours
+def get_pln_eur_rate(date_str):
+    """
+    Get PLN to EUR exchange rate for a specific date using European Central Bank API.
+    Falls back to 4.23 if API fails.
+
+    Args:
+        date_str: Date string in format YYYY-MM-DD
+
+    Returns:
+        float: Exchange rate (PLN per 1 EUR)
+    """
+    try:
+        # ECB API provides EUR as base currency
+        # We need PLN/EUR rate (how many PLN for 1 EUR)
+        url = f"https://api.frankfurter.app/{date_str}?from=EUR&to=PLN"
+        response = requests.get(url, timeout=5)
+
+        if response.status_code == 200:
+            data = response.json()
+            rate = data.get("rates", {}).get("PLN")
+            if rate:
+                return float(rate)
+
+        # Fallback to default rate
+        return 4.23
+    except Exception as e:
+        # If any error, use fallback rate
+        return 4.23
 
 
 # Helper function to convert DataFrame to Excel
@@ -4734,19 +4767,64 @@ elif page == "⚙️ " + t("pages.settings"):
     )
 
 # ============================================================================
-# PAGE: TEST & DATA COMPARISON
+# PAGE: DATA COMPARISON
 # ============================================================================
 elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
-    st.markdown(get_page_header_amber(), unsafe_allow_html=True)
+    st.markdown(get_page_header_indigo(), unsafe_allow_html=True)
+    st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
-    st.title(t("test_page.title"))
-    st.markdown(f"*{t('test_page.subtitle')}*")
+    # Glossy page header card
+    st.markdown(
+        f"""
+        <div class="page-header-indigo" style="
+            padding: 1.75rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        ">
+            <div style="
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
+                width: 56px;
+                height: 56px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 28px;
+                box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+            ">
+                📊
+            </div>
+            <div style="flex: 1;">
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    {t('test_page.title')}
+                </h1>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.7; font-size: 1rem;">
+                    {t('test_page.subtitle')}
+                </p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("---")
 
     # Step 1: Date Range Selection
     st.markdown(
-        f'<div class="section-header">Select Date Range</div>',
+        """
+        <div style="
+            border-left: 3px solid #6366f1;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            margin: 2rem 0 1rem 0;
+            background: rgba(99, 102, 241, 0.03);
+        ">
+            <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">DATE RANGE</h3>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -4799,26 +4877,51 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
     else:
         to_date = datetime(to_year, to_month + 1, 1) - timedelta(days=1)
 
-    st.info(
-        f"Selected date range: {from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}"
+    st.caption(
+        f"Selected: {from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}"
     )
 
-    # Step 2: Load Excel Data
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Step 2: Load Both Datasets
     st.markdown(
-        f'<div class="section-header">Load Excel Data</div>',
+        """
+        <div style="
+            border-left: 3px solid #6366f1;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            margin: 2rem 0 1rem 0;
+            background: rgba(99, 102, 241, 0.03);
+        ">
+            <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">LOAD DATA</h3>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-    # Excel file is in the same directory as the app
+    # DATEV file is in the same directory as the app
     excel_file_path = "Financial_Dashboard_Latest.xlsx"
 
     if st.button(
-        t("test_page.load_excel"),
-        key="btn_load_excel",
+        "Load Both Datasets",
+        key="btn_load_both",
+        type="primary",
+        use_container_width=True,
     ):
+        # Clear previous data
+        if "excel_data" in st.session_state:
+            del st.session_state.excel_data
+        if "flowwer_data" in st.session_state:
+            del st.session_state.flowwer_data
+        if "comparison_results" in st.session_state:
+            del st.session_state.comparison_results
+
+        datev_success = False
+        flowwer_success = False
+
+        # Step 1: Load DATEV Data
+        status_placeholder = st.empty()
+
         try:
-            with st.spinner("Loading Excel file..."):
+            with st.spinner("Loading DATEV data..."):
                 df_excel = pd.read_excel(
                     excel_file_path,
                     sheet_name="Booking General",
@@ -4833,86 +4936,85 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     (df_excel["Belegdatum"] >= from_date)
                     & (df_excel["Belegdatum"] <= to_date)
                 ]
-                # Filter where PnL_Type is not empty
-                # if "PnL_Type" in df_excel.columns:
-                #     df_excel = df_excel[
-                #         df_excel["PnL_Type"].notna() & (df_excel["PnL_Type"] != "")
-                #     ]
                 st.session_state.excel_data = df_excel
-                st.success(f"{t('test_page.rows_loaded')}: {len(df_excel):,}")
+                datev_success = True
         except Exception as e:
-            st.error(f"Error loading Excel file: {e}")
+            status_placeholder.error(f"Error loading DATEV file: {e}")
+            datev_success = False
 
-    # Step 3: Load Flowwer API Data
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="section-header">Load Flowwer API Data</div>',
-        unsafe_allow_html=True,
-    )
-
-    if st.button(
-        "Load Flowwer Data",
-        key="btn_load_flowwer",
-        type="primary",
-    ):
-        try:
-            with st.spinner("Fetching data from Flowwer API..."):
-                report = st.session_state.client.get_receipt_splitting_report(
-                    min_date=from_date.isoformat(), max_date=to_date.isoformat()
-                )
-                if report:
-                    df_flowwer = pd.DataFrame(report)
-
-                    # Fetch currency codes for all unique documents
-                    unique_doc_ids = df_flowwer["documentId"].unique()
-                    currency_map = {}
-
-                    with st.spinner(
-                        f"Fetching currency information for {len(unique_doc_ids)} documents..."
-                    ):
-                        progress_bar = st.progress(0)
-                        for i, doc_id in enumerate(unique_doc_ids):
-                            try:
-                                doc_details = st.session_state.client.get_document(
-                                    doc_id
-                                )
-                                if doc_details and "currencyCode" in doc_details:
-                                    currency_map[doc_id] = doc_details["currencyCode"]
-                                else:
-                                    currency_map[doc_id] = "EUR"  # Default to EUR
-                            except:
-                                currency_map[doc_id] = "EUR"  # Default to EUR on error
-
-                            # Update progress every 10 documents
-                            if i % 10 == 0:
-                                progress_bar.progress((i + 1) / len(unique_doc_ids))
-
-                        progress_bar.progress(1.0)
-
-                    # Add currency code to dataframe
-                    df_flowwer["currencyCode"] = df_flowwer["documentId"].map(
-                        currency_map
+        # Step 2: Load Flowwer API Data (only if DATEV succeeded)
+        if datev_success:
+            try:
+                with st.spinner("Fetching data from Flowwer API..."):
+                    report = st.session_state.client.get_receipt_splitting_report(
+                        min_date=from_date.isoformat(), max_date=to_date.isoformat()
                     )
+                    if report:
+                        df_flowwer = pd.DataFrame(report)
 
-                    st.session_state.flowwer_data = df_flowwer
+                        # Fetch currency codes for all unique documents
+                        unique_doc_ids = df_flowwer["documentId"].unique()
+                        currency_map = {}
 
-                    # Extract unique cost centers
-                    unique_cost_centers = sorted(
-                        df_flowwer["costCenter"].dropna().unique().tolist()
-                    )
-                    st.session_state.available_cost_centers = unique_cost_centers
+                        with st.spinner(f"Fetching currency information..."):
+                            progress_bar = st.progress(0)
+                            for i, doc_id in enumerate(unique_doc_ids):
+                                try:
+                                    doc_details = st.session_state.client.get_document(
+                                        doc_id
+                                    )
+                                    if doc_details and "currencyCode" in doc_details:
+                                        currency_map[doc_id] = doc_details[
+                                            "currencyCode"
+                                        ]
+                                    else:
+                                        currency_map[doc_id] = "EUR"  # Default to EUR
+                                except:
+                                    currency_map[doc_id] = (
+                                        "EUR"  # Default to EUR on error
+                                    )
 
-                    # Show currency breakdown
-                    currency_counts = df_flowwer["currencyCode"].value_counts()
-                    st.success(f"Loaded {len(df_flowwer):,} rows from Flowwer API")
-                    st.info(f"Found {len(unique_cost_centers)} unique cost centers")
-                    st.info(
-                        f"Currencies: {', '.join([f'{curr}: {count}' for curr, count in currency_counts.items()])}"
-                    )
-                else:
-                    st.error("Failed to load data from Flowwer API")
-        except Exception as e:
-            st.error(f"Error loading Flowwer data: {e}")
+                                # Update progress every 10 documents
+                                if i % 10 == 0:
+                                    progress_bar.progress((i + 1) / len(unique_doc_ids))
+
+                            progress_bar.progress(1.0)
+                            progress_bar.empty()
+
+                        # Add currency code to dataframe
+                        df_flowwer["currencyCode"] = df_flowwer["documentId"].map(
+                            currency_map
+                        )
+
+                        st.session_state.flowwer_data = df_flowwer
+
+                        # Extract unique cost centers
+                        unique_cost_centers = sorted(
+                            df_flowwer["costCenter"].dropna().unique().tolist()
+                        )
+                        st.session_state.available_cost_centers = unique_cost_centers
+
+                        # Show currency breakdown
+                        currency_counts = df_flowwer["currencyCode"].value_counts()
+
+                        # Single consolidated success message
+                        status_placeholder.success(
+                            f"Data loaded: {len(df_excel):,} DATEV rows • "
+                            f"{len(df_flowwer):,} Flowwer rows • "
+                            f"{len(unique_cost_centers)} cost centers • "
+                            f"Currencies: {', '.join([f'{curr} ({count})' for curr, count in currency_counts.items()])}"
+                        )
+                        flowwer_success = True
+                    else:
+                        status_placeholder.error("Failed to load data from Flowwer API")
+                        flowwer_success = False
+            except Exception as e:
+                status_placeholder.error(f"Error loading Flowwer data: {e}")
+                flowwer_success = False
+        else:
+            status_placeholder.error(
+                "Failed to load data. Please check your settings and try again."
+            )
 
     # Step 4: Select Cost Center (if Flowwer data is loaded)
     if (
@@ -4920,9 +5022,18 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         and st.session_state.flowwer_data is not None
         and "available_cost_centers" in st.session_state
     ):
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            f'<div class="section-header">Select Cost Center (Optional)</div>',
+            """
+            <div style="
+                border-left: 3px solid #6366f1;
+                padding: 0.75rem 1.25rem;
+                border-radius: 8px;
+                margin: 2rem 0 1rem 0;
+                background: rgba(99, 102, 241, 0.03);
+            ">
+                <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">FILTER (OPTIONAL)</h3>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -4946,9 +5057,18 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         and st.session_state.flowwer_data is not None
     ):
 
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            f'<div class="section-header">Data Comparison</div>',
+            """
+            <div style="
+                border-left: 3px solid #6366f1;
+                padding: 0.75rem 1.25rem;
+                border-radius: 8px;
+                margin: 2rem 0 1rem 0;
+                background: rgba(99, 102, 241, 0.03);
+            ">
+                <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">COMPARISON</h3>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -4967,31 +5087,28 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         # Show data overview
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Excel Data**")
-            st.metric("Total Rows", f"{len(df_excel):,}")
-            st.metric("Date Range", "All available data")
+            st.caption("DATEV Data")
+            st.metric("Rows", f"{len(df_excel):,}")
 
         with col2:
-            st.markdown("**Flowwer API Data**")
-            st.metric("Total Rows", f"{len(df_flowwer):,}")
+            st.caption("Flowwer Data")
+            st.metric("Rows", f"{len(df_flowwer):,}")
             cost_center_filter = st.session_state.get(
                 "selected_cost_center", "All Cost Centers"
             )
             if cost_center_filter != "All Cost Centers":
-                st.metric("Cost Center", cost_center_filter)
-            st.metric(
-                "Date Range",
-                f"{from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}",
-            )
+                st.metric("🏢 Filtered CC", cost_center_filter)
 
         # Comparison button
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button(
             "🔍 Cross-Check Data",
             key="btn_compare",
             type="primary",
+            use_container_width=True,
         ):
             with st.spinner("Cross-checking data..."):
-                # Prepare Excel data - filter out invalid invoice numbers
+                # Prepare DATEV data - filter out invalid invoice numbers
                 df_excel_clean = df_excel.copy()
 
                 # Store in session state for inspector
@@ -5042,7 +5159,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     & (df_excel_clean["Invoice_Number"].notna())
                 ]
 
-                # Apply cost center filter to Excel data (same as Flowwer filter)
+                # Apply cost center filter to DATEV data (same as Flowwer filter)
                 if (
                     "selected_cost_center" in st.session_state
                     and st.session_state.selected_cost_center != "All Cost Centers"
@@ -5052,7 +5169,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         == st.session_state.selected_cost_center
                     ].copy()
 
-                # Aggregate Excel data by Invoice Number only
+                # Aggregate DATEV data by Invoice Number only
                 # Sum ALL amounts for the same invoice, regardless of date/cost center variations
                 df_excel_aggregated = (
                     df_excel_clean.groupby(
@@ -5098,15 +5215,26 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     df_flowwer_clean["grossValue"], errors="coerce"
                 )
 
-                # Convert PLN to EUR (divide by 4.23 if currency is PL)
+                # Convert PLN to EUR using date-specific exchange rates
                 if "currencyCode" in df_flowwer_clean.columns:
                     # Check for both "PL" and "PLN" currency codes
                     pln_mask = (
                         df_flowwer_clean["currencyCode"].str.upper().isin(["PL", "PLN"])
                     )
-                    df_flowwer_clean.loc[pln_mask, "Amount"] = (
-                        df_flowwer_clean.loc[pln_mask, "Amount"] / 4.23
-                    )
+
+                    # Apply conversion with date-specific rates
+                    for idx in df_flowwer_clean[pln_mask].index:
+                        invoice_date = df_flowwer_clean.loc[idx, "Invoice_Date"]
+                        if pd.notna(invoice_date):
+                            # Convert to datetime if needed and format as string
+                            if isinstance(invoice_date, pd.Timestamp):
+                                date_str = invoice_date.strftime("%Y-%m-%d")
+                            else:
+                                date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d")  # type: ignore
+
+                            rate = get_pln_eur_rate(date_str)
+                            current_amount = float(df_flowwer_clean.loc[idx, "Amount"])  # type: ignore
+                            df_flowwer_clean.loc[idx, "Amount"] = current_amount / rate
 
                 # Filter out invalid invoice numbers
                 df_flowwer_clean = df_flowwer_clean[
@@ -5117,7 +5245,6 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                 ]
 
                 # Aggregate Flowwer data by Invoice Number only
-                # Sum all amounts for the same invoice (handles multiple cost center splits)
                 df_flowwer_aggregated = (
                     df_flowwer_clean.groupby(
                         ["Invoice_Number"],
@@ -5163,19 +5290,19 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     ]
 
                     if len(excel_matches) == 0:
-                        # Not found in Excel
+                        # Not found in DATEV
                         results.append(
                             {
                                 "Invoice_Number": invoice_num,
-                                "Status": "Not in Excel",
+                                "Status": "Not in DATEV",
                                 "Flowwer_Date": flowwer_date,
-                                "Excel_Date": None,
+                                "DATEV_Date": None,
                                 "Date_Match": False,
                                 "Flowwer_CC": flowwer_cc,
-                                "Excel_CC": "",
+                                "DATEV_CC": "",
                                 "CC_Match": False,
                                 "Flowwer_Amount": flowwer_amount,
-                                "Excel_Amount": None,
+                                "DATEV_Amount": None,
                                 "Amount_Match": False,
                                 "Amount_Diff": None,
                             }
@@ -5214,7 +5341,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 amount_diff is not None and amount_diff <= 0.01
                             )
 
-                            # If Excel amount is zero (paid), consider it a match regardless of Flowwer amount
+                            # If DATEV amount is zero (paid), consider it a match regardless of Flowwer amount
                             # (invoice was paid, status not updated yet in Flowwer)
                             # Otherwise, only require amount to match - date and cost center can differ
                             # (cost center may change after payment is processed)
@@ -5222,9 +5349,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 exact_match = True
                                 # Update best_match with this match
                                 best_match = {
-                                    "excel_date": excel_date,
-                                    "excel_cc": excel_cc,
-                                    "excel_amount": excel_amount,
+                                    "datev_date": excel_date,
+                                    "datev_cc": excel_cc,
+                                    "datev_amount": excel_amount,
                                     "date_match": date_match,
                                     "cc_match": cc_match,
                                     "amount_match": amount_match,
@@ -5235,10 +5362,10 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             # Keep track of best match (even if not exact)
                             if best_match is None:
                                 best_match = {
-                                    "excel_date": excel_date,
-                                    "excel_cc": excel_cc,
-                                    "excel_amount": excel_amount,
-                                    "excel_is_paid": excel_is_paid,
+                                    "datev_date": excel_date,
+                                    "datev_cc": excel_cc,
+                                    "datev_amount": excel_amount,
+                                    "datev_is_paid": excel_is_paid,
                                     "date_match": date_match,
                                     "cc_match": cc_match,
                                     "amount_match": amount_match,
@@ -5248,8 +5375,8 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         if exact_match:
                             # Determine status based on whether invoice was paid
                             status = (
-                                "Paid (Excel)"
-                                if best_match and best_match.get("excel_is_paid", False)
+                                "Paid (DATEV)"
+                                if best_match and best_match.get("datev_is_paid", False)
                                 else "Match"
                             )
 
@@ -5258,22 +5385,22 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                     "Invoice_Number": invoice_num,
                                     "Status": status,
                                     "Flowwer_Date": flowwer_date,
-                                    "Excel_Date": excel_date if best_match else None,
+                                    "DATEV_Date": excel_date if best_match else None,
                                     "Date_Match": (
                                         best_match["date_match"]
                                         if best_match
                                         else False
                                     ),
                                     "Flowwer_CC": flowwer_cc,
-                                    "Excel_CC": (
-                                        best_match["excel_cc"] if best_match else ""
+                                    "DATEV_CC": (
+                                        best_match["datev_cc"] if best_match else ""
                                     ),
                                     "CC_Match": (
                                         best_match["cc_match"] if best_match else False
                                     ),
                                     "Flowwer_Amount": flowwer_amount,
-                                    "Excel_Amount": (
-                                        best_match["excel_amount"]
+                                    "DATEV_Amount": (
+                                        best_match["datev_amount"]
                                         if best_match
                                         else None
                                     ),
@@ -5296,31 +5423,31 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                     "Invoice_Number": invoice_num,
                                     "Status": "Mismatch",
                                     "Flowwer_Date": flowwer_date,
-                                    "Excel_Date": best_match["excel_date"],
+                                    "DATEV_Date": best_match["datev_date"],
                                     "Date_Match": best_match["date_match"],
                                     "Flowwer_CC": flowwer_cc,
-                                    "Excel_CC": best_match["excel_cc"],
+                                    "DATEV_CC": best_match["datev_cc"],
                                     "CC_Match": best_match["cc_match"],
                                     "Flowwer_Amount": flowwer_amount,
-                                    "Excel_Amount": best_match["excel_amount"],
+                                    "DATEV_Amount": best_match["datev_amount"],
                                     "Amount_Match": best_match["amount_match"],
                                     "Amount_Diff": best_match["amount_diff"],
                                 }
                             )
                         else:
-                            # Found in Excel but couldn't create best_match (shouldn't happen)
+                            # Found in DATEV but couldn't create best_match (shouldn't happen)
                             results.append(
                                 {
                                     "Invoice_Number": invoice_num,
                                     "Status": "Mismatch",
                                     "Flowwer_Date": flowwer_date,
-                                    "Excel_Date": None,
+                                    "DATEV_Date": None,
                                     "Date_Match": False,
                                     "Flowwer_CC": flowwer_cc,
-                                    "Excel_CC": "",
+                                    "DATEV_CC": "",
                                     "CC_Match": False,
                                     "Flowwer_Amount": flowwer_amount,
-                                    "Excel_Amount": None,
+                                    "DATEV_Amount": None,
                                     "Amount_Match": False,
                                     "Amount_Diff": None,
                                 }
@@ -5344,42 +5471,69 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
             # Calculate statistics with enhanced categorization
             total_checked = len(df_results)
             exact_matches = len(df_results[df_results["Status"] == "Match"])
-            paid_invoices = len(df_results[df_results["Status"] == "Paid (Excel)"])
+            paid_invoices = len(df_results[df_results["Status"] == "Paid (DATEV)"])
             mismatches = len(df_results[df_results["Status"] == "Mismatch"])
-            not_in_excel = len(df_results[df_results["Status"] == "Not in Excel"])
+            not_in_datev = len(df_results[df_results["Status"] == "Not in DATEV"])
 
             # Display summary statistics
+            st.markdown(
+                """
+                <div style="
+                    border-left: 3px solid #6366f1;
+                    padding: 0.75rem 1.25rem;
+                    border-radius: 8px;
+                    margin: 2rem 0 1rem 0;
+                    background: rgba(99, 102, 241, 0.03);
+                ">
+                    <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">RESULTS</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric(
-                    "✅ Exact Matches",
+                    "Exact Matches",
                     f"{exact_matches:,}",
                     delta=f"{(exact_matches/total_checked*100):.1f}%",
                 )
             with col2:
                 st.metric(
-                    "💰 Paid (Excel)",
+                    "Paid (DATEV)",
                     f"{paid_invoices:,}",
                     delta=f"{(paid_invoices/total_checked*100):.1f}%",
-                    help="Invoices with zero balance in Excel (payment completed)",
+                    help="Invoices with zero balance in DATEV (payment completed)",
                 )
             with col3:
                 st.metric(
-                    "⚠️ Mismatches",
+                    "Mismatches",
                     f"{mismatches:,}",
                     delta=f"{(mismatches/total_checked*100):.1f}%",
                     delta_color="inverse",
                 )
             with col4:
                 st.metric(
-                    "❌ Not in Excel",
-                    f"{not_in_excel:,}",
-                    delta=f"{(not_in_excel/total_checked*100):.1f}%",
+                    "Not in DATEV",
+                    f"{not_in_datev:,}",
+                    delta=f"{(not_in_datev/total_checked*100):.1f}%",
                     delta_color="inverse",
                 )
 
             # Detailed breakdown of mismatches
-            st.markdown("### Mismatch Details")
+            st.markdown(
+                """
+                <div style="
+                    border-left: 3px solid #f59e0b;
+                    padding: 0.75rem 1.25rem;
+                    border-radius: 8px;
+                    margin: 2rem 0 1rem 0;
+                    background: rgba(245, 158, 11, 0.03);
+                ">
+                    <h3 style="margin: 0; color: #f59e0b; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">MISMATCHES</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             mismatch_df = df_results[df_results["Status"] == "Mismatch"]
 
@@ -5441,10 +5595,19 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     st.metric("Multiple Fields", f"{multiple_mismatch:,}")
 
                 # Add drill-down inspector for specific invoices
-                st.markdown("---")
-                st.markdown("### 🔍 Invoice Detail Inspector")
-                st.caption(
-                    "Enter an invoice number to see all raw records from both systems"
+                st.markdown(
+                    """
+                    <div style="
+                        border-left: 3px solid #6366f1;
+                        padding: 0.75rem 1.25rem;
+                        border-radius: 8px;
+                        margin: 2rem 0 1rem 0;
+                        background: rgba(99, 102, 241, 0.03);
+                    ">
+                        <h3 style="margin: 0; color: #6366f1; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">INSPECTOR</h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
                 col1, col2 = st.columns([3, 1])
@@ -5541,7 +5704,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             df_flowwer_inspect["grossValue"], errors="coerce"
                         )
 
-                        # Convert PLN to EUR
+                        # Convert PLN to EUR using date-specific exchange rates
                         if "currencyCode" in df_flowwer_inspect.columns:
                             # Check for both "PL" and "PLN" currency codes
                             pln_mask = (
@@ -5549,9 +5712,24 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 .str.upper()
                                 .isin(["PL", "PLN"])
                             )
-                            df_flowwer_inspect.loc[pln_mask, "Amount"] = (
-                                df_flowwer_inspect.loc[pln_mask, "Amount"] / 4.23
-                            )
+
+                            # Apply conversion with date-specific rates
+                            for idx in df_flowwer_inspect[pln_mask].index:
+                                invoice_date = df_flowwer_inspect.loc[
+                                    idx, "Invoice_Date"
+                                ]
+                                if pd.notna(invoice_date):
+                                    # Convert to datetime if needed and format as string
+                                    if isinstance(invoice_date, pd.Timestamp):
+                                        date_str = invoice_date.strftime("%Y-%m-%d")
+                                    else:
+                                        date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d")  # type: ignore
+
+                                    rate = get_pln_eur_rate(date_str)
+                                    current_amount = float(df_flowwer_inspect.loc[idx, "Amount"])  # type: ignore
+                                    df_flowwer_inspect.loc[idx, "Amount"] = (
+                                        current_amount / rate
+                                    )
 
                         flowwer_raw_records = df_flowwer_inspect[
                             df_flowwer_inspect["Invoice_Number"] == inspect_invoice
@@ -5573,9 +5751,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
                             col1, col2, col3, col4 = st.columns(4)
                             with col1:
-                                st.metric("Excel Records", len(excel_raw_records))
+                                st.metric("DATEV Records", len(excel_raw_records))
                             with col2:
-                                st.metric("Excel Total", f"€{excel_sum:,.2f}")
+                                st.metric("DATEV Total", f"€{excel_sum:,.2f}")
                             with col3:
                                 st.metric("Flowwer Records", len(flowwer_raw_records))
                             with col4:
@@ -5588,7 +5766,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 )
                             elif abs(excel_sum) <= 0.01:
                                 st.info(
-                                    "**Invoice Paid** - Excel shows zero balance (payment completed with offsetting entries)"
+                                    "**Invoice Paid** - DATEV shows zero balance (payment completed with offsetting entries)"
                                 )
                             else:
                                 st.warning(
@@ -5601,7 +5779,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         col1, col2 = st.columns(2)
 
                         with col1:
-                            st.markdown("#### Excel System Records")
+                            st.subheader("DATEV Records", divider="gray")
                             if len(excel_raw_records) > 0:
                                 excel_display = excel_raw_records[
                                     ["Invoice_Date", "Cost_Center", "Amount"]
@@ -5636,10 +5814,10 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                     f"**Total of {len(excel_raw_records)} records:** €{total:,.2f}"
                                 )
                             else:
-                                st.info("No records found in Excel for this invoice")
+                                st.info("No records found in DATEV for this invoice")
 
                         with col2:
-                            st.markdown("#### Flowwer System Records")
+                            st.subheader("Flowwer Records", divider="gray")
                             if len(flowwer_raw_records) > 0:
                                 flowwer_display = flowwer_raw_records[
                                     ["Invoice_Date", "Cost_Center", "Amount"]
@@ -5699,11 +5877,11 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
                                 if len(excel_raw_records) > len(flowwer_raw_records):
                                     reasons.append(
-                                        "Excel contains additional correction or reversal entries that haven't been synchronized to Flowwer yet"
+                                        "DATEV contains additional correction or reversal entries that haven't been synchronized to Flowwer yet"
                                     )
                                 elif len(flowwer_raw_records) > len(excel_raw_records):
                                     reasons.append(
-                                        "Flowwer contains additional line items or cost center splits not yet in Excel"
+                                        "Flowwer contains additional line items or cost center splits not yet in DATEV"
                                     )
 
                                 # Check for cost center differences
@@ -5715,7 +5893,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 )
                                 if excel_ccs != flowwer_ccs:
                                     reasons.append(
-                                        f"Different cost centers used: Excel has {len(excel_ccs)} unique, Flowwer has {len(flowwer_ccs)} unique"
+                                        f"Different cost centers used: DATEV has {len(excel_ccs)} unique, Flowwer has {len(flowwer_ccs)} unique"
                                     )
 
                                 for i, reason in enumerate(reasons, 1):
@@ -5732,7 +5910,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
                 # Show detailed mismatches in tabs
                 st.markdown("---")
-                st.markdown("### 📑 View Side-by-Side Comparison")
+                st.markdown("### View Side-by-Side Comparison")
 
                 tab1, tab2, tab3, tab4 = st.tabs(
                     [
@@ -5750,13 +5928,13 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                             [
                                 "Invoice_Number",
                                 "Flowwer_Date",
-                                "Excel_Date",
+                                "DATEV_Date",
                                 "Date_Match",
                                 "Flowwer_CC",
-                                "Excel_CC",
+                                "DATEV_CC",
                                 "CC_Match",
                                 "Flowwer_Amount",
-                                "Excel_Amount",
+                                "DATEV_Amount",
                                 "Amount_Diff",
                                 "Amount_Match",
                             ]
@@ -5769,15 +5947,15 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     display_df["Flowwer_Date"] = pd.to_datetime(
                         display_df["Flowwer_Date"]
                     ).dt.strftime("%Y-%m-%d")
-                    display_df["Excel_Date"] = pd.to_datetime(
-                        display_df["Excel_Date"]
+                    display_df["DATEV_Date"] = pd.to_datetime(
+                        display_df["DATEV_Date"]
                     ).dt.strftime("%Y-%m-%d")
 
                     # Format amounts to 2 decimal places
                     display_df["Flowwer_Amount"] = display_df["Flowwer_Amount"].apply(
                         lambda x: f"{x:.2f}" if pd.notna(x) else ""
                     )
-                    display_df["Excel_Amount"] = display_df["Excel_Amount"].apply(
+                    display_df["DATEV_Amount"] = display_df["DATEV_Amount"].apply(
                         lambda x: f"{x:.2f}" if pd.notna(x) else ""
                     )
                     display_df["Amount_Diff"] = display_df["Amount_Diff"].apply(
@@ -5798,7 +5976,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 [
                                     "Invoice_Number",
                                     "Flowwer_Date",
-                                    "Excel_Date",
+                                    "DATEV_Date",
                                     "Flowwer_CC",
                                     "Flowwer_Amount",
                                 ]
@@ -5809,8 +5987,8 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         display_date_df["Flowwer_Date"] = pd.to_datetime(
                             display_date_df["Flowwer_Date"]
                         ).dt.strftime("%Y-%m-%d")
-                        display_date_df["Excel_Date"] = pd.to_datetime(
-                            display_date_df["Excel_Date"]
+                        display_date_df["DATEV_Date"] = pd.to_datetime(
+                            display_date_df["DATEV_Date"]
                         ).dt.strftime("%Y-%m-%d")
 
                         # Format amounts to 2 decimal places
@@ -5834,9 +6012,9 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 [
                                     "Invoice_Number",
                                     "Flowwer_CC",
-                                    "Excel_CC",
+                                    "DATEV_CC",
                                     "Flowwer_Amount",
-                                    "Excel_Amount",
+                                    "DATEV_Amount",
                                 ]
                             ]
                             .head(100)
@@ -5847,8 +6025,8 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         display_cc_df["Flowwer_Amount"] = display_cc_df[
                             "Flowwer_Amount"
                         ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-                        display_cc_df["Excel_Amount"] = display_cc_df[
-                            "Excel_Amount"
+                        display_cc_df["DATEV_Amount"] = display_cc_df[
+                            "DATEV_Amount"
                         ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
 
                         st.dataframe(
@@ -5867,7 +6045,7 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                                 [
                                     "Invoice_Number",
                                     "Flowwer_Amount",
-                                    "Excel_Amount",
+                                    "DATEV_Amount",
                                     "Amount_Diff",
                                     "Flowwer_CC",
                                 ]
@@ -5880,8 +6058,8 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                         display_amount_df["Flowwer_Amount"] = display_amount_df[
                             "Flowwer_Amount"
                         ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-                        display_amount_df["Excel_Amount"] = display_amount_df[
-                            "Excel_Amount"
+                        display_amount_df["DATEV_Amount"] = display_amount_df[
+                            "DATEV_Amount"
                         ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
                         display_amount_df["Amount_Diff"] = display_amount_df[
                             "Amount_Diff"
@@ -5895,14 +6073,27 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
                     else:
                         st.success("All Amounts match!")
             else:
-                st.success("Perfect! All Flowwer records match Excel exactly!")
+                st.success("Perfect! All Flowwer records match DATEV exactly!")
 
-            # Show records not found in Excel
-            not_in_excel_df = df_results[df_results["Status"] == "Not in Excel"]
-            if len(not_in_excel_df) > 0:
-                st.markdown("### Flowwer Records Not Found in Excel")
+            # Show records not found in DATEV
+            not_in_datev_df = df_results[df_results["Status"] == "Not in DATEV"]
+            if len(not_in_datev_df) > 0:
+                st.markdown(
+                    """
+                    <div style="
+                        border-left: 3px solid #ef4444;
+                        padding: 0.75rem 1.25rem;
+                        border-radius: 8px;
+                        margin: 2rem 0 1rem 0;
+                        background: rgba(239, 68, 68, 0.03);
+                    ">
+                        <h3 style="margin: 0; color: #ef4444; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">NOT IN DATEV</h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 display_not_found_df = (
-                    not_in_excel_df[
+                    not_in_datev_df[
                         [
                             "Invoice_Number",
                             "Flowwer_Date",
