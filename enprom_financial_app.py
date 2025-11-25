@@ -7,12 +7,12 @@ Interactive portal for financial document workflows
 # CONFIGURATION: Toggle Features for Testing/Development
 # ============================================================================
 #
-# ENABLE_TEST_SECTION: Controls visibility of the Test/Comparison page
+# ENABLE_PRODUCTION: Controls visibility of the Test/Comparison page
 #   - Set to True: Test section appears in Tools menu, enables data comparison
 #   - Set to False: Test section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-ENABLE_TEST_SECTION = True  # Set to True to enable Comparison section
+ENABLE_PRODUCTION = True  # Set to True to enable Comparison section
 
 # ============================================================================
 
@@ -644,7 +644,9 @@ languages = get_languages()
 # Initialize session state
 if "client" not in st.session_state:
     # Initialize with API key from secrets (works locally and in Streamlit Cloud)
-    api_key = st.secrets.get("flowwer", {}).get("api_key", "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL")
+    api_key = st.secrets.get("flowwer", {}).get(
+        "api_key", "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL"
+    )
     st.session_state.client = FlowwerAPIClient(api_key=api_key)
 
 if "documents" not in st.session_state:
@@ -820,12 +822,9 @@ with st.sidebar:
         ("companies", "🏢 " + t("pages.companies"), t("pages.companies")),
         ("download", "  " + t("pages.download"), t("pages.download")),
         ("upload", "📤 " + t("pages.upload"), t("pages.upload")),
+        ("test", "🧪 " + t("pages.test"), t("pages.test")),
         ("settings", "⚙️ " + t("pages.settings"), t("pages.settings")),
     ]
-
-    # Add Test section only if enabled
-    if ENABLE_TEST_SECTION:
-        tool_options.insert(3, ("test", "🧪 " + t("pages.test"), t("pages.test")))
 
     for key, page_key, label in tool_options:
         if st.button(
@@ -4472,7 +4471,7 @@ elif page == "📈 " + t("pages.analytics"):
                     )
 
                     df_timeline["Month"] = (
-                        df_timeline["Date"].dt.to_period("M").astype(str)
+                        df_timeline["Date"].dt.to_period("M").astype(str)  # type: ignore[attr-defined]
                     )
                     monthly_summary = (
                         df_timeline.groupby("Month")
@@ -4769,7 +4768,7 @@ elif page == "⚙️ " + t("pages.settings"):
 # ============================================================================
 # PAGE: DATA COMPARISON
 # ============================================================================
-elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
+elif page == "🧪 " + t("pages.test"):
     st.markdown(get_page_header_indigo(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
@@ -4897,26 +4896,48 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
         unsafe_allow_html=True,
     )
 
-    # DATEV file path - check if exists locally
+    # DATEV file path - check if exists locally (for development)
     excel_file_path = "Financial_Dashboard_Latest.xlsx"
-    
-    # Show warning if file doesn't exist (only when comparison feature is enabled)
-    if not os.path.exists(excel_file_path):
-        if ENABLE_TEST_SECTION:
-            st.warning(
-                "⚠️ **DATEV Data File Not Found**\n\n"
-                "The file `Financial_Dashboard_Latest.xlsx` is not available. "
-                "This file contains sensitive data and is not included in the public repository.\n\n"
-                "**For local development:** Place the Excel file in the `project-flowwer` directory.\n\n"
-                "**For deployment:** You can modify the code to use alternative data sources or upload the file through Streamlit's file uploader."
+
+    # File upload option (only visible when ENABLE_PRODUCTION is True for production)
+    uploaded_file = None
+    if ENABLE_PRODUCTION:
+        st.markdown("#### 📁 Data Source")
+        uploaded_file = st.file_uploader(
+            "Upload DATEV Excel file (or use default file if available)",
+            type=["xlsx"],
+            help="Upload your DATEV exported Excel file with 'Booking General' sheet",
+        )
+
+    # Determine which file to use
+    file_to_use = None
+    file_source = None
+
+    if uploaded_file is not None:
+        file_to_use = uploaded_file
+        file_source = "uploaded"
+        st.info(f"📤 Using uploaded file: **{uploaded_file.name}**")
+    elif os.path.exists(excel_file_path):
+        file_to_use = excel_file_path
+        file_source = "local"
+        st.info(f"📂 Using local file: **{excel_file_path}**")
+    else:
+        warning_msg = "⚠️ **No Data File Available**\n\n"
+        if ENABLE_PRODUCTION:
+            warning_msg += (
+                "Please upload a DATEV Excel file above, or for local development, "
             )
+        else:
+            warning_msg += "For local development, "
+        warning_msg += f"place `{excel_file_path}` in:\n`{os.getcwd()}`"
+        st.warning(warning_msg)
 
     if st.button(
         "Load Both Datasets",
         key="btn_load_both",
         type="primary",
         use_container_width=True,
-        disabled=not os.path.exists(excel_file_path),
+        disabled=file_to_use is None,
     ):
         # Clear previous data
         if "excel_data" in st.session_state:
@@ -4934,12 +4955,22 @@ elif page == "🧪 " + t("pages.test") and ENABLE_TEST_SECTION:
 
         try:
             with st.spinner("Loading DATEV data..."):
-                df_excel = pd.read_excel(
-                    excel_file_path,
-                    sheet_name="Booking General",
-                    engine="openpyxl",
-                    header=1,
-                )
+                # Load from uploaded file or local file
+                if file_source == "uploaded":
+                    df_excel = pd.read_excel(
+                        uploaded_file,
+                        sheet_name="Booking General",
+                        engine="openpyxl",
+                        header=1,
+                    )
+                else:  # file_source == "local"
+                    df_excel = pd.read_excel(
+                        excel_file_path,
+                        sheet_name="Booking General",
+                        engine="openpyxl",
+                        header=1,
+                    )
+
                 # Filter by date range
                 df_excel["Belegdatum"] = pd.to_datetime(
                     df_excel["Belegdatum"], errors="coerce"
