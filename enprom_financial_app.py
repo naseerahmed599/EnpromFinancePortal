@@ -225,11 +225,16 @@ def authenticate_user(username: str, password: str) -> bool:
         # Get users from secrets
         users = st.secrets.get("users", {})
         
+        # Debug: Show available users (remove in production)
+        if not users:
+            st.error("⚠️ No users configured in secrets.toml")
+            return False
+        
         # Check if user exists
         for user_key, user_data in users.items():
             if user_data.get("username") == username:
                 # Verify password
-                stored_password = user_data.get("password")
+                stored_password = user_data.get("password", "")
                 
                 # Check if password is hashed or plain text (for migration)
                 if len(stored_password) == 64:  # SHA-256 hash length
