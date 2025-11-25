@@ -15,7 +15,7 @@ class FlowwerAPIClient:
     def __init__(
         self,
         base_url: str = "https://enprom-gmbh.flowwer.de",
-        api_key: Optional[str] = "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL",
+        api_key: Optional[str] = None,
     ):
         """
         Initialize the Flowwer API client

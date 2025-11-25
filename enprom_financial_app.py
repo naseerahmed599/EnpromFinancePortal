@@ -643,9 +643,7 @@ languages = get_languages()
 # Initialize session state
 if "client" not in st.session_state:
     # Initialize with API key from secrets (works locally and in Streamlit Cloud)
-    api_key = st.secrets.get("flowwer", {}).get(
-        "api_key", "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL"
-    )
+    api_key = st.secrets.get("flowwer", {}).get("api_key", "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL")
     st.session_state.client = FlowwerAPIClient(api_key=api_key)
 
 if "documents" not in st.session_state:

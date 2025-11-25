@@ -24,7 +24,7 @@ pip install streamlit requests pandas
 ### 2. Run the Streamlit App
 
 ```bash
-streamlit run streamlit_flowwer_app.py
+streamlit run enprom_financial_app.py
 ```
 
 ### 3. Access the App
@@ -85,7 +85,7 @@ To stop the Streamlit app:
 
 If you make changes to the code:
 1. Stop the app (`Ctrl + C`)
-2. Run `streamlit run streamlit_flowwer_app.py` again
+2. Run `streamlit run enprom_financial_app.py` again
 
 Or use the "Rerun" button in the Streamlit UI (top-right corner).
 
@@ -101,7 +101,7 @@ Or use the "Rerun" button in the Streamlit UI (top-right corner).
 ### Port Already in Use
 If you see "Address already in use" error:
 ```bash
-streamlit run streamlit_flowwer_app.py --server.port 8502
+streamlit run enprom_financial_app.py --server.port 8502
 ```
 
 ### Module Not Found
@@ -119,14 +119,14 @@ cd /Users/naseer/Documents/ENPROM/Work-ED/project-flowwer
 
 To access from another device on the same network:
 ```bash
-streamlit run streamlit_flowwer_app.py --server.address 0.0.0.0
+streamlit run enprom_financial_app.py --server.address 0.0.0.0
 ```
 
 Then access via: `http://YOUR_IP:8501`
 
 ##  Customization
 
-The app is fully customizable. Edit `streamlit_flowwer_app.py` to:
+The app is fully customizable. Edit `enprom_financial_app.py` to:
 - Add new pages
 - Modify filters
 - Change colors and layout
