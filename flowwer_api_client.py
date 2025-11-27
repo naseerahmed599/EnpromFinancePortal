@@ -45,24 +45,51 @@ class FlowwerAPIClient:
         """
         url = f"{self.base_url}/api/v1/auth/token"
 
-        headers = {"username": username, "password": password}
+        # Reset last auth error info
+        self.last_auth_status = None
+        self.last_auth_response = None
 
         try:
-            response = requests.post(url, headers=headers)
-
-            if response.status_code == 200:
-                self.api_key = response.text.strip('"')  # Remove quotes from response
+            # Attempt 1: Headers (per Postman guide)
+            resp = requests.post(
+                url, headers={"username": username, "password": password}
+            )
+            if resp.status_code == 200:
+                self.api_key = resp.text.strip('"')
                 self.session.headers.update({"X-FLOWWER-ApiKey": self.api_key})
-                print(f"Authentication successful!")
-                print(f"🔑 API Key: {self.api_key[:20]}...")
                 return True
-            else:
-                print(f"Authentication failed: {response.status_code}")
-                print(f"Response: {response.text}")
-                return False
+
+            # Attempt 2: JSON body
+            resp = requests.post(
+                url,
+                json={"username": username, "password": password},
+                headers={"Content-Type": "application/json"},
+            )
+            if resp.status_code == 200:
+                self.api_key = resp.text.strip('"')
+                self.session.headers.update({"X-FLOWWER-ApiKey": self.api_key})
+                return True
+
+            # Attempt 3: Form encoded
+            resp = requests.post(
+                url,
+                data={"username": username, "password": password},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if resp.status_code == 200:
+                self.api_key = resp.text.strip('"')
+                self.session.headers.update({"X-FLOWWER-ApiKey": self.api_key})
+                return True
+
+            # Record last error
+            self.last_auth_status = resp.status_code
+            # Keep short snippet to avoid logging secrets
+            self.last_auth_response = (resp.text or "").strip()[:500]
+            return False
 
         except Exception as e:
-            print(f"Error during authentication: {e}")
+            self.last_auth_status = -1
+            self.last_auth_response = str(e)
             return False
 
     def get_all_documents(

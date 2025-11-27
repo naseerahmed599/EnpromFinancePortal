@@ -12,7 +12,7 @@ Interactive portal for financial document workflows
 #   - Set to False: Test section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-ENABLE_PRODUCTION = True  # Set to True to enable Comparison section
+ENABLE_PRODUCTION = False  # Set to True to enable Comparison section
 
 # ============================================================================
 
@@ -97,204 +97,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-
-# ============================================================================
-# AUTHENTICATION SYSTEM
-# ============================================================================
-import hashlib
-
-
-def hash_password(password: str) -> str:
-    """Hash a password for secure storage"""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def verify_password(stored_hash: str, provided_password: str) -> bool:
-    """Verify a provided password against stored hash"""
-    return stored_hash == hash_password(provided_password)
-
-
-def check_authentication():
-    """Check if user is authenticated, show login page if not"""
-    # Initialize session state for authentication
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-    if "username" not in st.session_state:
-        st.session_state.username = None
-    if "user_role" not in st.session_state:
-        st.session_state.user_role = None
-    if "user_name" not in st.session_state:
-        st.session_state.user_name = None
-
-    # If not authenticated, show login page
-    if not st.session_state.authenticated:
-        show_login_page()
-        return False
-    
-    return True
-
-
-def show_login_page():
-    """Display the login page"""
-    # Custom CSS for login page
-    st.markdown(
-        """
-        <style>
-        /* Login page specific styles */
-        [data-testid="stAppViewContainer"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .login-container {
-            max-width: 450px;
-            margin: 8rem auto;
-            padding: 3rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .login-header h1 {
-            color: #1e293b;
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-        }
-        
-        .login-header p {
-            color: #64748b;
-            font-size: 1rem;
-        }
-        
-        .stTextInput > div > div > input {
-            border-radius: 12px !important;
-            border: 2px solid #e2e8f0 !important;
-            padding: 0.75rem 1rem !important;
-            font-size: 1rem !important;
-        }
-        
-        .stTextInput > div > div > input:focus {
-            border-color: #667eea !important;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Login container
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        st.markdown(
-            """
-            <div class="login-container">
-                <div class="login-header">
-                    <h1>🔐 ENPROM Finance Portal</h1>
-                    <p>Please sign in to continue</p>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        
-        # Login form
-        with st.form("login_form"):
-            username = st.text_input("Username / Email", placeholder="Enter your username or email")
-            password = st.text_input("Password", type="password", placeholder="Enter your password")
-            submit = st.form_submit_button("Sign In", use_container_width=True)
-            
-            if submit:
-                if authenticate_user(username, password):
-                    st.success("✅ Login successful! Redirecting...")
-                    st.rerun()
-                else:
-                    st.error("❌ Invalid username or password")
-
-
-def authenticate_user(username: str, password: str) -> bool:
-    """Authenticate user against secrets"""
-    try:
-        # Get users from secrets
-        users = st.secrets.get("users", {})
-        
-        # Debug: Show available users (remove in production)
-        if not users:
-            st.error("⚠️ No users configured in secrets.toml")
-            return False
-        
-        # Check if user exists
-        for user_key, user_data in users.items():
-            if user_data.get("username") == username:
-                # Verify password
-                stored_password = user_data.get("password", "")
-                
-                # Check if password is hashed or plain text (for migration)
-                if len(stored_password) == 64:  # SHA-256 hash length
-                    password_match = verify_password(stored_password, password)
-                else:
-                    # Plain text comparison (less secure, for initial setup)
-                    password_match = stored_password == password
-                
-                if password_match:
-                    # Set session state
-                    st.session_state.authenticated = True
-                    st.session_state.username = username
-                    st.session_state.user_role = user_data.get("role", "viewer")
-                    st.session_state.user_name = user_data.get("name", username)
-                    return True
-        
-        return False
-    except Exception as e:
-        st.error(f"Authentication error: {e}")
-        return False
-
-
-def logout():
-    """Logout user and clear session"""
-    st.session_state.authenticated = False
-    st.session_state.username = None
-    st.session_state.user_role = None
-    st.session_state.user_name = None
-    st.rerun()
-
-
-def check_permission(required_role: str = None) -> bool:
-    """Check if user has required permission level"""
-    if not st.session_state.authenticated:
-        return False
-    
-    if required_role is None:
-        return True
-    
-    # Define role hierarchy
-    role_hierarchy = {
-        "viewer": 1,
-        "editor": 2,
-        "finance": 3,
-        "admin": 4
-    }
-    
-    user_level = role_hierarchy.get(st.session_state.user_role, 0)
-    required_level = role_hierarchy.get(required_role, 999)
-    
-    return user_level >= required_level
-
-
-# Check authentication before loading the app
-if not check_authentication():
-    st.stop()
-
-# ============================================================================
-# END AUTHENTICATION SYSTEM
-# ============================================================================
 
 
 # Load language file
@@ -842,8 +644,8 @@ languages = get_languages()
 # Initialize session state
 if "client" not in st.session_state:
     # Initialize with API key from secrets (works locally and in Streamlit Cloud)
-    api_key = st.secrets.get("flowwer", {}).get(
-        "api_key", "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL"
+    api_key = st.secrets.get("flowwer", {}).get("api_key") or os.environ.get(
+        "FLOWWER_API_KEY"
     )
     st.session_state.client = FlowwerAPIClient(api_key=api_key)
 
@@ -872,6 +674,217 @@ def t(key):
     return key
 
 
+# Early authentication gate: require API key before rendering the app
+if not st.session_state.client.api_key:
+    # Branded, professional login hero
+    st.markdown(
+        """
+        <style>
+            .auth-container{
+                max-width: 520px;
+                margin: 10vh auto 2rem auto;
+                text-align: center;
+            }
+            .auth-logo-section{
+                margin-bottom: 2rem;
+                animation: fadeInDown 0.6s ease-out;
+            }
+            .auth-logo-wrapper{
+                display: inline-block;
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                padding: 2.5rem;
+                border-radius: 24px;
+                box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3),
+                            0 8px 16px rgba(0, 0, 0, 0.1),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                position: relative;
+                overflow: hidden;
+            }
+            .auth-logo-wrapper::before{
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+                animation: shimmer 3s infinite;
+            }
+            .auth-logo-inner{
+                background: #ffffff;
+                border-radius: 16px;
+                padding: 1.5rem 2rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                position: relative;
+                z-index: 1;
+            }
+            .auth-logo-inner img{
+                height: 48px;
+                max-width: 200px;
+                object-fit: contain;
+                display: block;
+            }
+            .auth-title-section{
+                margin-top: 1.5rem;
+                animation: fadeInUp 0.6s ease-out 0.2s both;
+            }
+            .auth-main-title{
+                font-size: 2.25rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin: 0 0 0.5rem 0;
+                letter-spacing: -0.5px;
+            }
+            .auth-subtitle{
+                font-size: 1rem;
+                color: #64748b;
+                font-weight: 500;
+                margin: 0;
+            }
+            .auth-divider{
+                height: 1px;
+                background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+                margin: 2rem 0 1.5rem 0;
+            }
+            @keyframes fadeInDown{
+                from{opacity: 0; transform: translateY(-20px);}
+                to{opacity: 1; transform: translateY(0);}
+            }
+            @keyframes fadeInUp{
+                from{opacity: 0; transform: translateY(20px);}
+                to{opacity: 1; transform: translateY(0);}
+            }
+            @keyframes shimmer{
+                0%{left: -100%;}
+                100%{left: 100%;}
+            }
+        </style>
+        <div class="auth-container">
+            <div class="auth-logo-section">
+                <div class="auth-logo-wrapper">
+                    <div class="auth-logo-inner">
+                        <img src="https://enprom.com/wp-content/uploads/2020/12/xlogo-poziome.png.pagespeed.ic.jXuMlmU90u.webp" alt="ENPROM" />
+                    </div>
+                </div>
+            </div>
+            <div class="auth-title-section">
+                <h1 class="auth-main-title">Finance Portal</h1>
+                <p class="auth-subtitle">Secure authentication required</p>
+            </div>
+            <div class="auth-divider"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Additional scoped styles for centered input and primary button color
+    st.markdown(
+        """
+        <style>
+            /* Beautiful gradient background for login page */
+            .stApp {
+                background: linear-gradient(135deg, 
+                    #f8fafc 0%, 
+                    #f1f5f9 25%, 
+                    #e0e7ff 50%, 
+                    #ede9fe 75%, 
+                    #faf5ff 100%) !important;
+                background-attachment: fixed !important;
+            }
+            
+            /* Centered layout helpers */
+            .block-container{
+                padding-top: 2rem;
+                background: transparent !important;
+            }
+            
+            /* Remove red border from input on focus */
+            input[type="password"]:focus,
+            input[type="text"]:focus,
+            div[data-baseweb="input"] input:focus{
+                border-color: #6366f1 !important;
+                box-shadow: 0 0 0 1px #6366f1 !important;
+                outline: none !important;
+            }
+            
+            /* Style input container */
+            div[data-baseweb="input"]{
+                border-radius: 12px !important;
+                border: 2px solid #e2e8f0 !important;
+                transition: all 0.2s ease !important;
+                background: white !important;
+            }
+            
+            div[data-baseweb="input"]:focus-within{
+                border-color: #6366f1 !important;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+            }
+            
+            /* Primary button theme to match app - indigo/purple gradient */
+            div.stButton > button[kind="primary"],
+            div.stButton > button[data-testid="baseButton-primary"]{
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                color: #fff !important; 
+                border: 0 !important;
+                box-shadow: 0 8px 18px rgba(79,70,229,.25) !important;
+                font-weight: 600 !important;
+                border-radius: 12px !important;
+                padding: 0.75rem 2rem !important;
+                transition: all 0.2s ease !important;
+            }
+            div.stButton > button[kind="primary"]:hover,
+            div.stButton > button[data-testid="baseButton-primary"]:hover{
+                transform: translateY(-1px);
+                box-shadow: 0 12px 28px rgba(79,70,229,.35) !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Centered input
+    input_cols = st.columns([1, 2, 1])
+    with input_cols[1]:
+        new_api_key = st.text_input(
+            "API Key",
+            value="",
+            type="password",
+            placeholder="Paste your Flowwer API key",
+            key="startup_api_key",
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Centered primary button
+    btn_cols = st.columns([1.5, 1, 1.5])
+    with btn_cols[1]:
+        submit = st.button(
+            "Access",
+            type="primary",
+            key="btn_startup_save_key",
+            use_container_width=True,
+        )
+
+    if submit:
+        if not new_api_key:
+            st.warning("Please enter a valid API key.")
+        else:
+            st.session_state.client.api_key = new_api_key
+            st.session_state.client.session.headers.update(
+                {"X-FLOWWER-ApiKey": new_api_key}
+            )
+            st.success(
+                t("messages.api_key_updated") if callable(t) else "API key saved."
+            )
+            st.rerun()
+
+    st.stop()
+
+
 # Sidebar for navigation
 with st.sidebar:
     # Company logo
@@ -884,36 +897,6 @@ with st.sidebar:
 
     # App title and branding
     st.title("ENPROM Finance Portal")
-    
-    # User info and logout
-    st.markdown(
-        f"""
-        <div style="
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        ">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                <span style="font-size: 1.5rem;">👤</span>
-                <div>
-                    <div style="color: #ffffff; font-weight: 600; font-size: 0.95rem;">
-                        {st.session_state.user_name}
-                    </div>
-                    <div style="color: #93c5fd; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        {st.session_state.user_role}
-                    </div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    
-    if st.button("🚪 Logout", use_container_width=True, key="logout_btn"):
-        logout()
 
     # Language selector - elegant selectbox
     current_lang = st.session_state.language
@@ -1071,6 +1054,13 @@ with st.sidebar:
     # API Status
     if st.session_state.client.api_key:
         st.success("🔐 " + t("messages.connected"))
+        if st.button("Log out", key="btn_logout", use_container_width=True):
+            st.session_state.client.api_key = None
+            try:
+                st.session_state.client.session.headers.pop("X-FLOWWER-ApiKey", None)
+            except Exception:
+                pass
+            st.rerun()
     else:
         st.error("🔐 Not Connected")
 
@@ -4887,21 +4877,8 @@ elif page == "⚙️ " + t("pages.settings"):
         unsafe_allow_html=True,
     )
 
-    # Apply card styles (for section headers), tab styles, and alert box styles
+    # Apply card styles (for section headers)
     st.markdown(get_card_styles(), unsafe_allow_html=True)
-    st.markdown(get_tab_styles(), unsafe_allow_html=True)
-    st.markdown(get_alert_box_styles(), unsafe_allow_html=True)
-
-    # Feature disabled notice with glassmorphic styling
-    st.markdown(
-        """
-        <div class="warning-box">
-            <div class="warning-box-icon">⚠️</div>
-            <div class="warning-box-text">Settings are currently disabled. API configuration is managed by administrators.</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     st.markdown(
         f'<div class="section-header"><span class="section-icon">🔐</span> {t("settings_page.api_config")}</div>',
@@ -4919,59 +4896,27 @@ elif page == "⚙️ " + t("pages.settings"):
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
-        '<div class="section-header"><span class="section-icon">🔑</span> Change API Key</div>',
+        '<div class="section-header"><span class="section-icon">🔑</span> Update API Key</div>',
         unsafe_allow_html=True,
     )
 
-    tab1, tab2 = st.tabs(["Use Existing Key", "Generate New Key"])
-
-    with tab1:
-        new_api_key = st.text_input(
-            "Enter API Key",
-            value="",
-            type="password",
-            disabled=True,
-            placeholder="API Key management is disabled",
-        )
-        if st.button(
-            " Save API Key", type="primary", key="btn_save_api_key", disabled=True
-        ):
+    new_api_key = st.text_input(
+        "Enter API Key",
+        value="",
+        type="password",
+        placeholder="Paste your Flowwer API key",
+        key="settings_api_key",
+    )
+    if st.button(" Save API Key", type="primary", key="btn_save_api_key"):
+        if not new_api_key:
+            st.warning("Please enter a valid API key.")
+        else:
             st.session_state.client.api_key = new_api_key
             st.session_state.client.session.headers.update(
                 {"X-FLOWWER-ApiKey": new_api_key}
             )
             st.success(t("messages.api_key_updated"))
             st.rerun()
-
-    with tab2:
-        st.write("Generate a new API key using your credentials")
-        username = st.text_input(
-            "Username",
-            value="",
-            disabled=True,
-            placeholder="Authentication is disabled",
-        )
-        password = st.text_input(
-            "Password",
-            type="password",
-            value="",
-            disabled=True,
-            placeholder="Authentication is disabled",
-        )
-
-        if st.button(
-            "🔐 Authenticate & Get New Key",
-            type="primary",
-            key="btn_authenticate",
-            disabled=True,
-        ):
-            with st.spinner("Authenticating..."):
-                if st.session_state.client.authenticate(username, password):
-                    st.success(t("messages.auth_successful"))
-                    st.write("**New API Key:**")
-                    st.code(st.session_state.client.api_key, language="text")
-                else:
-                    st.error("Authentication failed")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### API Information")
@@ -5125,7 +5070,7 @@ elif page == "🧪 " + t("pages.test"):
     )
 
     # DATEV file path - check if exists locally (for development)
-    excel_file_path = "Financial_Dashboard_Latest.xlsx"
+    excel_file_path = "../Financial_Dashboard_Latest.xlsx"
 
     # File upload option (only visible when ENABLE_PRODUCTION is True for production)
     uploaded_file = None

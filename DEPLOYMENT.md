@@ -27,7 +27,7 @@
 2. Paste this configuration:
    ```toml
    [flowwer]
-   api_key = "MXrKdv77r3lTlPzdc9U9mjdT5YzA87iL"
+   api_key = "your_API_Key"
    base_url = "https://enprom-gmbh.flowwer.de"
    ```
 3. Click **"Save"**
