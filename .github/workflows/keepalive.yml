@@ -11,4 +11,6 @@ jobs:
     steps:
       - name: Ping Streamlit App
         run: |
-          curl -L -X GET "https://enprom-gmbh-financial.streamlit.app/"
+          curl -I -L --fail --max-time 30 "https://enprom-gmbh-financial.streamlit.app/" || \
+          curl -I -L --max-time 30 "https://enprom-gmbh-financial.streamlit.app/" || \
+          echo "App may be starting up, this is normal"
