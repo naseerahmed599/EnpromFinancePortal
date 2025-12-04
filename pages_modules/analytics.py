@@ -721,9 +721,9 @@ def render_analytics_page(
                         unsafe_allow_html=True,
                     )
 
-                    df_timeline["Month"] = (
-                        df_timeline["Date"].dt.to_period("M").astype(str) 
-                    )
+                    df_timeline["Month"] = pd.to_datetime(
+                        df_timeline["Date"]
+                    ).dt.strftime("%Y-%m")
                     monthly_summary = (
                         df_timeline.groupby("Month")
                         .agg({"Value": ["sum", "count", "mean"]})

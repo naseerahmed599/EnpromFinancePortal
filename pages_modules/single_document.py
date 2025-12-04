@@ -18,6 +18,7 @@ def render_single_document_page(
     get_metric_styles,
     get_tab_styles,
     get_theme_text_styles,
+    get_section_header_styles,
     to_excel,
 ):
     """Render the Single Document page with detailed document information and receipt splits"""
@@ -30,7 +31,8 @@ def render_single_document_page(
         + get_card_styles()
         + get_metric_styles()
         + get_tab_styles()
-        + get_theme_text_styles(),
+        + get_theme_text_styles()
+        + get_section_header_styles(),
         unsafe_allow_html=True,
     )
 
@@ -86,6 +88,7 @@ def render_single_document_page(
             options=["Document ID", "Invoice Number"],
             horizontal=True,
             help="Choose whether to search by Document ID or Invoice Number",
+            key="single_doc_search_type",
         )
 
     with col2:
