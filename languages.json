@@ -27,9 +27,9 @@
       "approved_docs": "Approved Documents",
       "signable_docs": "Pending Approvals",
       "settings": "Settings",
-      "test": "Comparison"
+      "data_comparison": "Comparison"
     },
-    "test_page": {
+    "data_comparison_page": {
       "title": "Data Comparison",
       "subtitle": "Compare imported data with DATEV booking data",
       "load_excel": "Load DATEV Data",
@@ -358,9 +358,9 @@
       "approved_docs": "Genehmigte Dokumente",
       "signable_docs": "Ausstehende Genehmigungen",
       "settings": "Einstellungen",
-      "test": "Vergleich"
+      "data_comparison": "Vergleich"
     },
-    "test_page": {
+    "data_comparison_page": {
       "title": "Datenvergleich",
       "subtitle": "Vergleichen Sie importierte Daten mit DATEV-Buchungsdaten",
       "load_excel": "DATEV-Daten laden",
@@ -689,9 +689,9 @@
       "approved_docs": "Zatwierdzone Dokumenty",
       "signable_docs": "Oczekujące Zatwierdzenia",
       "settings": "Ustawienia",
-      "test": "Porównanie"
+      "data_comparison": "Porównanie"
     },
-    "test_page": {
+    "data_comparison_page": {
       "title": "Porównanie Danych",
       "subtitle": "Porównaj zaimportowane dane z danymi księgowymi DATEV",
       "load_excel": "Załaduj Dane DATEV",
