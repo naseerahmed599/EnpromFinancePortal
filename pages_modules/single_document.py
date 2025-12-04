@@ -23,7 +23,6 @@ def render_single_document_page(
 ):
     """Render the Single Document page with detailed document information and receipt splits"""
 
-    # Apply all styles at once to minimize spacing
     st.markdown(
         get_page_header_purple()
         + get_action_bar_styles()
@@ -36,7 +35,6 @@ def render_single_document_page(
         unsafe_allow_html=True,
     )
 
-    # Glossy page header card
     st.markdown(
         f"""
         <div class="page-header-purple" style="
@@ -77,7 +75,6 @@ def render_single_document_page(
         unsafe_allow_html=True,
     )
 
-    # Search panel
     st.markdown("### Search by Document ID or Invoice Number")
 
     col1, col2 = st.columns(2)
@@ -92,7 +89,7 @@ def render_single_document_page(
         )
 
     with col2:
-        pass  # Empty for spacing
+        pass  
 
     col1, col2 = st.columns([4, 1])
 
@@ -113,7 +110,6 @@ def render_single_document_page(
             )
 
     with col2:
-        # Align button with input field
         st.markdown('<div style="margin-top: 1.85rem;"></div>', unsafe_allow_html=True)
         if st.button(
             "Search",
@@ -153,7 +149,6 @@ def render_single_document_page(
 
                 if doc:
                     st.session_state.selected_document = doc
-                    # Also get receipt splits (Belegaufteilung)
                     if "doc_id" in locals() and doc_id:
                         splits = st.session_state.client.get_receipt_splits(int(doc_id))
                         st.session_state.receipt_splits = splits if splits else []
@@ -173,7 +168,6 @@ def render_single_document_page(
         doc = st.session_state.selected_document
         splits = st.session_state.get("receipt_splits", [])
 
-        # Show receipt splits if available
         if splits:
             st.markdown(
                 f"""
@@ -188,13 +182,13 @@ def render_single_document_page(
             )
 
             with st.expander(
-                "📊 Receipt Splits / Belegaufteilung - Click to expand", expanded=True
+                "Receipt Splits / Belegaufteilung - Click to expand", expanded=True
             ):
                 for idx, split in enumerate(splits, 1):
                     st.markdown(
                         f"""
                         <div class="info-box-yellow">
-                            <h3 style="margin: 0;">📊 Split #{idx}</h3>
+                            <h3 style="margin: 0;"> Split #{idx}</h3>
                         </div>
                     """,
                         unsafe_allow_html=True,
@@ -203,7 +197,6 @@ def render_single_document_page(
                     col1, col2, col3, col4 = st.columns(4)
 
                     with col1:
-                        # Try multiple possible field names for cost center
                         cost_center = (
                             split.get("costCenter")
                             or split.get("costcenter")
@@ -215,7 +208,6 @@ def render_single_document_page(
                         st.metric("Net Value", f"€{split.get('netValue', 0):,.2f}")
 
                     with col2:
-                        # Try multiple possible field names for cost unit
                         cost_unit = (
                             split.get("costUnit")
                             or split.get("costunit")
@@ -253,7 +245,6 @@ def render_single_document_page(
                     if idx < len(splits):
                         st.markdown("---")
 
-                # Download splits
                 splits_df = pd.DataFrame(splits)
 
                 col1, col2 = st.columns(2)
@@ -305,7 +296,6 @@ def render_single_document_page(
                 unsafe_allow_html=True,
             )
 
-        # Document Overview with modern header
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
             f"""
@@ -343,7 +333,6 @@ def render_single_document_page(
             st.metric("Payment State", doc.get("paymentState", "N/A"))
             st.metric("Supplier", doc.get("supplierName", "N/A"))
 
-        # Detailed Information with modern header
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(
             """
@@ -361,7 +350,6 @@ def render_single_document_page(
         )
 
         with tab1:
-            # Show ALL available fields dynamically from the API response
             st.markdown("**Complete Document Details**")
 
             def flatten_value(value, indent=0):
@@ -382,7 +370,6 @@ def render_single_document_page(
                 elif isinstance(value, list):
                     if not value:
                         return "[]"
-                    # Format list items
                     items = []
                     for i, item in enumerate(value, 1):
                         if isinstance(item, (dict, list)):
@@ -395,22 +382,18 @@ def render_single_document_page(
                 else:
                     return str(value)
 
-            # Get ALL keys from the document and display them
             all_fields = {}
-            nested_fields = {}  # Store complex fields separately
+            nested_fields = {}  
 
             for key, value in doc.items():
-                # Format the key to be more readable
                 readable_key = key.replace("_", " ").replace("  ", " ").title()
 
-                # Check if this is a complex nested field
                 if isinstance(value, (dict, list)) and value:
                     nested_fields[readable_key] = value
                     all_fields[readable_key] = flatten_value(value)
                 else:
                     all_fields[readable_key] = flatten_value(value)
 
-            # Convert to DataFrame for better display
             df_details = pd.DataFrame(
                 [
                     {"Field": key, "Value": value}
@@ -426,7 +409,6 @@ def render_single_document_page(
                 f" Showing {len(all_fields)} fields returned by the API ({len(nested_fields)} complex/nested fields)"
             )
 
-            # Show expanded view of complex fields
             if nested_fields:
                 with st.expander(
                     f"🔍 Expand Complex Fields ({len(nested_fields)} fields with nested data)"
@@ -434,7 +416,6 @@ def render_single_document_page(
                     for field_name, field_value in sorted(nested_fields.items()):
                         st.markdown(f"**{field_name}:**")
                         if isinstance(field_value, dict):
-                            # Display as a neat table
                             nested_df = pd.DataFrame(
                                 [
                                     {"Property": k, "Value": v}
@@ -453,12 +434,10 @@ def render_single_document_page(
                                     hide_index=True,
                                 )
                             else:
-                                # Simple list - show as bullet points
                                 for item in field_value:
                                     st.write(f"  • {item}")
                         st.markdown("---")
 
-            # Export option
             col1, col2 = st.columns(2)
 
             with col1:
@@ -481,7 +460,6 @@ def render_single_document_page(
                     use_container_width=True,
                 )
 
-            # Show raw field names for debugging
             with st.expander("🔍 View Raw Field Names (for debugging)"):
                 st.code(", ".join(sorted(doc.keys())), language="text")
 
@@ -504,7 +482,6 @@ def render_single_document_page(
             st.markdown("---")
             st.write("**Accounting Details:**")
 
-            # First try to get from document object
             cost_center = (
                 doc.get("costCenter")
                 or doc.get("costcenter")
@@ -531,7 +508,6 @@ def render_single_document_page(
                 or doc.get("name")
             )
 
-            # If not found in document, try to get from first receipt split
             if not cost_center and splits:
                 first_split = splits[0]
                 cost_center = (
@@ -559,7 +535,6 @@ def render_single_document_page(
                     or first_split.get("booking_text")
                 )
 
-            # Display with indicator if from splits
             if splits and (cost_center or cost_unit or booking_text):
                 st.info(" Accounting details from Receipt Splits (Belegaufteilung)")
 
@@ -567,7 +542,6 @@ def render_single_document_page(
             st.write("- **Cost Unit (KOST2):**", cost_unit or "N/A")
             st.write("- **Booking Text:**", booking_text or "N/A")
 
-            # If there are multiple splits, show a note
             if splits and len(splits) > 1:
                 st.warning(
                     f"⚠️ This document has {len(splits)} receipt splits. Values shown are from the first split. Check the Receipt Splits section for all values."
@@ -620,10 +594,8 @@ def render_single_document_page(
         with tab5:
             st.markdown("**🔧 Complete Raw JSON Data**")
 
-            # Show count of fields
             st.info(f"📊 Total fields in API response: {len(doc)}")
 
-            # Search functionality
             search_term = st.text_input(
                 "🔍 Search in JSON data:", placeholder="e.g., booking, cost, date"
             )

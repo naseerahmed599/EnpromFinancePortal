@@ -12,10 +12,8 @@ import json
 def render_all_documents_page(client, t, get_all_document_page_styles, to_excel):
     """Render the All Documents page with filtering and statistics"""
 
-    # Apply all theme-adaptive glassmorphic styles for this page
     st.markdown(get_all_document_page_styles(), unsafe_allow_html=True)
 
-    # Glossy page header card - Theme Adaptive
     st.markdown(
         f"""
         <div class="page-header-card" style="
@@ -96,7 +94,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
     st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.documents:
-        # Statistics cards
         docs = st.session_state.documents
         stage_counts = {}
         payment_counts = {}
@@ -117,7 +114,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
             total_gross += doc.get("totalGross", 0)
             total_net += doc.get("totalNet", 0)
 
-        # Key Metrics Row - Most Important Information
         st.markdown(
             f"""
             <h3 class="section-header" style="
@@ -137,7 +133,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
         metric_cols = st.columns(5)
 
-        # Calculate important metrics
         approved_count = stage_counts.get("Approved", 0)
         pending_count = sum(stage_counts.get(f"Stage{i}", 0) for i in range(1, 6))
         unstarted_count = stage_counts.get("Draft", 0)
@@ -222,7 +217,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                     unsafe_allow_html=True,
                 )
 
-        # Action Required Alert
         if pending_count > 0 or unstarted_count > 0:
             st.markdown("<br>", unsafe_allow_html=True)
             action_col1, action_col2 = st.columns(2)
@@ -275,7 +269,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                         unsafe_allow_html=True,
                     )
 
-        # Financial Overview
         st.markdown(
             f"""
             <h3 class="section-header" style="
@@ -371,7 +364,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 unsafe_allow_html=True,
             )
 
-        # Payment Status Overview
         st.markdown(
             f"""
             <h3 class="section-header" style="
@@ -403,7 +395,7 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
             color, bg = payment_colors.get(
                 payment_state, ("#64748b", "rgba(100, 116, 139, 0.04)")
             )
-            bg_dark = bg.replace("0.04", "0.15")  # Create dark mode variant
+            bg_dark = bg.replace("0.04", "0.15") 
             with pay_cols[idx]:
                 st.markdown(
                     f"""
@@ -431,10 +423,8 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
 
-        # Filter panel
         with st.expander(t("all_docs_metrics.advanced_filters"), expanded=True):
 
-            # Row 1: Company, Stage, Payment State
             col1, col2, col3 = st.columns(3)
 
             with col1:
@@ -484,7 +474,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # Row 2: Supplier, Currency, Flow
             col4, col5, col6 = st.columns(3)
 
             with col4:
@@ -537,11 +526,9 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # Row 3: Date Range and Value Range
             col7, col8, col9 = st.columns(3)
 
             with col7:
-                # Get date range from documents
                 invoice_dates = [
                     doc.get("invoiceDate")
                     for doc in st.session_state.documents
@@ -587,7 +574,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                     date_to = None
 
             with col9:
-                # Value range filter
                 gross_values = [
                     doc.get("totalGross", 0) for doc in st.session_state.documents
                 ]
@@ -604,7 +590,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 else:
                     value_threshold = 0.0
 
-        # Apply filters
         filtered_docs = st.session_state.documents
 
         if selected_company != t("all_docs_metrics.all"):
@@ -647,7 +632,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 doc for doc in filtered_docs if doc.get("flowName") == selected_flow
             ]
 
-        # Date range filter
         if date_from:
 
             def is_date_after_or_equal(doc, target_date):
@@ -684,7 +668,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 doc for doc in filtered_docs if is_date_before_or_equal(doc, date_to)
             ]
 
-        # Value threshold filter
         if value_threshold > 0:
             filtered_docs = [
                 doc
@@ -692,7 +675,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 if doc.get("totalGross", 0) >= value_threshold
             ]
 
-        # Filter results badge
         if len(filtered_docs) != len(docs):
             showing_text = (
                 t("all_docs_metrics.showing_of")
@@ -729,7 +711,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 unsafe_allow_html=True,
             )
 
-        # Convert to DataFrame for display
         if filtered_docs:
             df_data = []
             for doc in filtered_docs:
@@ -751,10 +732,8 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
             df = pd.DataFrame(df_data)
 
-            # Modern table header
             st.markdown(f"#### {t('common.documents_table')}")
 
-            # Display table with modern styling
             st.dataframe(
                 df,
                 use_container_width=True,
@@ -776,7 +755,6 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
                 },
             )
 
-            # Export options with glassmorphic action bar
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(f"#### {t('common.export_options')}")
 
