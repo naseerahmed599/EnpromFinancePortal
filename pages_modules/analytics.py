@@ -596,6 +596,16 @@ def render_analytics_page(
                 else:
                     filtered_cc_list = cost_center_list
 
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                with col_btn1:
+                    if st.button(t("common.select_all"), key="analytics_select_all", use_container_width=True):
+                        st.session_state.analytics_cc_multiselect = filtered_cc_list
+                        st.rerun()
+                with col_btn2:
+                    if st.button(t("common.deselect_all"), key="analytics_deselect_all", use_container_width=True):
+                        st.session_state.analytics_cc_multiselect = []
+                        st.rerun()
+
                 with col_cc2:
                     selected_cost_centers = st.multiselect(
                         t("analytics_page.select_cost_centers"),

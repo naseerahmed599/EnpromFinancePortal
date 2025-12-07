@@ -341,7 +341,9 @@
       "financial_tab": "Financial",
       "workflow_tab": "Workflow",
       "suppliers_tab": "Suppliers",
-      "cost_centers_tab": "Cost Centers"
+      "cost_centers_tab": "Cost Centers",
+      "select_all": "Select All",
+      "deselect_all": "Deselect All"
     },
     "data_explorer_page": {
       "title": "Data Explorer",
