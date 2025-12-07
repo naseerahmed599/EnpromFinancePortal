@@ -61,8 +61,7 @@ from pages_modules.single_document import render_single_document_page
 from pages_modules.data_comparison import render_data_comparison_page
 
 
-# Helper function to get PLN to EUR exchange rate for a specific date
-@st.cache_data(ttl=86400)  # Cache for 24 hours
+@st.cache_data(ttl=86400)
 def get_pln_eur_rate(date_str):
     """
     Get PLN to EUR exchange rate for a specific date using European Central Bank API.
@@ -75,8 +74,6 @@ def get_pln_eur_rate(date_str):
         float: Exchange rate (PLN per 1 EUR)
     """
     try:
-        # ECB API provides EUR as base currency
-        # We need PLN/EUR rate (how many PLN for 1 EUR)
         url = f"https://api.frankfurter.app/{date_str}?from=EUR&to=PLN"
         response = requests.get(url, timeout=5)
 
@@ -86,14 +83,11 @@ def get_pln_eur_rate(date_str):
             if rate:
                 return float(rate)
 
-        # Fallback to default rate
         return 4.23
     except Exception as e:
-        # If any error, use fallback rate
         return 4.23
 
 
-# Helper function to convert DataFrame to Excel
 def to_excel(df: pd.DataFrame) -> bytes:
     """Convert DataFrame to Excel file bytes"""
     output = BytesIO()
@@ -102,7 +96,11 @@ def to_excel(df: pd.DataFrame) -> bytes:
     return output.getvalue()
 
 
-# Page config
+def to_csv_semicolon(df: pd.DataFrame) -> str:
+    """Convert DataFrame to CSV with semicolon delimiter (European format)"""
+    return df.to_csv(index=False, sep=";", decimal=",", encoding="utf-8-sig")
+
+
 st.set_page_config(
     page_title="ENPROM Finance Portal",
     page_icon="�",
@@ -111,13 +109,11 @@ st.set_page_config(
 )
 
 
-# Load language file
 def load_languages():
     """Load language translations from JSON file"""
     try:
         import os
 
-        # Get the directory where this script is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
         languages_path = os.path.join(script_dir, "languages.json")
 
@@ -128,7 +124,6 @@ def load_languages():
         return None
 
 
-# Custom CSS for styling
 def apply_custom_css():
     st.markdown(
         """
@@ -641,21 +636,16 @@ def apply_custom_css():
     )
 
 
-# Apply custom styling
 apply_custom_css()
 
 
-# Load languages - no caching to allow updates
-def get_languages(version=2):  # Increment version to force reload
+def get_languages(version=2):
     return load_languages()
 
 
-# Clear cache and reload if needed
 languages = get_languages()
 
-# Initialize session state
 if "client" not in st.session_state:
-    # Initialize with API key from secrets (works locally and in Streamlit Cloud)
     api_key = st.secrets.get("flowwer", {}).get("api_key") or os.environ.get(
         "FLOWWER_API_KEY"
     )
@@ -668,10 +658,9 @@ if "selected_document" not in st.session_state:
     st.session_state.selected_document = None
 
 if "language" not in st.session_state:
-    st.session_state.language = "en"  # Default to English
+    st.session_state.language = "en"
 
 
-# Get current language translations
 def t(key):
     """Get translation for current language"""
     if languages and st.session_state.language in languages:
@@ -681,14 +670,12 @@ def t(key):
             if isinstance(value, dict) and k in value:
                 value = value[k]
             else:
-                return key  # Return key if translation not found
+                return key
         return value
     return key
 
 
-# Early authentication gate: require API key before rendering the app
 if not st.session_state.client.api_key:
-    # Branded, professional login hero
     st.markdown(
         """
         <style>
@@ -793,7 +780,6 @@ if not st.session_state.client.api_key:
         unsafe_allow_html=True,
     )
 
-    # Additional scoped styles for centered input and primary button color
     st.markdown(
         """
         <style>
@@ -858,7 +844,6 @@ if not st.session_state.client.api_key:
         unsafe_allow_html=True,
     )
 
-    # Centered input
     input_cols = st.columns([1, 2, 1])
     with input_cols[1]:
         new_api_key = st.text_input(
@@ -871,7 +856,6 @@ if not st.session_state.client.api_key:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Centered primary button
     btn_cols = st.columns([1.5, 1, 1.5])
     with btn_cols[1]:
         submit = st.button(
@@ -897,9 +881,7 @@ if not st.session_state.client.api_key:
     st.stop()
 
 
-# Sidebar for navigation
 with st.sidebar:
-    # Company logo
     st.image(
         "https://enprom.com/wp-content/uploads/2020/12/xlogo-poziome.png.pagespeed.ic.jXuMlmU90u.webp",
         use_container_width=True,
@@ -907,10 +889,8 @@ with st.sidebar:
 
     st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
-    # App title and branding
     st.title("ENPROM Finance Portal")
 
-    # Language selector - elegant selectbox
     current_lang = st.session_state.language
     lang_options = {"en": "🇬🇧 English", "de": "🇩🇪 Deutsch", "pl": "🇵🇱 Polski"}
 
@@ -923,7 +903,6 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    # Update language if changed
     if selected_lang != st.session_state.language:
         st.session_state.language = selected_lang
         st.session_state.current_page = None
@@ -931,7 +910,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Quick stats panel
     if "documents" in st.session_state and st.session_state.documents:
         docs = st.session_state.documents
         stage_counts = {}
@@ -982,14 +960,11 @@ with st.sidebar:
 
         st.markdown("---")
 
-    # Navigation with grouped sections
     st.markdown(f"### 📁 {t('nav_sections.documents')}")
 
-    # Initialize page selection state with current language
     if "current_page" not in st.session_state or st.session_state.current_page is None:
         st.session_state.current_page = "📋 " + t("pages.all_documents")
 
-    # Documents section - rebuild options with current language
     doc_options = [
         ("all_documents", "📋 " + t("pages.all_documents"), t("pages.all_documents")),
         (
@@ -1015,7 +990,6 @@ with st.sidebar:
 
     st.markdown(f"### 📊 {t('nav_sections.reports_analytics')}")
 
-    # Reports section - rebuild options with current language
     report_options = [
         (
             "receipt_report",
@@ -1040,7 +1014,6 @@ with st.sidebar:
 
     st.markdown(f"### 🔧 {t('nav_sections.tools')}")
 
-    # Tools section - rebuild options with current language
     tool_options = [
         ("companies", "🏢 " + t("pages.companies"), t("pages.companies")),
         ("download", "  " + t("pages.download"), t("pages.download")),
@@ -1076,7 +1049,6 @@ with st.sidebar:
     else:
         st.error("🔐 Not Connected")
 
-# Get the current page
 page = st.session_state.current_page
 
 # ============================================================================

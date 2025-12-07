@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import calendar
+from utils.cost_center_parser import parse_cost_center, enrich_cost_center_data
 
 
 def render_receipt_report_page(
@@ -196,19 +197,20 @@ def render_receipt_report_page(
                 report = client.get_receipt_splitting_report(**filter_params)
 
                 if report:
+                    st.session_state.full_receipt_report = report
                     total_records = len(report)
 
-                    if selected_cost_centers:
-                        report = [
+                    if selected_cost_centers and len(selected_cost_centers) > 0:
+                        filtered_report = [
                             r
                             for r in report
                             if str(r.get("costCenter", "")) in selected_cost_centers
                         ]
-                        st.session_state.receipt_report = report
+                        st.session_state.receipt_report = filtered_report
                         st.session_state.filtered_cost_centers = selected_cost_centers
                         st.toast(
                             t("receipt_report_page.filtered_to").format(
-                                filtered=len(report), total=total_records
+                                filtered=len(filtered_report), total=total_records
                             ),
                             icon="✅",
                         )
@@ -363,11 +365,44 @@ def render_receipt_report_page(
 
             st.markdown(kpi_html, unsafe_allow_html=True)
 
-            cost_center_totals = (
-                df.groupby(cost_center_col)[amount_col].sum().sort_index()
+            enriched_df = df.copy()
+            enriched_df["cc_parsed"] = enriched_df[cost_center_col].apply(
+                parse_cost_center
             )
+            enriched_df["cc_display"] = enriched_df["cc_parsed"].apply(
+                lambda x: x["display_name"]
+            )
+            enriched_df["cc_number"] = enriched_df[cost_center_col].astype(str)
 
-            st.markdown(f"**{t('receipt_report_page.cost_center_split')}:**")
+            cc_breakdown = (
+                enriched_df.groupby(["cc_number", "cc_display"])[amount_col]
+                .sum()
+                .reset_index()
+            )
+            cc_breakdown = cc_breakdown.sort_values(amount_col, ascending=False)
+
+            col_split_header1, col_split_header2 = st.columns([4, 1])
+            with col_split_header1:
+                st.markdown(f"**{t('receipt_report_page.cost_center_split')}:**")
+            with col_split_header2:
+                st.markdown(
+                    f"""
+                    <div style="text-align: right; padding-top: 2px;">
+                        <span style="
+                            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                            color: white;
+                            padding: 4px 10px;
+                            border-radius: 6px;
+                            font-size: 0.75rem;
+                            font-weight: 600;
+                            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+                        " title="Total amount split across all cost centers">
+                            💰 Total: {total_amount:,.2f} €
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
             st.markdown(
                 """
@@ -448,12 +483,23 @@ def render_receipt_report_page(
                         padding: 0.65rem 1rem;
                         font-size: 0.9rem;
                     }
-                    .cc-table-row td:first-child {
+                    .cc-table-row td:nth-child(1) {
                         font-weight: 600;
-                        color: #1e293b;
+                        color: #6366f1;
+                        font-family: 'SF Mono', Monaco, monospace;
+                        width: 15%;
                     }
                     @media (prefers-color-scheme: dark) {
-                        .cc-table-row td:first-child {
+                        .cc-table-row td:nth-child(1) {
+                            color: #a5b4fc;
+                        }
+                    }
+                    .cc-table-row td:nth-child(2) {
+                        color: #1e293b;
+                        font-weight: 500;
+                    }
+                    @media (prefers-color-scheme: dark) {
+                        .cc-table-row td:nth-child(2) {
                             color: #e2e8f0;
                         }
                     }
@@ -462,6 +508,7 @@ def render_receipt_report_page(
                         font-weight: 600;
                         color: #4338ca;
                         font-family: 'SF Mono', Monaco, monospace;
+                        width: 20%;
                     }
                     @media (prefers-color-scheme: dark) {
                         .cc-table-row td:last-child {
@@ -485,11 +532,11 @@ def render_receipt_report_page(
                         font-weight: 700;
                         font-size: 0.95rem;
                     }
-                    .cc-table-footer td:first-child {
+                    .cc-table-footer td:nth-child(1) {
                         color: #1e293b;
                     }
                     @media (prefers-color-scheme: dark) {
-                        .cc-table-footer td:first-child {
+                        .cc-table-footer td:nth-child(1) {
                             color: #f1f5f9;
                         }
                     }
@@ -536,10 +583,13 @@ def render_receipt_report_page(
             )
 
             rows_html = []
-            for cc, amt in cost_center_totals.items():
+            for _, row in cc_breakdown.iterrows():
+                cc_num = row["cc_number"]
+                cc_name = row["cc_display"]
+                amt = row[amount_col]
                 amt_formatted = f"{amt:,.2f} €"
                 rows_html.append(
-                    f'<tr class="cc-table-row"><td>{cc}</td><td>{amt_formatted}</td></tr>'
+                    f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td>{amt_formatted}</td></tr>'
                 )
 
             rows_html_str = "".join(rows_html)
@@ -548,7 +598,7 @@ def render_receipt_report_page(
             cost_center_header = t("receipt_report_page.cost_center_column")
             amount_header = t("receipt_report_page.amount_column")
 
-            table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>{cost_center_header}</th><th>{amount_header}</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td>{total_label}</td><td>{total_formatted}</td></tr></tfoot></table></div></div>'
+            table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th>{amount_header}</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td>{total_formatted}</td></tr></tfoot></table></div></div>'
 
             st.markdown(table_html, unsafe_allow_html=True)
             st.divider()

@@ -1154,3 +1154,206 @@ def get_section_header_styles():
         }
         </style>
     """
+
+
+def get_kpi_card_styles():
+    """Returns CSS for enhanced KPI cards with trend indicators"""
+    return """
+        <style>
+        .kpi-card-enhanced {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card-enhanced:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .kpi-card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--card-accent, #3b82f6), var(--card-accent-end, #2563eb));
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .kpi-card-enhanced {
+                background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+                border-color: rgba(71, 85, 105, 0.5);
+            }
+        }
+        
+        .kpi-value-main {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--value-color, #1e293b);
+            margin: 0.5rem 0;
+            line-height: 1.1;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .kpi-value-main {
+                color: #f1f5f9;
+            }
+        }
+        
+        .kpi-label-main {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin: 0;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .kpi-label-main {
+                color: #94a3b8;
+            }
+        }
+        
+        .kpi-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .kpi-trend.positive {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        
+        .kpi-trend.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        
+        .kpi-trend.neutral {
+            background: rgba(100, 116, 139, 0.1);
+            color: #64748b;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .kpi-trend.positive {
+                background: rgba(34, 197, 94, 0.2);
+                color: #4ade80;
+            }
+            
+            .kpi-trend.negative {
+                background: rgba(239, 68, 68, 0.2);
+                color: #f87171;
+            }
+            
+            .kpi-trend.neutral {
+                background: rgba(100, 116, 139, 0.2);
+                color: #94a3b8;
+            }
+        }
+        
+        .quick-filter-btn {
+            background: transparent;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 0.4rem 0.875rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .quick-filter-btn:hover {
+            background: rgba(59, 130, 246, 0.05);
+            color: #3b82f6;
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .quick-filter-btn.active {
+            background: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .quick-filter-btn {
+                background: transparent;
+                border-color: rgba(100, 116, 139, 0.4);
+                color: #94a3b8;
+            }
+            
+            .quick-filter-btn:hover {
+                background: rgba(59, 130, 246, 0.1);
+                color: #60a5fa;
+                border-color: #60a5fa;
+            }
+            
+            .quick-filter-btn.active {
+                background: rgba(59, 130, 246, 0.15);
+                color: #60a5fa;
+                border-color: #60a5fa;
+            }
+        }
+        
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            height: 1.5rem;
+            padding: 0 0.5rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .tab-badge {
+                background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            }
+        }
+        
+        .total-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .total-badge {
+                background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            }
+        }
+        </style>
+    """
