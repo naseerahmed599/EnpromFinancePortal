@@ -963,7 +963,7 @@ with st.sidebar:
     st.markdown(f"### 📁 {t('nav_sections.documents')}")
 
     if "current_page" not in st.session_state or st.session_state.current_page is None:
-        st.session_state.current_page = "📋 " + t("pages.all_documents")
+        st.session_state.current_page = "📈 " + t("pages.analytics")
 
     doc_options = [
         ("all_documents", "📋 " + t("pages.all_documents"), t("pages.all_documents")),
