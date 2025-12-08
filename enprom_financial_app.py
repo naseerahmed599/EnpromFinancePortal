@@ -645,10 +645,13 @@ def get_languages(version=2):
 
 languages = get_languages()
 
+if "correct_api_key" not in st.session_state:
+    st.session_state.correct_api_key = st.secrets.get("flowwer", {}).get(
+        "api_key"
+    ) or os.environ.get("FLOWWER_API_KEY")
+
 if "client" not in st.session_state:
-    api_key = st.secrets.get("flowwer", {}).get("api_key") or os.environ.get(
-        "FLOWWER_API_KEY"
-    )
+    api_key = st.session_state.correct_api_key
     st.session_state.client = FlowwerAPIClient(api_key=api_key)
 
 if "documents" not in st.session_state:
@@ -869,17 +872,10 @@ if not st.session_state.client.api_key:
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            stored_api_key = st.secrets.get("flowwer", {}).get(
-                "api_key"
-            ) or os.environ.get("FLOWWER_API_KEY")
-
-            new_api_key_clean = new_api_key.strip()
-            stored_api_key_clean = stored_api_key.strip() if stored_api_key else None
-
-            if stored_api_key_clean and new_api_key_clean == stored_api_key_clean:
-                st.session_state.client.api_key = new_api_key_clean
+            if new_api_key.strip() == st.session_state.correct_api_key:
+                st.session_state.client.api_key = new_api_key.strip()
                 st.session_state.client.session.headers.update(
-                    {"X-FLOWWER-ApiKey": new_api_key_clean}
+                    {"X-FLOWWER-ApiKey": new_api_key.strip()}
                 )
                 st.success(
                     t("messages.api_key_updated") if callable(t) else "API key saved."
