@@ -684,11 +684,12 @@ if not st.session_state.client.api_key:
             .auth-container{
                 max-width: 520px;
                 margin: 10vh auto 2rem auto;
-                text-align: center;
+                text-align: center !important;
             }
             .auth-logo-section{
                 margin-bottom: 2rem;
                 animation: fadeInDown 0.6s ease-out;
+                text-align: center !important;
             }
             .auth-logo-wrapper{
                 display: inline-block;
@@ -715,10 +716,13 @@ if not st.session_state.client.api_key:
             .auth-logo-inner{
                 background: #ffffff;
                 border-radius: 16px;
-                padding: 1.5rem 2rem;
+                padding: 1.5rem;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
                 position: relative;
                 z-index: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
             .auth-logo-inner img{
                 height: 48px;
@@ -727,8 +731,9 @@ if not st.session_state.client.api_key:
                 display: block;
             }
             .auth-title-section{
-                margin-top: 1.5rem;
+                margin-top: 2rem;
                 animation: fadeInUp 0.6s ease-out 0.2s both;
+                text-align: center;
             }
             .auth-main-title{
                 font-size: 2.25rem;
@@ -739,12 +744,16 @@ if not st.session_state.client.api_key:
                 background-clip: text;
                 margin: 0 0 0.5rem 0;
                 letter-spacing: -0.5px;
+                text-align: center;
             }
             .auth-subtitle{
-                font-size: 1rem;
-                color: #64748b;
-                font-weight: 500;
-                margin: 0;
+                font-size: 1rem !important;
+                color: #64748b !important;
+                font-weight: 500 !important;
+                margin: 0 !important;
+                text-align: center !important;
+                padding: 0 !important;
+                line-height: 1.5 !important;
             }
             .auth-divider{
                 height: 1px;
@@ -774,7 +783,7 @@ if not st.session_state.client.api_key:
             </div>
             <div class="auth-title-section">
                 <h1 class="auth-main-title">Finance Portal</h1>
-                <p class="auth-subtitle">Secure authentication required</p>
+                <h6 class="auth-subtitle">Secure authentication required</h6>
             </div>
             <div class="auth-divider"></div>
         </div>
