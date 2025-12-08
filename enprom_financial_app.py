@@ -869,14 +869,19 @@ if not st.session_state.client.api_key:
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            st.session_state.client.api_key = new_api_key
-            st.session_state.client.session.headers.update(
-                {"X-FLOWWER-ApiKey": new_api_key}
-            )
-            st.success(
-                t("messages.api_key_updated") if callable(t) else "API key saved."
-            )
-            st.rerun()
+            stored_api_key = st.secrets.get("flowwer", {}).get("api_key") or os.environ.get("FLOWWER_API_KEY")
+            
+            if new_api_key == stored_api_key:
+                st.session_state.client.api_key = new_api_key
+                st.session_state.client.session.headers.update(
+                    {"X-FLOWWER-ApiKey": new_api_key}
+                )
+                st.success(
+                    t("messages.api_key_updated") if callable(t) else "API key saved."
+                )
+                st.rerun()
+            else:
+                st.error("Invalid API key. Please check your credentials and try again.")
 
     st.stop()
 
