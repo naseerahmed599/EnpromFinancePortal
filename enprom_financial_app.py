@@ -651,8 +651,7 @@ if "correct_api_key" not in st.session_state:
     ) or os.environ.get("FLOWWER_API_KEY")
 
 if "client" not in st.session_state:
-    api_key = st.session_state.correct_api_key
-    st.session_state.client = FlowwerAPIClient(api_key=api_key)
+    st.session_state.client = FlowwerAPIClient(api_key=None)
 
 if "documents" not in st.session_state:
     st.session_state.documents = None
@@ -872,7 +871,7 @@ if not st.session_state.client.api_key:
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            if new_api_key.strip() == st.session_state.correct_api_key:
+            if st.session_state.correct_api_key and new_api_key.strip() == st.session_state.correct_api_key:
                 st.session_state.client.api_key = new_api_key.strip()
                 st.session_state.client.session.headers.update(
                     {"X-FLOWWER-ApiKey": new_api_key.strip()}
