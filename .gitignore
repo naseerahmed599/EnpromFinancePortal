@@ -54,6 +54,10 @@ Thumbs.db
 Financial_Dashboard_Latest.xlsx
 ~$Financial_Dashboard_Latest.xlsx
 
+# Exclude main files
+main.py
+main_Oliver.py
+
 # API keys and secrets (add any file that might contain API keys)
 *api_key*
 *secret*
