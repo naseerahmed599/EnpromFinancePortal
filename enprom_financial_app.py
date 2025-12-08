@@ -871,7 +871,10 @@ if not st.session_state.client.api_key:
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            if st.session_state.correct_api_key and new_api_key.strip() == st.session_state.correct_api_key:
+            if (
+                st.session_state.correct_api_key
+                and new_api_key.strip() == st.session_state.correct_api_key
+            ):
                 st.session_state.client.api_key = new_api_key.strip()
                 st.session_state.client.session.headers.update(
                     {"X-FLOWWER-ApiKey": new_api_key.strip()}
