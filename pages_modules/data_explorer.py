@@ -121,7 +121,17 @@ def render_data_explorer_page(
                                     "Display Name": doc.get("simpleName", ""),
                                     "Booking Text": split.get("name", ""),
                                     "Cost Center": split.get("costCenter", ""),
-                                    "Cost Unit (KOST2)": split.get("costUnit", ""),
+                                    "Cost Unit (KOST2)": (
+                                        split.get("costUnit")
+                                        or split.get("costunit")
+                                        or split.get("CostUnit")
+                                        or split.get("cost_unit")
+                                        or split.get("kost2")
+                                        or split.get("KOST2")
+                                        or split.get("Kost2")
+                                        or split.get("costUnit2")
+                                        or ""
+                                    ),
                                     "Tax Rate %": split.get("taxPercent", ""),
                                     "Invoice Date": split.get(
                                         "invoiceDate", doc.get("invoiceDate", "")
@@ -130,11 +140,11 @@ def render_data_explorer_page(
                                         "invoiceNumber", doc.get("receiptNumber", "")
                                     ),
                                     "Gross": split.get(
-                                        "grossValue", doc.get("totalGross", "")
-                                    ),
+                                        "grossValue"
+                                    ) or split.get("grossAmount") or doc.get("totalGross", ""),
                                     "Net": split.get(
-                                        "netValue", doc.get("totalNet", "")
-                                    ),
+                                        "netValue"
+                                    ) or split.get("netAmount") or doc.get("totalNet", ""),
                                     "Company": doc.get("companyName", ""),
                                     "Date of Receipt": doc.get(
                                         "dateOfReceipt", doc.get("uploadTime", "")

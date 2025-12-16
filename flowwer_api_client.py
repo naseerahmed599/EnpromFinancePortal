@@ -315,6 +315,31 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 splits = response.json()
+                
+                if isinstance(splits, str):
+                    try:
+                        splits = json.loads(splits)
+                    except (json.JSONDecodeError, ValueError):
+                        print(f"Warning: Receipt splits endpoint returned unexpected string: {splits}")
+                        return None
+                
+                if isinstance(splits, dict):
+                    if "documentReceiptSplits" in splits:
+                        splits = splits["documentReceiptSplits"]
+                    elif "splits" in splits:
+                        splits = splits["splits"]
+                    elif "data" in splits:
+                        splits = splits["data"]
+                    elif "receiptSplits" in splits:
+                        splits = splits["receiptSplits"]
+                    else:
+                        print(f"Warning: Receipt splits response is a dict without expected keys: {list(splits.keys())}")
+                        return None
+                
+                if not isinstance(splits, list):
+                    print(f"Warning: Receipt splits response is not a list: {type(splits)}")
+                    return None
+                
                 print(
                     f"Retrieved {len(splits)} receipt split(s) for document {document_id}"
                 )
