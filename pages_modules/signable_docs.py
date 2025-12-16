@@ -8,6 +8,22 @@ from datetime import datetime
 import json
 
 
+def normalize_dict(obj):
+    """
+    Normalize an object to ensure it's a dictionary.
+    Handles cases where the API returns JSON strings instead of parsed objects.
+    """
+    if isinstance(obj, dict):
+        return obj
+    elif isinstance(obj, str):
+        try:
+            return json.loads(obj)
+        except (json.JSONDecodeError, ValueError):
+            return {"raw": obj}
+    else:
+        return {"raw": str(obj)}
+
+
 def render_signable_docs_page(
     client, t, get_page_header_amber, get_action_bar_styles, to_excel
 ):
@@ -75,9 +91,19 @@ def render_signable_docs_page(
         if st.button(" " + t("signable_docs_page.load_documents"), type="primary"):
             with st.spinner(t("signable_docs_page.loading")):
                 docs = client.get_signable_documents(backup_list=backup_list)
-                if docs:
-                    st.session_state.signable_documents = docs
-                    st.success(f"{len(docs)} " + t("signable_docs_page.found"))
+                if docs is not None:
+                    normalized_docs = []
+                    for doc in docs:
+                        normalized_doc = normalize_dict(doc)
+                        if normalized_doc and isinstance(normalized_doc, dict):
+                            normalized_docs.append(normalized_doc)
+                    st.session_state.signable_documents = normalized_docs
+                    if normalized_docs:
+                        st.success(f"{len(normalized_docs)} " + t("signable_docs_page.found"))
+                    else:
+                        st.info("ℹ️ No signable documents found. The API returned an empty list.")
+                else:
+                    st.error("❌ Failed to retrieve signable documents. Please check the API connection.")
 
     if "signable_documents" in st.session_state and st.session_state.signable_documents:
         docs = st.session_state.signable_documents

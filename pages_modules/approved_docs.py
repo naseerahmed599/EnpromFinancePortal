@@ -8,6 +8,22 @@ from datetime import datetime
 import json
 
 
+def normalize_dict(obj):
+    """
+    Normalize an object to ensure it's a dictionary.
+    Handles cases where the API returns JSON strings instead of parsed objects.
+    """
+    if isinstance(obj, dict):
+        return obj
+    elif isinstance(obj, str):
+        try:
+            return json.loads(obj)
+        except (json.JSONDecodeError, ValueError):
+            return {"raw": obj}
+    else:
+        return {"raw": str(obj)}
+
+
 def render_approved_docs_page(
     client, t, get_page_header_green, get_action_bar_styles, to_excel
 ):
@@ -102,9 +118,19 @@ def render_approved_docs_page(
         ):
             with st.spinner(t("approved_docs_page.loading")):
                 docs = client.get_approved_documents(flow_id=selected_flow_id)
-                if docs:
-                    st.session_state.approved_documents = docs
-                    st.success(f"{len(docs)} " + t("approved_docs_page.found"))
+                if docs is not None:
+                    normalized_docs = []
+                    for doc in docs:
+                        normalized_doc = normalize_dict(doc)
+                        if normalized_doc and isinstance(normalized_doc, dict):
+                            normalized_docs.append(normalized_doc)
+                    st.session_state.approved_documents = normalized_docs
+                    if normalized_docs:
+                        st.success(f"{len(normalized_docs)} " + t("approved_docs_page.found"))
+                    else:
+                        st.info("ℹ️ No approved documents found. The API returned an empty list.")
+                else:
+                    st.error("❌ Failed to retrieve approved documents. Please check the API connection.")
 
     if "approved_documents" in st.session_state and st.session_state.approved_documents:
         docs = st.session_state.approved_documents
@@ -161,7 +187,7 @@ def render_approved_docs_page(
                 use_container_width=True,
             )
 
-        with col2:
+        with col3:
             json_data = json.dumps(docs, indent=2)
             st.download_button(
                 label="  " + t("common.download_json"),

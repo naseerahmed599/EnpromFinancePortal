@@ -640,13 +640,15 @@ class FlowwerAPIClient:
         return paths
 
     def get_approved_documents(
-        self, flow_id: Optional[int] = None
+        self, flow_id: Optional[int] = None, use_filter_method: bool = True
     ) -> Optional[List[Dict]]:
         """
         Get a list of all approved documents
 
         Args:
             flow_id: Optional - restrict to documents in this flow
+            use_filter_method: If True, uses get_all_documents and filters by stage.
+                             If False, uses the dedicated /approved endpoint.
 
         Returns:
             List of approved documents or None if failed
@@ -654,6 +656,28 @@ class FlowwerAPIClient:
         if not self.api_key:
             print("No API key set. Please set api_key or call authenticate().")
             return None
+
+        if use_filter_method:
+            try:
+                all_docs = self.get_all_documents(include_processed=True, include_deleted=False)
+                if all_docs is None:
+                    return None
+                
+                approved_docs = [
+                    doc for doc in all_docs 
+                    if doc.get("currentStage") == "Approved"
+                ]
+                
+                if flow_id:
+                    approved_docs = [
+                        doc for doc in approved_docs
+                        if doc.get("flowId") == flow_id
+                    ]
+                
+                print(f"Retrieved {len(approved_docs)} approved documents (via filter method)")
+                return approved_docs
+            except Exception as e:
+                print(f"Error getting approved documents via filter method: {e}")
 
         url = f"{self.base_url}/api/v1/documents/approved"
 
@@ -666,7 +690,20 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 documents = response.json()
-                print(f"Retrieved {len(documents)} approved documents")
+                if isinstance(documents, dict):
+                    if "documents" in documents:
+                        documents = documents["documents"]
+                    elif "data" in documents:
+                        documents = documents["data"]
+                    else:
+                        print(f"Warning: Approved documents response is a dict without expected keys: {list(documents.keys())}")
+                        return []
+                
+                if not isinstance(documents, list):
+                    print(f"Warning: Approved documents response is not a list: {type(documents)}")
+                    return []
+                
+                print(f"Retrieved {len(documents)} approved documents (via /approved endpoint)")
                 return documents
             else:
                 print(f"Failed to get approved documents: {response.status_code}")
@@ -677,12 +714,16 @@ class FlowwerAPIClient:
             print(f"Error getting approved documents: {e}")
             return None
 
-    def get_signable_documents(self, backup_list: bool = False) -> Optional[List[Dict]]:
+    def get_signable_documents(
+        self, backup_list: bool = False, use_filter_method: bool = True
+    ) -> Optional[List[Dict]]:
         """
         Get a list of documents waiting for signature (approval)
 
         Args:
             backup_list: If True, gets backup signable documents
+            use_filter_method: If True, uses get_all_documents and filters by stage.
+                             If False, uses the dedicated /signable endpoint.
 
         Returns:
             List of signable documents or None if failed
@@ -690,6 +731,23 @@ class FlowwerAPIClient:
         if not self.api_key:
             print("No API key set. Please set api_key or call authenticate().")
             return None
+
+        if use_filter_method:
+            try:
+                all_docs = self.get_all_documents(include_processed=False, include_deleted=False)
+                if all_docs is None:
+                    return None
+                
+                signable_stages = [f"Stage{i}" for i in range(1, 6)]
+                signable_docs = [
+                    doc for doc in all_docs 
+                    if doc.get("currentStage") in signable_stages
+                ]
+                
+                print(f"Retrieved {len(signable_docs)} signable documents (via filter method)")
+                return signable_docs
+            except Exception as e:
+                print(f"Error getting signable documents via filter method: {e}")
 
         url = f"{self.base_url}/api/v1/documents/signable"
 
@@ -700,7 +758,20 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 documents = response.json()
-                print(f"Retrieved {len(documents)} signable documents")
+                if isinstance(documents, dict):
+                    if "documents" in documents:
+                        documents = documents["documents"]
+                    elif "data" in documents:
+                        documents = documents["data"]
+                    else:
+                        print(f"Warning: Signable documents response is a dict without expected keys: {list(documents.keys())}")
+                        return []
+                
+                if not isinstance(documents, list):
+                    print(f"Warning: Signable documents response is not a list: {type(documents)}")
+                    return []
+                
+                print(f"Retrieved {len(documents)} signable documents (via /signable endpoint)")
                 return documents
             else:
                 print(f"Failed to get signable documents: {response.status_code}")
