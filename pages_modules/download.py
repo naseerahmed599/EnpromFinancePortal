@@ -3,6 +3,8 @@ Download Document Page Module
 """
 
 import streamlit as st
+import base64
+import os
 
 
 def render_download_page(
@@ -91,9 +93,31 @@ def render_download_page(
 
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
-    if st.button(
-        "Get Document Details (to find Unique ID)", key="btn_get_download_details"
-    ):
+    if "viewed_document_id" not in st.session_state:
+        st.session_state.viewed_document_id = None
+    if "viewed_document_path" not in st.session_state:
+        st.session_state.viewed_document_path = None
+
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        get_details_button = st.button(
+            "🔍 Get Document Details (to find Unique ID)", 
+            type="secondary", 
+            key="btn_get_download_details",
+            use_container_width=True
+        )
+    
+    with col2:
+        view_button = st.button(
+            "👁️ View Document", 
+            type="primary", 
+            key="btn_view_pdf",
+            disabled=not unique_id,
+            use_container_width=True
+        )
+
+    if get_details_button:
         with st.spinner(f"Fetching document {download_doc_id}..."):
             doc = client.get_document(download_doc_id)
             if doc:
@@ -102,30 +126,55 @@ def render_download_page(
                 st.code(doc.get("uniqueId"), language="text")
                 st.write("**Document Name:**", doc.get("simpleName"))
 
-    if unique_id and st.button(
-        t("download_page.download"), type="primary", key="btn_download_pdf"
-    ):
+    if unique_id and view_button:
         output_path = f"document_{download_doc_id}.pdf"
         with st.spinner(
-            t("messages.downloading_document").replace("{id}", str(download_doc_id))
+            f"Loading document {download_doc_id} for viewing..."
         ):
             success = client.download_document(download_doc_id, unique_id, output_path)
             if success:
-                st.success(
-                    t("messages.document_downloaded").replace("{path}", output_path)
-                )
-
-                try:
-                    with open(output_path, "rb") as f:
-                        st.download_button(
-                            label="💾 " + t("download_page.save"),
-                            data=f,
-                            file_name=output_path,
-                            mime="application/pdf",
-                        )
-                except Exception as e:
-                    st.error(
-                        t("messages.error_reading_file").replace("{error}", str(e))
-                    )
+                st.session_state.viewed_document_id = download_doc_id
+                st.session_state.viewed_document_path = output_path
+                st.success(f"✅ Document {download_doc_id} loaded successfully")
             else:
                 st.error("❌ " + t("messages.download_failed"))
+                st.session_state.viewed_document_id = None
+                st.session_state.viewed_document_path = None
+
+    if (st.session_state.viewed_document_path and 
+        os.path.exists(st.session_state.viewed_document_path) and
+        st.session_state.viewed_document_id == download_doc_id):
+        st.markdown("---")
+        st.markdown("### 📄 Document Preview")
+        
+        try:
+            with open(st.session_state.viewed_document_path, "rb") as f:
+                pdf_bytes = f.read()
+                base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+                
+                pdf_display = f"""
+                <iframe 
+                    src="data:application/pdf;base64,{base64_pdf}" 
+                    width="100%" 
+                    height="800px" 
+                    style="border: 1px solid #e0e0e0; border-radius: 8px;"
+                    type="application/pdf">
+                </iframe>
+                """
+                st.markdown(pdf_display, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                with open(st.session_state.viewed_document_path, "rb") as f:
+                    pdf_data = f.read()
+                    st.download_button(
+                        label="💾 Download to Computer",
+                        data=pdf_data,
+                        file_name=st.session_state.viewed_document_path,
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+        except Exception as e:
+            st.error(
+                t("messages.error_reading_file").replace("{error}", str(e))
+            )
+
