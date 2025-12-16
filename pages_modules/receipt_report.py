@@ -359,12 +359,8 @@ def render_receipt_report_page(
 
             df["__category"] = df.apply(classify_row, axis=1)
 
-            income_total = (
-                df.loc[df["__category"] == "income", amount_col].abs().sum()
-            )
-            cost_total = (
-                df.loc[df["__category"] == "cost", amount_col].abs().sum()
-            )
+            income_total = df.loc[df["__category"] == "income", amount_col].abs().sum()
+            cost_total = df.loc[df["__category"] == "cost", amount_col].abs().sum()
 
             net_total = df[amount_col].sum()
             margin = income_total - cost_total
@@ -569,7 +565,9 @@ def render_receipt_report_page(
                             color: #94a3b8;
                         }
                     }
-                    .cc-table-header th:last-child {
+                    .cc-table-header th:nth-child(3),
+                    .cc-table-header th:nth-child(4),
+                    .cc-table-header th:nth-child(5) {
                         text-align: right;
                     }
                     .cc-table-row {
@@ -613,12 +611,13 @@ def render_receipt_report_page(
                             color: #e2e8f0;
                         }
                     }
-                    .cc-table-row td:last-child {
+                    .cc-table-row td:nth-child(3),
+                    .cc-table-row td:nth-child(4),
+                    .cc-table-row td:nth-child(5) {
                         text-align: right;
                         font-weight: 600;
-                        color: #4338ca;
                         font-family: 'SF Mono', Monaco, monospace;
-                        width: 20%;
+                        width: 18%;
                     }
                     @media (prefers-color-scheme: dark) {
                         .cc-table-row td:last-child {
@@ -650,9 +649,10 @@ def render_receipt_report_page(
                             color: #f1f5f9;
                         }
                     }
-                    .cc-table-footer td:last-child {
+                    .cc-table-footer td:nth-child(3),
+                    .cc-table-footer td:nth-child(4),
+                    .cc-table-footer td:nth-child(5) {
                         text-align: right;
-                        color: #6366f1;
                         font-size: 1.05rem;
                         font-family: 'SF Mono', Monaco, monospace;
                     }
@@ -696,15 +696,9 @@ def render_receipt_report_page(
             for _, row in cc_breakdown.iterrows():
                 cc_num = row["cc_number"]
                 cc_name = row["cc_display"]
-                inc_fmt = (
-                    f'<span style="color:{"#dc2626" if row["income"] < 0 else "#16a34a"}">{row["income"]:,.2f} €</span>'
-                )
-                cost_fmt = (
-                    f'<span style="color:{"#dc2626" if row["cost"] < 0 else "#16a34a"}">{row["cost"]:,.2f} €</span>'
-                )
-                marg_fmt = (
-                    f'<span style="color:{"#dc2626" if row["margin"] < 0 else "#16a34a"}">{row["margin"]:,.2f} €</span>'
-                )
+                inc_fmt = f'<span style="color:{"#dc2626" if row["income"] < 0 else "#16a34a"}">{row["income"]:,.2f} €</span>'
+                cost_fmt = f'<span style="color:{"#dc2626" if row["cost"] < 0 else "#16a34a"}">{row["cost"]:,.2f} €</span>'
+                marg_fmt = f'<span style="color:{"#dc2626" if row["margin"] < 0 else "#16a34a"}">{row["margin"]:,.2f} €</span>'
                 rows_html.append(
                     f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td style="text-align:right;">{inc_fmt}</td><td style="text-align:right;">{cost_fmt}</td><td style="text-align:right;">{marg_fmt}</td></tr>'
                 )
@@ -715,7 +709,7 @@ def render_receipt_report_page(
             total_cost_fmt = f"{cost_total:,.2f} €"
             total_margin_fmt = f"{margin:,.2f} €"
 
-            table_html = f'''
+            table_html = f"""
                 <div class="cc-table-wrapper">
                   <div class="cc-table-scroll">
                     <table class="cc-table">
@@ -731,7 +725,7 @@ def render_receipt_report_page(
                     </table>
                   </div>
                 </div>
-            '''
+            """
 
             st.markdown(table_html, unsafe_allow_html=True)
             st.divider()

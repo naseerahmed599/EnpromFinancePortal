@@ -41,45 +41,143 @@ def render_analytics_page(
     st.markdown(get_page_header_amber(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="page-header-amber" style="
-            padding: 1.75rem 2rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-        ">
-            <div style="
-                background: linear-gradient(135deg, rgba(251, 146, 60, 0.9) 0%, rgba(249, 115, 22, 0.9) 100%);
-                width: 56px;
-                height: 56px;
-                border-radius: 14px;
+    if st.session_state.documents is not None:
+        docs = st.session_state.documents
+        quick_total = sum([abs(doc.get("totalGross", 0)) for doc in docs])
+        quick_count = len(docs)
+        quick_approved = len([d for d in docs if d.get("currentStage") == "Approved"])
+        quick_pending = len([d for d in docs if d.get("paymentState") in ["Open", "Pending"]])
+        
+        st.markdown(
+            f"""
+            <div class="page-header-amber" style="
+                padding: 2rem 2.5rem;
+                border-radius: 24px;
+                margin-bottom: 2rem;
+                background: linear-gradient(135deg, rgba(251, 146, 60, 0.08) 0%, rgba(249, 115, 22, 0.05) 100%);
+                border: 1px solid rgba(251, 146, 60, 0.2);
+                box-shadow: 0 4px 20px rgba(251, 146, 60, 0.1);
+            ">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <div style="
+                            background: linear-gradient(135deg, rgba(251, 146, 60, 0.9) 0%, rgba(249, 115, 22, 0.9) 100%);
+                            width: 64px;
+                            height: 64px;
+                            border-radius: 16px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 32px;
+                            box-shadow: 0 8px 24px rgba(251, 146, 60, 0.4),
+                                        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                        ">📈</div>
+                        <div>
+                            <h2 style="
+                                margin: 0;
+                                font-size: 2rem;
+                                font-weight: 800;
+                                background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+                                -webkit-background-clip: text;
+                                -webkit-text-fill-color: transparent;
+                                background-clip: text;
+                            ">{t('analytics_page.title')}</h2>
+                            <p style="
+                                margin: 0.5rem 0 0 0;
+                                font-size: 1rem;
+                                font-weight: 500;
+                                color: #64748b;
+                            ">{t('analytics_page.interactive_visualization')}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <div style="
+                            background: white;
+                            padding: 0.75rem 1.25rem;
+                            border-radius: 12px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                            border: 1px solid #e2e8f0;
+                        ">
+                            <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Total Value</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">€{quick_total:,.0f}</div>
+                        </div>
+                        <div style="
+                            background: white;
+                            padding: 0.75rem 1.25rem;
+                            border-radius: 12px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                            border: 1px solid #e2e8f0;
+                        ">
+                            <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Documents</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">{quick_count:,}</div>
+                        </div>
+                        <div style="
+                            background: white;
+                            padding: 0.75rem 1.25rem;
+                            border-radius: 12px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                            border: 1px solid #e2e8f0;
+                        ">
+                            <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Approved</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">{quick_approved:,}</div>
+                        </div>
+                        <div style="
+                            background: white;
+                            padding: 0.75rem 1.25rem;
+                            border-radius: 12px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                            border: 1px solid #e2e8f0;
+                        ">
+                            <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Pending</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;">{quick_pending:,}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div class="page-header-amber" style="
+                padding: 1.75rem 2rem;
+                border-radius: 20px;
+                margin-bottom: 2rem;
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                font-size: 28px;
-                box-shadow: 0 8px 20px rgba(251, 146, 60, 0.35),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            ">📈</div>
-            <div>
-                <h2 style="
-                    margin: 0;
-                    font-size: 1.875rem;
-                    font-weight: 700;
-                ">{t('analytics_page.title')}</h2>
-                <p style="
-                    margin: 0.5rem 0 0 0;
-                    font-size: 0.95rem;
-                    font-weight: 500;
-                ">{t('analytics_page.interactive_visualization')}</p>
+                gap: 1.25rem;
+            ">
+                <div style="
+                    background: linear-gradient(135deg, rgba(251, 146, 60, 0.9) 0%, rgba(249, 115, 22, 0.9) 100%);
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 28px;
+                    box-shadow: 0 8px 20px rgba(251, 146, 60, 0.35),
+                                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                ">📈</div>
+                <div>
+                    <h2 style="
+                        margin: 0;
+                        font-size: 1.875rem;
+                        font-weight: 700;
+                    ">{t('analytics_page.title')}</h2>
+                    <p style="
+                        margin: 0.5rem 0 0 0;
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                    ">{t('analytics_page.interactive_visualization')}</p>
+                </div>
             </div>
-        </div>
-    """,
-        unsafe_allow_html=True,
-    )
+        """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
         get_card_styles()
@@ -92,12 +190,113 @@ def render_analytics_page(
         unsafe_allow_html=True,
     )
 
-    # Add alert box styles for action cards
     from styles.theme_styles import get_alert_box_styles
 
     st.markdown(get_alert_box_styles(), unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
+    st.markdown(
+        """
+        <style>
+        /* Bottom-align all controls in the top row */
+        div[data-testid="column"]:nth-of-type(1),
+        div[data-testid="column"]:nth-of-type(2),
+        div[data-testid="column"]:nth-of-type(3),
+        div[data-testid="column"]:nth-of-type(4),
+        div[data-testid="column"]:nth-of-type(5) {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-end !important;
+            align-items: flex-start !important;
+        }
+        
+        /* Chip-style Load Data button (primary) - matches quick filter style but with primary colors */
+        div[data-testid="column"]:nth-of-type(4) button[kind="primary"] {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            border: 1px solid #4f46e5 !important;
+            border-radius: 20px !important;
+            padding: 0.4rem 1rem !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+            color: #ffffff !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2) !important;
+            letter-spacing: 0.01em !important;
+        }
+        
+        div[data-testid="column"]:nth-of-type(4) button[kind="primary"]:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+            border-color: #4338ca !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+            transform: translateY(-2px);
+        }
+        
+        div[data-testid="column"]:nth-of-type(4) button[kind="primary"]:active {
+            background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%) !important;
+            border-color: #3730a3 !important;
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.4) !important;
+        }
+        
+        /* Chip-style Clear Filters button (secondary) - exact same as quick filter buttons */
+        div[data-testid="column"]:nth-of-type(5) button[kind="secondary"] {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 20px !important;
+            padding: 0.4rem 1rem !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+            color: #475569 !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+            letter-spacing: 0.01em !important;
+        }
+        
+        div[data-testid="column"]:nth-of-type(5) button[kind="secondary"]:hover {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+            color: #dc2626 !important;
+            border-color: #f87171 !important;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15) !important;
+            transform: translateY(-2px);
+        }
+        
+        div[data-testid="column"]:nth-of-type(5) button[kind="secondary"]:active {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important;
+            color: #b91c1c !important;
+            border-color: #ef4444 !important;
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2) !important;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="column"]:nth-of-type(4) button[kind="primary"] {
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%) !important;
+                border-color: rgba(79, 70, 229, 0.8) !important;
+            }
+            
+            div[data-testid="column"]:nth-of-type(4) button[kind="primary"]:hover {
+                background: linear-gradient(135deg, rgba(79, 70, 229, 0.95) 0%, rgba(67, 56, 202, 0.95) 100%) !important;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+            }
+            
+            div[data-testid="column"]:nth-of-type(5) button[kind="secondary"] {
+                background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%) !important;
+                border-color: rgba(71, 85, 105, 0.6) !important;
+                color: #cbd5e1 !important;
+            }
+            
+            div[data-testid="column"]:nth-of-type(5) button[kind="secondary"]:hover {
+                background: linear-gradient(135deg, rgba(127, 29, 29, 0.3) 0%, rgba(153, 27, 27, 0.3) 100%) !important;
+                color: #fca5a5 !important;
+                border-color: rgba(239, 68, 68, 0.6) !important;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.2, 1.2, 1.2])
 
     with col1:
         include_processed_analytics = st.checkbox(
@@ -112,21 +311,34 @@ def render_analytics_page(
         )
 
     with col3:
+        cc_months_back = st.selectbox(
+            "Cost center lookback (months)",
+            options=[3, 6, 12, 24],
+            index=1,  
+            help="Load cost centers from documents in the last N months (uses Find API - faster). Lower months = faster loading.",
+            key="analytics_cc_months_back",
+        )
+
+    with col4:
         if st.button(
             t("analytics_page.load_data"),
             type="primary",
             use_container_width=True,
             key="btn_load_analytics_docs",
         ):
-            with st.spinner("Loading documents and cost centers..."):
+            # Use a simple spinner approach that clears properly
+            with st.spinner("📄 Loading documents..."):
                 docs = st.session_state.client.get_all_documents(
                     include_processed=include_processed_analytics,
                     include_deleted=include_deleted_analytics,
                 )
+                
                 st.session_state.documents = docs
                 st.session_state.analytics_load_time = datetime.now()
-
-                cost_centers = client.get_all_cost_centers()
+            
+            with st.spinner(f"🏢 Loading cost centers from last {cc_months_back} months..."):
+                cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
+                
                 if cost_centers:
                     cleaned_cc = [
                         str(cc)
@@ -140,14 +352,16 @@ def render_analytics_page(
                     )
                 else:
                     st.toast(
-                        f"✅ Loaded {len(docs)} documents",
+                        f"✅ Loaded {len(docs)} documents (no cost centers found)",
                         icon="✅",
                     )
-                st.rerun()
+            
+            st.rerun()
 
-    with col4:
+    with col5:
         if st.button(
             "🗑️ Clear Filters",
+            type="secondary",
             use_container_width=True,
             key="btn_clear_filters",
         ):
@@ -795,28 +1009,34 @@ def render_analytics_page(
             st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        is_filtered = len(docs) < len(st.session_state.documents)
+        
+        if is_filtered:
+            filter_indicator_html = f'<div style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.75rem; font-weight: 600; margin-left: 0.75rem; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"><span>🔍</span><span>Filtered: {len(docs):,} of {len(st.session_state.documents):,}</span></div>'
+        else:
+            filter_indicator_html = ""
+        
         col_header1, col_header2 = st.columns([2, 1])
         with col_header1:
-            st.markdown(
-                f"""
-                <h3 class="section-header" style="
-                    font-size: 1.5rem;
-                    font-weight: 800;
-                    margin: 0.5rem 0 1rem 0;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding-bottom: 0.5rem;
-                ">
-                    <span style="font-size: 2rem;">📊</span>
-                    {t('analytics_page.key_performance_indicators')}
-                </h3>
-            """,
-                unsafe_allow_html=True,
-            )
+            kpi_title = t('analytics_page.key_performance_indicators')
+            header_html = f"""
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0;">
+                <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">📊</div>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <h3 style="margin: 0; font-size: 1.75rem; font-weight: 800; color: #1e293b;">{kpi_title}</h3>
+                        {filter_indicator_html}
+                    </div>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: #64748b;">Real-time insights and metrics</p>
+                </div>
+            </div>
+            """
+            st.markdown(header_html, unsafe_allow_html=True)
 
-        total_gross = sum([doc.get("totalGross", 0) for doc in docs])
-        total_net = sum([doc.get("totalNet", 0) for doc in docs])
+      
+        total_gross = sum([abs(doc.get("totalGross", 0)) for doc in docs])
+        total_net = sum([abs(doc.get("totalNet", 0)) for doc in docs])
         total_tax = total_gross - total_net
         avg_invoice_value = total_gross / len(docs) if len(docs) > 0 else 0
 
@@ -835,9 +1055,9 @@ def render_analytics_page(
         for doc in docs:
             payment = doc.get("paymentState", "Unknown")
             payment_counts[payment] = payment_counts.get(payment, 0) + 1
-            payment_totals[payment] = payment_totals.get(payment, 0) + doc.get(
+            payment_totals[payment] = payment_totals.get(payment, 0) + abs(doc.get(
                 "totalGross", 0
-            )
+            ))
 
         pending_payment_value = payment_totals.get("Open", 0) + payment_totals.get(
             "Pending", 0
@@ -927,51 +1147,239 @@ def render_analytics_page(
             ),
         ]
 
+        st.markdown("""
+            <style>
+                .enhanced-kpi-card {
+                    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+                    border: 1px solid #e2e8f0;
+                    border-radius: 20px;
+                    padding: 1.75rem 1.5rem;
+                    text-align: center;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    cursor: default;
+                    min-height: 200px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    position: relative;
+                    overflow: hidden;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                }
+                .enhanced-kpi-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: linear-gradient(90deg, var(--kpi-color), var(--kpi-color-light));
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                .enhanced-kpi-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                    border-color: var(--kpi-color);
+                }
+                .enhanced-kpi-card:hover::before {
+                    opacity: 1;
+                }
+                .kpi-icon-wrapper {
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 28px;
+                    margin: 0 auto 1rem;
+                    background: var(--kpi-bg);
+                    box-shadow: 0 4px 12px var(--kpi-shadow);
+                }
+                .kpi-value-large {
+                    font-size: 2.5rem;
+                    font-weight: 900;
+                    color: var(--kpi-color);
+                    margin-bottom: 0.5rem;
+                    line-height: 1.2;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+                }
+                .kpi-label-enhanced {
+                    font-size: 0.875rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.8px;
+                    color: #64748b;
+                    margin-top: 0.5rem;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
         for row in range(0, len(kpis), 3):
             kpi_cols = st.columns(3)
             for col_idx, kpi_idx in enumerate(range(row, min(row + 3, len(kpis)))):
                 label, value, icon, color, bg = kpis[kpi_idx]
+                color_rgb = color.replace('#', '')
+                r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
+                shadow_color = f"rgba({r}, {g}, {b}, 0.2)"
+                
                 with kpi_cols[col_idx]:
                     st.markdown(
                         f"""
-                        <div class="metric-card-light" style="
-                            --card-color: {bg};
-                            --card-color-dark: {color}30;
-                            padding: 1.5rem 1rem;
-                            border-radius: 20px;
-                            text-align: center;
-                            transition: all 0.3s ease;
-                            cursor: default;
-                            min-height: 180px;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            position: relative;
-                            overflow: hidden;
+                        <div class="enhanced-kpi-card" style="
+                            --kpi-color: {color};
+                            --kpi-color-light: {bg};
+                            --kpi-bg: {bg};
+                            --kpi-shadow: {shadow_color};
                         ">
-                            <div style="
-                                font-size: 2.5rem;
-                                font-weight: 900;
-                                color: {color};
-                                margin-bottom: 0.5rem;
-                                line-height: 1.2;
-                                word-wrap: break-word;
-                                overflow-wrap: break-word;
-                                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                            ">{value}</div>
-                            <div class="metric-label" style="
-                                font-size: 0.85rem;
-                                font-weight: 700;
-                                text-transform: uppercase;
-                                letter-spacing: 0.5px;
-                                line-height: 1.3;
-                            ">{label}</div>
+                            <div class="kpi-icon-wrapper">{icon}</div>
+                            <div class="kpi-value-large">{value}</div>
+                            <div class="kpi-label-enhanced">{label}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
             if row + 3 < len(kpis):
                 st.markdown("<br>", unsafe_allow_html=True)
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        insights = []
+        if approval_rate < 50:
+            insights.append({
+                "type": "warning",
+                "icon": "⚠️",
+                "title": "Low Approval Rate",
+                "message": f"Only {approval_rate:.1f}% of documents are approved. Consider reviewing workflow bottlenecks.",
+                "color": "#f59e0b"
+            })
+        if pending_payment_value > total_gross * 0.3:
+            insights.append({
+                "type": "alert",
+                "icon": "💳",
+                "title": "High Pending Payments",
+                "message": f"€{pending_payment_value:,.0f} in pending payments ({pending_payment_value/total_gross*100:.1f}% of total). Follow up on outstanding invoices.",
+                "color": "#ef4444"
+            })
+        if in_workflow > len(docs) * 0.4:
+            insights.append({
+                "type": "info",
+                "icon": "📋",
+                "title": "Workflow Bottleneck",
+                "message": f"{in_workflow} documents ({in_workflow/len(docs)*100:.1f}%) are in approval stages. Review process efficiency.",
+                "color": "#3b82f6"
+            })
+        if avg_invoice_value > 10000:
+            insights.append({
+                "type": "success",
+                "icon": "💰",
+                "title": "High-Value Portfolio",
+                "message": f"Average invoice value is €{avg_invoice_value:,.0f}. Focus on high-value document processing.",
+                "color": "#10b981"
+            })
+        if draft_count > len(docs) * 0.2:
+            insights.append({
+                "type": "warning",
+                "icon": "📝",
+                "title": "Unprocessed Documents",
+                "message": f"{draft_count} documents ({draft_count/len(docs)*100:.1f}%) are still in draft. Start processing to improve workflow.",
+                "color": "#f59e0b"
+            })
+        
+        if insights:
+            st.markdown(
+                """
+                <div style="
+                    margin: 2rem 0 1.5rem 0;
+                    padding-bottom: 1rem;
+                    border-bottom: 2px solid #e2e8f0;
+                ">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="
+                            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                            width: 48px;
+                            height: 48px;
+                            border-radius: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 24px;
+                            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+                        ">💡</div>
+                        <div>
+                            <h3 style="
+                                margin: 0;
+                                font-size: 1.75rem;
+                                font-weight: 800;
+                                color: #1e293b;
+                            ">Key Insights & Recommendations</h3>
+                            <p style="
+                                margin: 0.25rem 0 0 0;
+                                font-size: 0.875rem;
+                                color: #64748b;
+                            ">Actionable insights based on your data</p>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            
+            insight_cols = st.columns(min(len(insights), 3))
+            for idx, insight in enumerate(insights[:3]):
+                with insight_cols[idx]:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background: linear-gradient(135deg, {insight['color']}15 0%, {insight['color']}08 100%);
+                            border-left: 4px solid {insight['color']};
+                            border-radius: 12px;
+                            padding: 1.25rem;
+                            margin-bottom: 1rem;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                            transition: all 0.3s ease;
+                        ">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <span style="font-size: 1.5rem;">{insight['icon']}</span>
+                                <h4 style="
+                                    margin: 0;
+                                    font-size: 1rem;
+                                    font-weight: 700;
+                                    color: {insight['color']};
+                                ">{insight['title']}</h4>
+                            </div>
+                            <p style="
+                                margin: 0;
+                                font-size: 0.875rem;
+                                color: #475569;
+                                line-height: 1.5;
+                            ">{insight['message']}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+            
+            if len(insights) > 3:
+                with st.expander(f"View {len(insights) - 3} more insights", expanded=False):
+                    for insight in insights[3:]:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background: linear-gradient(135deg, {insight['color']}15 0%, {insight['color']}08 100%);
+                                border-left: 4px solid {insight['color']};
+                                border-radius: 12px;
+                                padding: 1rem;
+                                margin-bottom: 0.75rem;
+                            ">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.25rem;">{insight['icon']}</span>
+                                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: {insight['color']};">{insight['title']}</h4>
+                                </div>
+                                <p style="margin: 0; font-size: 0.85rem; color: #475569;">{insight['message']}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
         if in_workflow > 0 or draft_count > 0:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1027,17 +1435,39 @@ def render_analytics_page(
 
         st.markdown(
             f"""
-            <h3 class="section-header" style="
-                font-size: 1.5rem;
-                font-weight: 800;
-                margin: 2.5rem 0 1.5rem 0;
+            <div style="
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
-                padding-bottom: 0.75rem;
+                gap: 1rem;
+                margin: 2.5rem 0 1.5rem 0;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid #e2e8f0;
             ">
-                💰 {t('analytics_page.financial_summary')}
-            </h3>
+                <div style="
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                ">💰</div>
+                <div>
+                    <h3 style="
+                        margin: 0;
+                        font-size: 1.75rem;
+                        font-weight: 800;
+                        color: #1e293b;
+                    ">{t('analytics_page.financial_summary')}</h3>
+                    <p style="
+                        margin: 0.25rem 0 0 0;
+                        font-size: 0.875rem;
+                        color: #64748b;
+                    ">Comprehensive financial overview</p>
+                </div>
+            </div>
             """,
             unsafe_allow_html=True,
         )
@@ -1047,34 +1477,39 @@ def render_analytics_page(
         with fin_cols[0]:
             st.markdown(
                 f"""
-                <div class="financial-card" style="
-                    --card-bg: rgba(16, 185, 129, 0.04);
-                    --card-bg-dark: rgba(16, 185, 129, 0.15);
-                    padding: 1.5rem 1rem;
+                <div style="
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                    padding: 2rem 1.5rem;
                     border-radius: 20px;
                     text-align: center;
-                    min-height: 140px;
+                    min-height: 160px;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                ">
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(16, 185, 129, 0.2)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.1)'">
                     <div style="
-                        font-size: 2rem;
-                        font-weight: 800;
+                        font-size: 2.5rem;
+                        font-weight: 900;
                         color: #10b981;
-                        margin-bottom: 0.5rem;
+                        margin-bottom: 0.75rem;
                         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                     ">€{total_net:,.0f}</div>
-                    <div class="card-label" style="
-                        font-size: 0.85rem;
-                        font-weight: 600;
+                    <div style="
+                        font-size: 0.875rem;
+                        font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.5px;
+                        letter-spacing: 0.8px;
+                        color: #64748b;
+                        margin-bottom: 0.5rem;
                     ">{t('analytics_page.total_net_amount')}</div>
                     <div style="
                         font-size: 0.75rem;
-                        margin-top: 0.5rem;
-                        opacity: 0.7;
+                        color: #94a3b8;
+                        font-weight: 500;
                     ">{t('analytics_page.excluding_taxes')}</div>
                 </div>
                 """,
@@ -1084,34 +1519,39 @@ def render_analytics_page(
         with fin_cols[1]:
             st.markdown(
                 f"""
-                <div class="financial-card" style="
-                    --card-bg: rgba(239, 68, 68, 0.04);
-                    --card-bg-dark: rgba(239, 68, 68, 0.15);
-                    padding: 1.5rem 1rem;
+                <div style="
+                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.04) 100%);
+                    border: 1px solid rgba(239, 68, 68, 0.2);
+                    padding: 2rem 1.5rem;
                     border-radius: 20px;
                     text-align: center;
-                    min-height: 140px;
+                    min-height: 160px;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                ">
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(239, 68, 68, 0.2)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.1)'">
                     <div style="
-                        font-size: 2rem;
-                        font-weight: 800;
+                        font-size: 2.5rem;
+                        font-weight: 900;
                         color: #ef4444;
-                        margin-bottom: 0.5rem;
+                        margin-bottom: 0.75rem;
                         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                     ">€{total_tax:,.0f}</div>
-                    <div class="card-label" style="
-                        font-size: 0.85rem;
-                        font-weight: 600;
+                    <div style="
+                        font-size: 0.875rem;
+                        font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.5px;
+                        letter-spacing: 0.8px;
+                        color: #64748b;
+                        margin-bottom: 0.5rem;
                     ">{t('analytics_page.total_tax_amount')}</div>
                     <div style="
                         font-size: 0.75rem;
-                        margin-top: 0.5rem;
-                        opacity: 0.7;
+                        color: #94a3b8;
+                        font-weight: 500;
                     ">{t('analytics_page.vat_other_taxes')}</div>
                 </div>
                 """,
@@ -1123,34 +1563,39 @@ def render_analytics_page(
             payment_rate = (paid_value / total_gross * 100) if total_gross > 0 else 0
             st.markdown(
                 f"""
-                <div class="financial-card" style="
-                    --card-bg: rgba(59, 130, 246, 0.04);
-                    --card-bg-dark: rgba(59, 130, 246, 0.15);
-                    padding: 1.5rem 1rem;
+                <div style="
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+                    border: 1px solid rgba(59, 130, 246, 0.2);
+                    padding: 2rem 1.5rem;
                     border-radius: 20px;
                     text-align: center;
-                    min-height: 140px;
+                    min-height: 160px;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                ">
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(59, 130, 246, 0.2)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.1)'">
                     <div style="
-                        font-size: 2rem;
-                        font-weight: 800;
+                        font-size: 2.5rem;
+                        font-weight: 900;
                         color: #3b82f6;
-                        margin-bottom: 0.5rem;
+                        margin-bottom: 0.75rem;
                         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                     ">{payment_rate:.1f}%</div>
-                    <div class="card-label" style="
-                        font-size: 0.85rem;
-                        font-weight: 600;
+                    <div style="
+                        font-size: 0.875rem;
+                        font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.5px;
+                        letter-spacing: 0.8px;
+                        color: #64748b;
+                        margin-bottom: 0.5rem;
                     ">{t('analytics_page.payment_rate')}</div>
                     <div style="
                         font-size: 0.75rem;
-                        margin-top: 0.5rem;
-                        opacity: 0.7;
+                        color: #94a3b8;
+                        font-weight: 500;
                     ">€{paid_value:,.0f} {t('analytics_page.paid')}</div>
                 </div>
                 """,
@@ -1159,10 +1604,53 @@ def render_analytics_page(
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(
-            "<div style='border-top: 2px solid #e2e8f0; margin: 2rem 0 1.5rem 0;'></div>",
+            """
+            <div style='
+                border-top: 2px solid #e2e8f0;
+                margin: 2rem 0 1.5rem 0;
+                position: relative;
+            '>
+                <div style="
+                    position: absolute;
+                    top: -12px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: white;
+                    padding: 0 1rem;
+                    color: #64748b;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                ">Detailed Analysis</div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
+        # Enhanced tabs with better styling
+        st.markdown("""
+            <style>
+                .stTabs [data-baseweb="tab-list"] {
+                    gap: 0.5rem;
+                    background: #f8fafc;
+                    padding: 0.5rem;
+                    border-radius: 12px;
+                }
+                .stTabs [data-baseweb="tab"] {
+                    border-radius: 10px;
+                    padding: 0.75rem 1.5rem;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                }
+                .stTabs [aria-selected="true"] {
+                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                    color: white !important;
+                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
         tab1, tab2, tab3, tab4 = st.tabs(
             [
                 f"💰 {t('analytics_page.financial_tab')}",
@@ -1208,10 +1696,28 @@ def render_analytics_page(
                     fig_trend.update_traces(
                         fill="tozeroy",
                         line_color="#3b82f6",
-                        fillcolor="rgba(59, 130, 246, 0.2)",
+                        fillcolor="rgba(59, 130, 246, 0.25)",
+                        line_width=3,
+                        hovertemplate="<b>%{x}</b><br>€%{y:,.0f}<extra></extra>",
                     )
                     fig_trend.update_layout(
-                        height=300, showlegend=False, hovermode="x unified"
+                        height=350,
+                        showlegend=False,
+                        hovermode="x unified",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Inter, sans-serif", size=12),
+                        xaxis=dict(
+                            gridcolor="rgba(0,0,0,0.05)",
+                            showgrid=True,
+                            title_font=dict(size=14, color="#64748b"),
+                        ),
+                        yaxis=dict(
+                            gridcolor="rgba(0,0,0,0.05)",
+                            showgrid=True,
+                            title_font=dict(size=14, color="#64748b"),
+                        ),
+                        margin=dict(l=20, r=20, t=20, b=40),
                     )
                     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -1221,7 +1727,34 @@ def render_analytics_page(
 
             with col1:
                 st.markdown(
-                    f'<div class="section-header"><span class="section-icon">💳</span> {t("analytics_page.payment_status_overview")}</div>',
+                    f"""
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        margin-bottom: 1.25rem;
+                        padding-bottom: 0.75rem;
+                        border-bottom: 2px solid #e2e8f0;
+                    ">
+                        <div style="
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+                        ">💳</div>
+                        <h4 style="
+                            margin: 0;
+                            font-size: 1.25rem;
+                            font-weight: 700;
+                            color: #1e293b;
+                        ">{t("analytics_page.payment_status_overview")}</h4>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
                 if payment_counts:
@@ -1236,17 +1769,37 @@ def render_analytics_page(
                     fig_payment = px.pie(
                         values=list(payment_counts.values()),
                         names=list(payment_counts.keys()),
-                        hole=0.6,
+                        hole=0.65,
                         color_discrete_sequence=[
                             "#10b981",
                             "#f59e0b",
                             "#ef4444",
                             "#06b6d4",
+                            "#8b5cf6",
                         ],
                     )
-                    fig_payment.update_traces(textposition="inside", textinfo="percent")
+                    fig_payment.update_traces(
+                        textposition="inside",
+                        textinfo="percent+label",
+                        textfont=dict(size=12, color="white", family="Inter, sans-serif"),
+                        hovertemplate="<b>%{label}</b><br>%{value} documents<br>%{percent}<extra></extra>",
+                        marker=dict(line=dict(color="#ffffff", width=2)),
+                    )
                     fig_payment.update_layout(
-                        height=280, showlegend=True, margin=dict(t=20, b=20)
+                        height=320,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="v",
+                            yanchor="middle",
+                            y=0.5,
+                            xanchor="left",
+                            x=1.05,
+                            font=dict(size=11, color="#64748b"),
+                        ),
+                        margin=dict(t=20, b=20, l=20, r=120),
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Inter, sans-serif"),
                     )
                     st.plotly_chart(fig_payment, use_container_width=True)
 
@@ -1262,7 +1815,34 @@ def render_analytics_page(
 
             with col2:
                 st.markdown(
-                    f'<div class="section-header"><span class="section-icon">🎯 {t("analytics_page.high_value_alerts")}</span></div>',
+                    f"""
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        margin-bottom: 1.25rem;
+                        padding-bottom: 0.75rem;
+                        border-bottom: 2px solid #e2e8f0;
+                    ">
+                        <div style="
+                            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+                        ">🎯</div>
+                        <h4 style="
+                            margin: 0;
+                            font-size: 1.25rem;
+                            font-weight: 700;
+                            color: #1e293b;
+                        ">{t("analytics_page.high_value_alerts")}</h4>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
                 sorted_docs = sorted(
@@ -1324,7 +1904,7 @@ def render_analytics_page(
                                 "Count": v,
                                 "Value": sum(
                                     [
-                                        d.get("totalGross", 0)
+                                        abs(d.get("totalGross", 0))
                                         for d in docs
                                         if d.get("currentStage") == k
                                     ]
@@ -1364,7 +1944,7 @@ def render_analytics_page(
                     bottleneck = max(stages_only.items(), key=lambda x: x[1])
                     bottleneck_value = sum(
                         [
-                            d.get("totalGross", 0)
+                            abs(d.get("totalGross", 0))
                             for d in docs
                             if d.get("currentStage") == bottleneck[0]
                         ]
@@ -1419,7 +1999,7 @@ def render_analytics_page(
                 if company not in company_data:
                     company_data[company] = {"count": 0, "value": 0, "approved": 0}
                 company_data[company]["count"] += 1
-                company_data[company]["value"] += doc.get("totalGross", 0)
+                company_data[company]["value"] += abs(doc.get("totalGross", 0))
                 if doc.get("currentStage") == "Approved":
                     company_data[company]["approved"] += 1
 
@@ -1450,7 +2030,7 @@ def render_analytics_page(
             supplier_counts = {}
             for doc in docs:
                 supplier = doc.get("supplierName", "Unknown")
-                value = doc.get("totalGross", 0)
+                value = abs(doc.get("totalGross", 0))
                 supplier_values[supplier] = supplier_values.get(supplier, 0) + value
                 supplier_counts[supplier] = supplier_counts.get(supplier, 0) + 1
 
@@ -1646,14 +2226,37 @@ def render_analytics_page(
                             df_filtered[amount_col], errors="coerce"
                         ).fillna(0)
 
-                        total_amount = df_filtered[amount_col].sum()
+                        doc_type_cache = {}
+                        unique_doc_ids = df_filtered['documentId'].unique()
+                        with st.spinner(f"Enriching {len(unique_doc_ids)} documents with type info..."):
+                            for doc_id in unique_doc_ids:
+                                if doc_id not in doc_type_cache:
+                                    detail = client.get_document(doc_id)
+                                    if detail:
+                                        doc_type_cache[doc_id] = detail.get('documentType') or detail.get('documentKind') or ''
+                                    else:
+                                        doc_type_cache[doc_id] = ''
+                        
+                        df_filtered['_documentType'] = df_filtered['documentId'].map(doc_type_cache)
+
+                        def classify_row(row):
+                            doc_type = str(row.get('_documentType') or row.get('documentType') or row.get('documentKind') or '').lower()
+                            amount = row[amount_col]
+                            if 'ausgangsrechnung' in doc_type or 'outgoinginvoice' in doc_type or 'ausgang' in doc_type:
+                                return 'income'
+                            if 'eingangsrechnung' in doc_type or 'incominginvoice' in doc_type or 'eingang' in doc_type:
+                                return 'cost'
+                            return 'income' if amount < 0 else 'cost'
+                        
+                        df_filtered['__category'] = df_filtered.apply(classify_row, axis=1)
+                        
+                        cost_total = df_filtered.loc[df_filtered['__category'] == 'cost', amount_col].apply(abs).sum()
+                        income_total = df_filtered.loc[df_filtered['__category'] == 'income', amount_col].apply(abs).sum()
+                        margin = income_total - cost_total
+                        net_total = df_filtered[amount_col].sum()
+                        
                         num_cost_centers = df_filtered[cost_center_col].nunique()
                         num_records = len(df_filtered)
-                        avg_amount = (
-                            total_amount / num_cost_centers
-                            if num_cost_centers > 0
-                            else 0
-                        )
 
                         st.markdown(
                             """
@@ -1699,6 +2302,7 @@ def render_analytics_page(
                                     color: #1e293b;
                                     margin: 0;
                                     font-family: 'SF Mono', Monaco, monospace;
+                                    white-space: nowrap;
                                 }
                                 @media (prefers-color-scheme: dark) {
                                     .kpi-value { color: #f1f5f9; }
@@ -1718,23 +2322,31 @@ def render_analytics_page(
                             unsafe_allow_html=True,
                         )
 
+                        def color_value(val):
+                            color = "#dc2626" if val < 0 else "#16a34a"
+                            return f'<span style="color:{color}">{val:,.2f} €</span>'
+                        
+                        margin_html = color_value(margin)
+                        income_html = color_value(income_total)
+                        cost_html = color_value(cost_total)
+                        
                         kpi_html = f"""
                             <div class="kpi-cards-row">
                                 <div class="kpi-card primary">
-                                    <p class="kpi-label">{t('analytics_page.total_amount_label')}</p>
-                                    <p class="kpi-value">{total_amount:,.2f} €</p>
+                                    <p class="kpi-label">Margin (Income - Cost)</p>
+                                    <p class="kpi-value"><strong><span style="color:#ffffff">{margin:,.2f} €</span></strong></p>
                                 </div>
                                 <div class="kpi-card">
-                                    <p class="kpi-label">{t('analytics_page.total_records')}</p>
-                                    <p class="kpi-value">{num_records:,}</p>
+                                    <p class="kpi-label">Total Income (Debs)</p>
+                                    <p class="kpi-value">{income_html}</p>
+                                </div>
+                                <div class="kpi-card">
+                                    <p class="kpi-label">Total Cost (Kreds)</p>
+                                    <p class="kpi-value"><span style="color:#dc2626">{cost_total:,.2f} €</span></p>
                                 </div>
                                 <div class="kpi-card">
                                     <p class="kpi-label">{t('analytics_page.num_cost_centers')}</p>
                                     <p class="kpi-value">{num_cost_centers:,}</p>
-                                </div>
-                                <div class="kpi-card">
-                                    <p class="kpi-label">{t('analytics_page.avg_per_cc')}</p>
-                                    <p class="kpi-value">{avg_amount:,.0f} €</p>
                                 </div>
                             </div>
                         """
@@ -1751,15 +2363,15 @@ def render_analytics_page(
                         enriched_df["cc_number"] = enriched_df[cost_center_col].astype(
                             str
                         )
-
-                        cc_breakdown = (
-                            enriched_df.groupby(["cc_number", "cc_display"])[amount_col]
-                            .sum()
-                            .reset_index()
-                        )
-                        cc_breakdown = cc_breakdown.sort_values(
-                            amount_col, ascending=False
-                        )
+                        
+                        def calc_cc_metrics(group):
+                            income = group.loc[group['__category'] == 'income', amount_col].apply(abs).sum()
+                            cost = group.loc[group['__category'] == 'cost', amount_col].apply(abs).sum()
+                            margin = income - cost
+                            return pd.Series({'income': income, 'cost': cost, 'margin': margin})
+                        
+                        cc_breakdown = enriched_df.groupby(['cc_number', 'cc_display']).apply(calc_cc_metrics).reset_index()
+                        cc_breakdown = cc_breakdown.sort_values('margin', ascending=False)
 
                         col_split_header1, col_split_header2 = st.columns([4, 1])
                         with col_split_header1:
@@ -1776,8 +2388,8 @@ def render_analytics_page(
                                         font-size: 0.75rem;
                                         font-weight: 600;
                                         box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
-                                    " title="Total amount split across all cost centers">
-                                        💰 Total: {total_amount:,.2f} €
+                                    " title="Total margin across all cost centers">
+                                        💰 Total Margin: {margin:,.2f} €
                                     </span>
                                 </div>
                                 """,
@@ -1839,7 +2451,9 @@ def render_analytics_page(
                                         color: #94a3b8;
                                     }
                                 }
-                                .cc-table-header th:last-child {
+                                .cc-table-header th:nth-child(3),
+                                .cc-table-header th:nth-child(4),
+                                .cc-table-header th:nth-child(5) {
                                     text-align: right;
                                 }
                                 .cc-table-row {
@@ -1883,15 +2497,18 @@ def render_analytics_page(
                                         color: #e2e8f0;
                                     }
                                 }
-                                .cc-table-row td:last-child {
+                                .cc-table-row td:nth-child(3),
+                                .cc-table-row td:nth-child(4),
+                                .cc-table-row td:nth-child(5) {
                                     text-align: right;
                                     font-weight: 600;
-                                    color: #4338ca;
                                     font-family: 'SF Mono', Monaco, monospace;
-                                    width: 20%;
+                                    width: 18%;
                                 }
                                 @media (prefers-color-scheme: dark) {
-                                    .cc-table-row td:last-child {
+                                    .cc-table-row td:nth-child(3),
+                                    .cc-table-row td:nth-child(4),
+                                    .cc-table-row td:nth-child(5) {
                                         color: #a5b4fc;
                                     }
                                 }
@@ -1920,14 +2537,17 @@ def render_analytics_page(
                                         color: #f1f5f9;
                                     }
                                 }
-                                .cc-table-footer td:last-child {
+                                .cc-table-footer td:nth-child(3),
+                                .cc-table-footer td:nth-child(4),
+                                .cc-table-footer td:nth-child(5) {
                                     text-align: right;
-                                    color: #6366f1;
                                     font-size: 1.05rem;
                                     font-family: 'SF Mono', Monaco, monospace;
                                 }
                                 @media (prefers-color-scheme: dark) {
-                                    .cc-table-footer td:last-child {
+                                    .cc-table-footer td:nth-child(3),
+                                    .cc-table-footer td:nth-child(4),
+                                    .cc-table-footer td:nth-child(5) {
                                         color: #a5b4fc;
                                     }
                                 }
@@ -1966,18 +2586,20 @@ def render_analytics_page(
                         for _, row in cc_breakdown.iterrows():
                             cc_num = row["cc_number"]
                             cc_name = row["cc_display"]
-                            amt = row[amount_col]
-                            amt_formatted = f"{amt:,.2f} €"
+                            inc_fmt = f'<span style="color:{"#dc2626" if row["income"] < 0 else "#16a34a"}">{row["income"]:,.2f} €</span>'
+                            cost_fmt = f'<span style="color:{"#dc2626" if row["cost"] < 0 else "#16a34a"}">{row["cost"]:,.2f} €</span>'
+                            marg_fmt = f'<span style="color:{"#dc2626" if row["margin"] < 0 else "#16a34a"}">{row["margin"]:,.2f} €</span>'
                             rows_html.append(
-                                f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td>{amt_formatted}</td></tr>'
+                                f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td>{inc_fmt}</td><td>{cost_fmt}</td><td>{marg_fmt}</td></tr>'
                             )
 
                         rows_html_str = "".join(rows_html)
                         total_label = t("analytics_page.total")
-                        total_formatted = f"{total_amount:,.2f} €"
-                        amount_header = t("analytics_page.amount_column")
+                        income_fmt = f'<span style="color:{"#dc2626" if income_total < 0 else "#16a34a"}">{income_total:,.2f} €</span>'
+                        cost_fmt = f'<span style="color:{"#dc2626" if cost_total < 0 else "#16a34a"}">{cost_total:,.2f} €</span>'
+                        margin_fmt = f'<span style="color:{"#dc2626" if margin < 0 else "#16a34a"}">{margin:,.2f} €</span>'
 
-                        table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th>{amount_header}</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td>{total_formatted}</td></tr></tfoot></table></div></div>'
+                        table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th>Income</th><th>Cost</th><th>Margin</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td>{income_fmt}</td><td>{cost_fmt}</td><td>{margin_fmt}</td></tr></tfoot></table></div></div>'
 
                         st.markdown(table_html, unsafe_allow_html=True)
                     else:
