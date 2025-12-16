@@ -5,7 +5,7 @@ A Python client for interacting with the Flowwer REST API
 
 import requests
 from typing import Optional, Dict, List, Any
-from datetime import datetime
+from datetime import datetime, date
 import json
 
 
@@ -397,39 +397,53 @@ class FlowwerAPIClient:
             print("No API key set. Please set api_key or call authenticate().")
             return None
 
-        url = f"{self.base_url}/api/v1/receiptsplittingreport/report"
+        today = date.today()
+        if not min_date:
+            min_date = date(today.year, today.month, 1).isoformat()
+        if not max_date:
+            max_date = date(today.year, today.month, 1).isoformat()
 
-        # Build filter payload
-        payload = {}
-        if cost_center:
-            payload["costCenter"] = cost_center
-        if account:
-            payload["account"] = account
-        if min_date:
-            payload["minDate"] = min_date
-        if max_date:
-            payload["maxDate"] = max_date
-        if company:
-            payload["company"] = company
+        paths = self._build_month_paths(min_date, max_date)
+        if not paths:
+            print("No valid date range supplied for receipt splitting report.")
+            return None
 
         try:
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(url, json=payload, headers=headers)
+            rows: List[Dict[str, Any]] = []
+            for path in paths:
+                docs = self._find_documents_with_receipt_splits(path)
+                if docs is None:
+                    continue
+                for doc in docs:
+                    base_doc = {k: v for k, v in doc.items() if k != "documentReceiptSplits"}
+                    splits = doc.get("documentReceiptSplits") or []
+                    for split in splits:
+                        merged = {**base_doc, **split}
+                        rows.append(merged)
 
-            if response.status_code == 200:
-                report = response.json()
-                print(f"Retrieved {len(report)} receipt splitting report entries")
-                return report
-            else:
-                print(f"Failed to get receipt splitting report: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
+            if cost_center:
+                rows = [
+                    r for r in rows if str(r.get("costCenter", "")) == str(cost_center)
+                ]
+            if account:
+                rows = [r for r in rows if str(r.get("account", "")) == str(account)]
+            if company:
+                rows = [
+                    r
+                    for r in rows
+                    if str(r.get("supplierName", "")).lower()
+                    == str(company).lower()
+                ]
 
+            print(f"Retrieved {len(rows)} receipt splitting report entries")
+            return rows
         except Exception as e:
             print(f"Error getting receipt splitting report: {e}")
             return None
 
-    def get_all_cost_centers(self) -> Optional[List[str]]:
+    def get_all_cost_centers(
+        self, months_back: int = 6, min_date: Optional[str] = None, max_date: Optional[str] = None
+    ) -> Optional[List[str]]:
         """
         Get a list of all cost centers from documents
 
@@ -440,25 +454,68 @@ class FlowwerAPIClient:
             print("No API key set. Please set api_key or call authenticate().")
             return None
 
-        url = f"{self.base_url}/api/v1/receiptsplittingreport/costcenters"
-
         try:
-            response = self.session.get(url)
+            if min_date and max_date:
+                return self.get_cost_centers_for_range(min_date, max_date)
 
-            if response.status_code == 200:
-                cost_centers = response.json()
-                print(f"Retrieved {len(cost_centers)} cost centers")
-                return cost_centers
-            else:
-                print(f"Failed to get cost centers: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
+            paths = self._recent_month_paths(months_back)
+            if not paths:
+                return []
 
+            cost_centers: set[str] = set()
+            for path in paths:
+                docs = self._find_documents_with_receipt_splits(path)
+                if not docs:
+                    continue
+                for doc in docs:
+                    splits = doc.get("documentReceiptSplits") or []
+                    for split in splits:
+                        cc = split.get("costCenter")
+                        if cc not in [None, "", "None", "nan"]:
+                            cost_centers.add(str(cc))
+
+            sorted_cc = sorted(cost_centers)
+            print(f"Retrieved {len(sorted_cc)} cost centers (via Find API)")
+            return sorted_cc
         except Exception as e:
             print(f"Error getting cost centers: {e}")
             return None
 
-    def get_all_accounts(self) -> Optional[List[str]]:
+    def get_cost_centers_for_range(
+        self, min_date: str, max_date: str
+    ) -> Optional[List[str]]:
+        """Get cost centers for an explicit date range using Find API."""
+        if not self.api_key:
+            print("No API key set. Please set api_key or call authenticate().")
+            return None
+
+        try:
+            paths = self._build_month_paths(min_date, max_date)
+            if not paths:
+                return []
+
+            cost_centers: set[str] = set()
+            for path in paths:
+                docs = self._find_documents_with_receipt_splits(path)
+                if not docs:
+                    continue
+                for doc in docs:
+                    splits = doc.get("documentReceiptSplits") or []
+                    for split in splits:
+                        cc = split.get("costCenter")
+                        if cc not in [None, "", "None", "nan"]:
+                            cost_centers.add(str(cc))
+
+            sorted_cc = sorted(cost_centers)
+            print(
+                f"Retrieved {len(sorted_cc)} cost centers (via Find API, {min_date} to {max_date})"
+            )
+            return sorted_cc
+        except Exception as e:
+            print(f"Error getting cost centers for range: {e}")
+            return None
+
+    def get_all_accounts(self, months_back: int = 6) -> Optional[List[str]]:
         """
         Get a list of all accounts from documents
 
@@ -469,23 +526,93 @@ class FlowwerAPIClient:
             print("No API key set. Please set api_key or call authenticate().")
             return None
 
-        url = f"{self.base_url}/api/v1/receiptsplittingreport/accounts"
-
         try:
-            response = self.session.get(url)
+            paths = self._recent_month_paths(months_back)
+            if not paths:
+                return []
 
-            if response.status_code == 200:
-                accounts = response.json()
-                print(f"Retrieved {len(accounts)} accounts")
-                return accounts
-            else:
-                print(f"Failed to get accounts: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
+            accounts: set[str] = set()
+            for path in paths:
+                docs = self._find_documents_with_receipt_splits(path)
+                if not docs:
+                    continue
+                for doc in docs:
+                    splits = doc.get("documentReceiptSplits") or []
+                    for split in splits:
+                        acct = split.get("account")
+                        if acct not in [None, "", "None", "nan"]:
+                            accounts.add(str(acct))
 
+            sorted_accounts = sorted(accounts)
+            print(f"Retrieved {len(sorted_accounts)} accounts (via Find API)")
+            return sorted_accounts
         except Exception as e:
             print(f"Error getting accounts: {e}")
             return None
+
+    def _find_documents_with_receipt_splits(
+        self, path: str
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Internal: call Find API for documents + receipt splits for a path."""
+        url = f"{self.base_url}/api/v1/find/path/documents/receipt-splits"
+        try:
+            resp = self.session.get(url, params={"Path": path})
+            if resp.status_code == 200:
+                data = resp.json()
+                # API returns {"documents": [...]} or a raw list depending on impl
+                if isinstance(data, dict) and "documents" in data:
+                    return data.get("documents", [])
+                if isinstance(data, list):
+                    return data
+                return []
+            else:
+                print(
+                    f"Find API path {path} failed: {resp.status_code} - {resp.text[:200]}"
+                )
+                return None
+        except Exception as e:
+            print(f"Error calling Find API for path {path}: {e}")
+            return None
+
+    def _build_month_paths(
+        self, min_date: str, max_date: str
+    ) -> List[str]:
+        """Build list of CreationDate-Months/<YYYY-MM> paths inclusive."""
+        try:
+            start = datetime.fromisoformat(min_date).date()
+            end = datetime.fromisoformat(max_date).date()
+        except Exception:
+            return []
+
+        if start > end:
+            start, end = end, start
+
+        paths: List[str] = []
+        current = date(start.year, start.month, 1)
+        end_marker = date(end.year, end.month, 1)
+
+        while current <= end_marker:
+            paths.append(f"CreationDate-Months/{current.strftime('%Y-%m')}")
+            if current.month == 12:
+                current = date(current.year + 1, 1, 1)
+            else:
+                current = date(current.year, current.month + 1, 1)
+        return paths
+
+    def _recent_month_paths(self, months_back: int) -> List[str]:
+        """Helper to get a list of recent month paths (inclusive of current month)."""
+        months_back = max(1, months_back)
+        today = date.today()
+        paths: List[str] = []
+        year, month = today.year, today.month
+        for _ in range(months_back):
+            paths.append(f"CreationDate-Months/{year:04d}-{month:02d}")
+            if month == 1:
+                month = 12
+                year -= 1
+            else:
+                month -= 1
+        return paths
 
     def get_approved_documents(
         self, flow_id: Optional[int] = None

@@ -72,6 +72,13 @@ def render_receipt_report_page(
     with col1:
         st.markdown(f"### {t('receipt_report_page.load_cost_centers')}")
         st.caption(t("receipt_report_page.fetch_cost_centers"))
+        cc_months_back = st.selectbox(
+            "Cost center lookback (months)",
+            options=[3, 6, 12, 24],
+            index=1,
+            help="Quick filter: load cost centers from documents in the last N months.",
+            key="cc_months_back",
+        )
     with col2:
         if st.button(
             t("receipt_report_page.load_data"),
@@ -79,7 +86,9 @@ def render_receipt_report_page(
             key="btn_load_cost_centers_new",
         ):
             with st.spinner(t("receipt_report_page.loading")):
-                cost_centers = client.get_all_cost_centers()
+                cost_centers = client.get_all_cost_centers(
+                    months_back=int(cc_months_back)
+                )
                 if cost_centers:
                     cleaned_cc = [
                         str(cc)
@@ -265,6 +274,34 @@ def render_receipt_report_page(
 
         df = pd.DataFrame(report_data)
 
+        if "documentType" not in df.columns or df["documentType"].isna().any():
+            doc_ids = df.get("documentId")
+            if doc_ids is not None:
+                unique_ids = [int(x) for x in pd.Series(doc_ids).dropna().unique()]
+                type_cache = st.session_state.get("receipt_doc_type_cache", {})
+                missing_ids = [i for i in unique_ids if i not in type_cache]
+                if missing_ids:
+                    with st.spinner("Fetching document types..."):
+                        for doc_id in missing_ids:
+                            try:
+                                detail = client.get_document(int(doc_id))
+                                dtype = ""
+                                if detail:
+                                    dtype = (
+                                        detail.get("documentType")
+                                        or detail.get("documenttype")
+                                        or detail.get("documentKind")
+                                        or detail.get("documentkind")
+                                        or ""
+                                    )
+                                type_cache[doc_id] = dtype
+                            except Exception:
+                                type_cache[doc_id] = ""
+                        st.session_state.receipt_doc_type_cache = type_cache
+                df["documentType"] = df["documentId"].map(
+                    st.session_state.get("receipt_doc_type_cache", {})
+                )
+
         if "invoiceDate" in df.columns:
             df["invoiceDate"] = pd.to_datetime(
                 df["invoiceDate"], errors="coerce"
@@ -294,11 +331,44 @@ def render_receipt_report_page(
 
         if amount_col and cost_center_col:
             df[amount_col] = pd.to_numeric(df[amount_col], errors="coerce").fillna(0)
-            total_amount = df[amount_col].sum()
-
             num_cost_centers = df[cost_center_col].nunique()
             num_records = len(df)
-            avg_amount = total_amount / num_cost_centers if num_cost_centers > 0 else 0
+
+            def classify_row(row):
+                doc_type = str(
+                    row.get("documentType")
+                    or row.get("documenttype")
+                    or row.get("documentKind")
+                    or row.get("documentkind")
+                    or ""
+                ).lower()
+                amount = row[amount_col]
+                if (
+                    "ausgangsrechnung" in doc_type
+                    or "outgoinginvoice" in doc_type
+                    or "ausgang" in doc_type
+                ):
+                    return "income"
+                if (
+                    "eingangsrechnung" in doc_type
+                    or "incominginvoice" in doc_type
+                    or "eingang" in doc_type
+                ):
+                    return "cost"
+                return "income" if amount < 0 else "cost"
+
+            df["__category"] = df.apply(classify_row, axis=1)
+
+            income_total = (
+                df.loc[df["__category"] == "income", amount_col].abs().sum()
+            )
+            cost_total = (
+                df.loc[df["__category"] == "cost", amount_col].abs().sum()
+            )
+
+            net_total = df[amount_col].sum()
+            margin = income_total - cost_total
+            avg_amount = cost_total / num_cost_centers if num_cost_centers > 0 else 0
 
             st.markdown(
                 """
@@ -344,6 +414,7 @@ def render_receipt_report_page(
                         color: #1e293b;
                         margin: 0;
                         font-family: 'SF Mono', Monaco, monospace;
+                        white-space: nowrap;
                     }
                     @media (prefers-color-scheme: dark) {
                         .kpi-value { color: #f1f5f9; }
@@ -363,23 +434,27 @@ def render_receipt_report_page(
                 unsafe_allow_html=True,
             )
 
+            def color_value(val):
+                color = "#dc2626" if val < 0 else "#16a34a"
+                return f'<span style="color:{color}">{val:,.2f} €</span>'
+
             kpi_html = f"""
                 <div class="kpi-cards-row">
                     <div class="kpi-card primary">
-                        <p class="kpi-label">{t('receipt_report_page.total_amount_label')}</p>
-                        <p class="kpi-value">{total_amount:,.2f} €</p>
+                        <p class="kpi-label">Margin (Income - Cost)</p>
+                        <p class="kpi-value"><strong><span style="color:#ffffff">{margin:,.2f} €</span></strong></p>
                     </div>
                     <div class="kpi-card">
-                        <p class="kpi-label">{t('receipt_report_page.total_records')}</p>
-                        <p class="kpi-value">{num_records:,}</p>
+                        <p class="kpi-label">Total Income (Debs)</p>
+                        <p class="kpi-value">{color_value(income_total)}</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="kpi-label">Total Cost (Kreds)</p>
+                        <p class="kpi-value"><span style="color:#dc2626">{cost_total:,.2f} €</span></p>
                     </div>
                     <div class="kpi-card">
                         <p class="kpi-label">{t('receipt_report_page.num_cost_centers')}</p>
                         <p class="kpi-value">{num_cost_centers:,}</p>
-                    </div>
-                    <div class="kpi-card">
-                        <p class="kpi-label">{t('receipt_report_page.avg_per_cc')}</p>
-                        <p class="kpi-value">{avg_amount:,.0f} €</p>
                     </div>
                 </div>
             """
@@ -395,12 +470,26 @@ def render_receipt_report_page(
             )
             enriched_df["cc_number"] = enriched_df[cost_center_col].astype(str)
 
-            cc_breakdown = (
-                enriched_df.groupby(["cc_number", "cc_display"])[amount_col]
-                .sum()
-                .reset_index()
-            )
-            cc_breakdown = cc_breakdown.sort_values(amount_col, ascending=False)
+            cc_stats = []
+            for (cc_num, cc_name), sub in enriched_df.groupby(
+                ["cc_number", "cc_display"]
+            ):
+                income_sum = (
+                    sub.loc[sub["__category"] == "income", amount_col].abs().sum()
+                )
+                cost_sum = sub.loc[sub["__category"] == "cost", amount_col].abs().sum()
+                margin_cc = income_sum - cost_sum
+                cc_stats.append(
+                    {
+                        "cc_number": cc_num,
+                        "cc_display": cc_name,
+                        "income": income_sum,
+                        "cost": cost_sum,
+                        "margin": margin_cc,
+                    }
+                )
+            cc_breakdown = pd.DataFrame(cc_stats)
+            cc_breakdown = cc_breakdown.sort_values("margin", ascending=False)
 
             col_split_header1, col_split_header2 = st.columns([4, 1])
             with col_split_header1:
@@ -417,8 +506,8 @@ def render_receipt_report_page(
                             font-size: 0.75rem;
                             font-weight: 600;
                             box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
-                        " title="Total amount split across all cost centers">
-                            💰 Total: {total_amount:,.2f} €
+                        " title="Total margin across selected cost centers">
+                            💰 Total Margin: {margin:,.2f} €
                         </span>
                     </div>
                     """,
@@ -607,19 +696,42 @@ def render_receipt_report_page(
             for _, row in cc_breakdown.iterrows():
                 cc_num = row["cc_number"]
                 cc_name = row["cc_display"]
-                amt = row[amount_col]
-                amt_formatted = f"{amt:,.2f} €"
+                inc_fmt = (
+                    f'<span style="color:{"#dc2626" if row["income"] < 0 else "#16a34a"}">{row["income"]:,.2f} €</span>'
+                )
+                cost_fmt = (
+                    f'<span style="color:{"#dc2626" if row["cost"] < 0 else "#16a34a"}">{row["cost"]:,.2f} €</span>'
+                )
+                marg_fmt = (
+                    f'<span style="color:{"#dc2626" if row["margin"] < 0 else "#16a34a"}">{row["margin"]:,.2f} €</span>'
+                )
                 rows_html.append(
-                    f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td>{amt_formatted}</td></tr>'
+                    f'<tr class="cc-table-row"><td>{cc_num}</td><td>{cc_name}</td><td style="text-align:right;">{inc_fmt}</td><td style="text-align:right;">{cost_fmt}</td><td style="text-align:right;">{marg_fmt}</td></tr>'
                 )
 
             rows_html_str = "".join(rows_html)
             total_label = t("receipt_report_page.total")
-            total_formatted = f"{total_amount:,.2f} €"
-            cost_center_header = t("receipt_report_page.cost_center_column")
-            amount_header = t("receipt_report_page.amount_column")
+            total_income_fmt = f"{income_total:,.2f} €"
+            total_cost_fmt = f"{cost_total:,.2f} €"
+            total_margin_fmt = f"{margin:,.2f} €"
 
-            table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th>{amount_header}</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td>{total_formatted}</td></tr></tfoot></table></div></div>'
+            table_html = f'''
+                <div class="cc-table-wrapper">
+                  <div class="cc-table-scroll">
+                    <table class="cc-table">
+                      <thead class="cc-table-header">
+                        <tr>
+                          <th>Cost Center</th><th>Description</th><th>Income</th><th>Cost</th><th>Margin</th>
+                        </tr>
+                      </thead>
+                      <tbody>{rows_html_str}</tbody>
+                      <tfoot class="cc-table-footer">
+                        <tr><td colspan="2">{total_label}</td><td style="text-align:right;">{total_income_fmt}</td><td style="text-align:right;">{total_cost_fmt}</td><td style="text-align:right;">{total_margin_fmt}</td></tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+            '''
 
             st.markdown(table_html, unsafe_allow_html=True)
             st.divider()
