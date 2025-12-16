@@ -238,7 +238,7 @@ def render_single_document_page(
                         if not normalized_splits:
                             splits = st.session_state.client.get_receipt_splits(int(doc_id))
                             if splits:
-                              
+                                normalized_splits = normalize_splits(splits)
                                 if not normalized_splits or all(
                                     isinstance(s, dict) and "raw" in s and len(s) == 1 
                                     for s in normalized_splits
@@ -267,10 +267,8 @@ def render_single_document_page(
 
     if st.session_state.selected_document:
         doc = st.session_state.selected_document
-        # Normalize document to ensure it's a dictionary (in case it was stored as a string)
         doc = normalize_dict(doc)
         splits = st.session_state.get("receipt_splits", [])
-        # Normalize splits to ensure they're all dictionaries (in case they were stored as strings)
         splits = normalize_splits(splits)
 
         if splits:
