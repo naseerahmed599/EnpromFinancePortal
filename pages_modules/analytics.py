@@ -788,87 +788,11 @@ def render_analytics_page(
 
             value_threshold = 0.0
 
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            cost_center_list = st.session_state.get("analytics_cost_centers", [])
-
-            if cost_center_list:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="font-weight: 600; color: #64748b; font-size: 0.875rem;">{t('analytics_page.cost_centers_label')}</span>
-                    </div>
-                """,
-                    unsafe_allow_html=True,
-                )
-
-                col_cc1, col_cc2 = st.columns([1, 2])
-                with col_cc1:
-                    search_term = st.text_input(
-                        "Search",
-                        placeholder=t("analytics_page.search_placeholder"),
-                        help=t("analytics_page.search_help"),
-                        key="analytics_cc_search",
-                    )
-
-                if search_term:
-                    filtered_cc_list = [
-                        cc for cc in cost_center_list if str(cc).startswith(search_term)
-                    ]
-                else:
-                    filtered_cc_list = cost_center_list
-
-                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
-                with col_btn1:
-                    if st.button(
-                        t("common.select_all"),
-                        key="analytics_select_all",
-                        use_container_width=True,
-                    ):
-                        st.session_state.analytics_cc_multiselect = filtered_cc_list
-                        st.rerun()
-                with col_btn2:
-                    if st.button(
-                        t("common.deselect_all"),
-                        key="analytics_deselect_all",
-                        use_container_width=True,
-                    ):
-                        st.session_state.analytics_cc_multiselect = []
-                        st.rerun()
-
-                with col_cc2:
-                    selected_cost_centers = st.multiselect(
-                        t("analytics_page.select_cost_centers"),
-                        options=filtered_cc_list,
-                        help=t("analytics_page.select_help"),
-                        key="analytics_cc_multiselect",
-                    )
-
-                col_info1, col_info2 = st.columns([1, 2])
-                with col_info1:
-                    if search_term:
-                        st.caption(
-                            t("analytics_page.found_matching").format(
-                                count=len(filtered_cc_list)
-                            )
-                        )
-                    else:
-                        st.caption(
-                            t("analytics_page.available_count").format(
-                                count=len(cost_center_list)
-                            )
-                        )
-                with col_info2:
-                    if selected_cost_centers:
-                        st.caption(
-                            t("analytics_page.selected_count").format(
-                                count=len(selected_cost_centers)
-                            )
-                        )
-            else:
-                selected_cost_centers = []
+           
+            selected_cost_centers = []
 
         if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+         
             filter_params = {
                 "company": selected_company if selected_company != t("analytics_page.all") else None,
                 "stage": selected_stage if selected_stage != t("analytics_page.all") else None,
@@ -879,17 +803,18 @@ def render_analytics_page(
                 "date_from": date_from.isoformat() if date_from else None,
                 "date_to": date_to.isoformat() if date_to else None,
                 "min_value": value_threshold if value_threshold > 0 else None,
-                "cost_centers": selected_cost_centers if selected_cost_centers else None,
             }
             
             cached_filtered = get_cached_filtered_documents(filter_params)
             if cached_filtered is not None:
-                filtered_docs = cached_filtered
+                filtered_docs = cached_filtered if cached_filtered else []
             else:
                 filtered_docs = filter_documents_optimized(
                     st.session_state.documents,
                     **{k: v for k, v in filter_params.items() if v is not None}
                 )
+                if filtered_docs is None:
+                    filtered_docs = []
                 cache_filtered_documents_manual(filtered_docs, filter_params)
         else:
             filtered_docs = st.session_state.documents
@@ -1015,9 +940,11 @@ def render_analytics_page(
                 "Min Value": (
                     f"€{value_threshold:,.0f}" if value_threshold > 0 else None
                 ),
-                "Cost Centers": (
-                    selected_cost_centers if selected_cost_centers else None
-                ),
+                # Note: Cost Centers filter is only applied to the receipt split report (tab4),
+                # not to the main document list used for KPIs, because documents don't have receipt splits loaded
+                # "Cost Centers": (
+                #     selected_cost_centers if selected_cost_centers else None
+                # ),
             }
         )
 
@@ -1623,27 +1550,7 @@ def render_analytics_page(
             unsafe_allow_html=True,
         )
 
-        st.markdown("""
-            <style>
-                .stTabs [data-baseweb="tab-list"] {
-                    gap: 0.5rem;
-                    background: #f8fafc;
-                    padding: 0.5rem;
-                    border-radius: 12px;
-                }
-                .stTabs [data-baseweb="tab"] {
-                    border-radius: 10px;
-                    padding: 0.75rem 1.5rem;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                }
-                .stTabs [aria-selected="true"] {
-                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                    color: white !important;
-                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-                }
-            </style>
-        """, unsafe_allow_html=True)
+       
         
         tab1, tab2, tab3, tab4 = st.tabs(
             [
@@ -2133,21 +2040,228 @@ def render_analytics_page(
                 )
 
         with tab4:
+            st.markdown(
+                f"""
+                <div style="margin-bottom: 1.5rem;">
+                    <div class="section-header">
+                        <div style="
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                            flex-shrink: 0;
+                            margin-right: 0.5rem;
+                        ">🔍</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">{t('analytics_page.filter_cost_centers')}</h3>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t('analytics_page.select_cost_centers_to_analyze')}</p>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-            current_date_key = f"{min_date.isoformat()}_{max_date.isoformat()}"
+            cost_center_list = st.session_state.get("analytics_cost_centers", [])
+            selected_cost_centers = []
+
+            if cost_center_list:
+                col_cc1, col_cc2 = st.columns([1, 2])
+                with col_cc1:
+                    search_term = st.text_input(
+                        t("analytics_page.search"),
+                        placeholder=t("analytics_page.search_placeholder"),
+                        help=t("analytics_page.search_help"),
+                        key="analytics_cc_search_tab4",
+                    )
+
+                if search_term:
+                    filtered_cc_list = [
+                        cc for cc in cost_center_list if str(cc).startswith(search_term)
+                    ]
+                else:
+                    filtered_cc_list = cost_center_list
+
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                with col_btn1:
+                    if st.button(
+                        t("common.select_all"),
+                        key="analytics_select_all_tab4",
+                        use_container_width=True,
+                    ):
+                        st.session_state.analytics_cc_multiselect_tab4 = filtered_cc_list
+                        st.rerun()
+                with col_btn2:
+                    if st.button(
+                        t("common.deselect_all"),
+                        key="analytics_deselect_all_tab4",
+                        use_container_width=True,
+                    ):
+                        st.session_state.analytics_cc_multiselect_tab4 = []
+                        st.rerun()
+
+                with col_cc2:
+                    selected_cost_centers = st.multiselect(
+                        t("analytics_page.select_cost_centers"),
+                        options=filtered_cc_list,
+                        help=t("analytics_page.select_help"),
+                        key="analytics_cc_multiselect_tab4",
+                    )
+
+                col_info1, col_info2 = st.columns([1, 2])
+                with col_info1:
+                    if search_term:
+                        st.caption(
+                            t("analytics_page.found_matching").format(
+                                count=len(filtered_cc_list)
+                            )
+                        )
+                    else:
+                        st.caption(
+                            t("analytics_page.available_count").format(
+                                count=len(cost_center_list)
+                            )
+                        )
+                with col_info2:
+                    if selected_cost_centers:
+                        st.caption(
+                            t("analytics_page.selected_count").format(
+                                count=len(selected_cost_centers)
+                            )
+                        )
+            else:
+                st.info(t("analytics_page.load_cost_centers_first"))
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            st.markdown(
+                f"""
+                <div style="margin-bottom: 1rem;">
+                    <div class="section-header">
+                        <div style="
+                            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                            flex-shrink: 0;
+                            margin-right: 0.5rem;
+                        ">📅</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">{t('analytics_page.date_range')}</h3>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t('analytics_page.select_date_range_for_cost_centers')}</p>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if (
+                "analytics_cc_sync_start" in st.session_state
+                and "analytics_cc_sync_end" in st.session_state
+            ):
+                sync_start = st.session_state.analytics_cc_sync_start
+                sync_end = st.session_state.analytics_cc_sync_end
+                cc_from_month_default = sync_start.month - 1
+                cc_from_year_default = list(range(2020, datetime.now().year + 1)).index(
+                    sync_start.year
+                )
+                cc_to_month_default = sync_end.month - 1
+                cc_to_year_default = list(range(2020, datetime.now().year + 1)).index(
+                    sync_end.year
+                )
+            elif (
+                "quick_filter_start" in st.session_state
+                and "quick_filter_end" in st.session_state
+            ):
+                quick_start = st.session_state.quick_filter_start
+                quick_end = st.session_state.quick_filter_end
+                cc_from_month_default = quick_start.month - 1
+                cc_from_year_default = list(range(2020, datetime.now().year + 1)).index(
+                    quick_start.year
+                )
+                cc_to_month_default = quick_end.month - 1
+                cc_to_year_default = list(range(2020, datetime.now().year + 1)).index(
+                    quick_end.year
+                )
+            else:
+                cc_from_month_default = 0
+                cc_from_year_default = 3
+                cc_to_month_default = datetime.now().month - 1
+                cc_to_year_default = len(list(range(2020, datetime.now().year + 1))) - 1
+
+            col_cc_date1, col_cc_date2, col_cc_date3, col_cc_date4 = st.columns(4)
+
+            with col_cc_date1:
+                cc_from_month = st.selectbox(
+                    t("analytics_page.from_month"),
+                    options=list(range(1, 13)),
+                    format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+                    index=cc_from_month_default,
+                    key="analytics_cc_from_month_tab4",
+                )
+
+            with col_cc_date2:
+                cc_from_year = st.selectbox(
+                    t("analytics_page.from_year"),
+                    options=list(range(2020, datetime.now().year + 1)),
+                    index=cc_from_year_default,
+                    key="analytics_cc_from_year_tab4",
+                )
+
+            with col_cc_date3:
+                cc_to_month = st.selectbox(
+                    t("analytics_page.to_month"),
+                    options=list(range(1, 13)),
+                    format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+                    index=cc_to_month_default,
+                    key="analytics_cc_to_month_tab4",
+                )
+
+            with col_cc_date4:
+                cc_to_year = st.selectbox(
+                    t("analytics_page.to_year"),
+                    options=list(range(2020, datetime.now().year + 1)),
+                    index=cc_to_year_default,
+                    key="analytics_cc_to_year_tab4",
+                )
+
+            cc_min_date = date(cc_from_year, cc_from_month, 1)
+            cc_last_day = calendar.monthrange(cc_to_year, cc_to_month)[1]
+            cc_max_date = date(cc_to_year, cc_to_month, cc_last_day)
+            cc_date_from = cc_min_date
+            cc_date_to = cc_max_date
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            current_date_key = f"{cc_date_from.isoformat()}_{cc_date_to.isoformat()}"
             
             if PERFORMANCE_OPTIMIZATIONS_ENABLED:
                 receipt_data = get_cached_receipt_data(current_date_key)
+                if receipt_data is None:
+                    receipt_data = []
             else:
                 cached_date_key = st.session_state.get("analytics_receipt_date_key", "")
                 receipt_data = st.session_state.get("analytics_receipt_data", [])
                 if cached_date_key != current_date_key:
                     receipt_data = []
+                if receipt_data is None:
+                    receipt_data = []
 
-            if len(receipt_data) == 0:
+            if not receipt_data or len(receipt_data) == 0:
                 filter_params = {
-                    "min_date": min_date.isoformat(),
-                    "max_date": max_date.isoformat(),
+                    "min_date": cc_date_from.isoformat(),
+                    "max_date": cc_date_to.isoformat(),
                 }
                 with st.spinner(t("analytics_page.loading_cc_data")):
                     try:
@@ -2155,16 +2269,19 @@ def render_analytics_page(
                             **filter_params
                         )
                         if receipt_report:
-                            st.session_state.analytics_receipt_data = receipt_report
-                            st.session_state.analytics_receipt_date_key = current_date_key
-                            receipt_data = receipt_report
+                            if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+                                cache_receipt_data(receipt_report, current_date_key)
+                            else:
+                                st.session_state.analytics_receipt_data = receipt_report
+                                st.session_state.analytics_receipt_date_key = current_date_key
+                            receipt_data = receipt_report if receipt_report else []
                         else:
                             receipt_data = []
                     except Exception as e:
                         st.error(f"Error loading receipt data: {str(e)}")
                         receipt_data = []
 
-            if len(receipt_data) == 0:
+            if not receipt_data or len(receipt_data) == 0:
                 st.warning(t("analytics_page.no_cc_data_found"))
             else:
                 df_receipts = pd.DataFrame(receipt_data)
@@ -2251,100 +2368,210 @@ def render_analytics_page(
                         num_cost_centers = df_filtered[cost_center_col].nunique()
                         num_records = len(df_filtered)
 
-                        st.markdown(
-                            """
-                            <style>
-                                .kpi-cards-row {
-                                    display: grid;
-                                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                                    gap: 1rem;
-                                    margin-bottom: 1.5rem;
-                                }
-                                .kpi-card {
-                                    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-                                    border: 1px solid #e2e8f0;
-                                    border-radius: 12px;
-                                    padding: 1.25rem;
-                                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-                                    transition: all 0.2s ease;
-                                }
-                                .kpi-card:hover {
-                                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-                                    transform: translateY(-2px);
-                                }
-                                @media (prefers-color-scheme: dark) {
-                                    .kpi-card {
-                                        background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
-                                        border-color: rgba(71, 85, 105, 0.5);
-                                    }
-                                }
-                                .kpi-label {
-                                    font-size: 0.875rem;
-                                    font-weight: 700;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.8px;
-                                    color: #64748b;
-                                    margin-bottom: 0.5rem;
-                                }
-                                @media (prefers-color-scheme: dark) {
-                                    .kpi-label { color: #94a3b8; }
-                                }
-                                .kpi-value {
-                                    font-size: 2.5rem !important;
-                                    font-weight: 900;
-                                    color: #1e293b;
-                                    margin-bottom: 0.75rem;
-                                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                                    white-space: nowrap;
-                                }
-                                @media (prefers-color-scheme: dark) {
-                                    .kpi-value { color: #f1f5f9; }
-                                }
-                                .kpi-card.primary {
-                                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                                    border-color: transparent;
-                                }
-                                .kpi-card.primary .kpi-label {
-                                    color: rgba(255, 255, 255, 0.85);
-                                }
-                                .kpi-card.primary .kpi-value {
-                                    color: #ffffff;
-                                }
-                            </style>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-
-                        def color_value(val):
-                            color = "#dc2626" if val < 0 else "#16a34a"
-                            return f'<span style="color:{color}">{val:,.2f} €</span>'
+                        margin_color = "#dc2626" if margin < 0 else "#16a34a"
+                        income_color = "#dc2626" if income_total < 0 else "#16a34a"
+                        cost_color = "#dc2626" if cost_total < 0 else "#16a34a"
                         
-                        margin_html = color_value(margin)
-                        income_html = color_value(income_total)
-                        cost_html = color_value(cost_total)
                         
-                        kpi_html = f"""
-                            <div class="kpi-cards-row">
-                                <div class="kpi-card primary">
-                                    <p class="kpi-label">Margin (Income - Cost)</p>
-                                    <p class="kpi-value"><strong><span style="color:#ffffff">{margin:,.2f} €</span></strong></p>
+                        try:
+                            margin_label = t('analytics_page.margin_income_cost')
+                            if margin_label == 'analytics_page.margin_income_cost':
+                                margin_label = 'Margin (Income - Cost)'
+                        except:
+                            margin_label = 'Margin (Income - Cost)'
+                        
+                        try:
+                            income_label = t('analytics_page.total_income_debs')
+                            if income_label == 'analytics_page.total_income_debs':
+                                income_label = 'Total Income (Debs)'
+                        except:
+                            income_label = 'Total Income (Debs)'
+                        
+                        try:
+                            cost_label = t('analytics_page.total_cost_kreds')
+                            if cost_label == 'analytics_page.total_cost_kreds':
+                                cost_label = 'Total Cost (Kreds)'
+                        except:
+                            cost_label = 'Total Cost (Kreds)'
+                        
+                        try:
+                            cc_count_label = t('analytics_page.num_cost_centers')
+                            if cc_count_label == 'analytics_page.num_cost_centers':
+                                cc_count_label = 'Cost Centers'
+                        except:
+                            cc_count_label = 'Cost Centers'
+                        
+                        fin_cols_cc = st.columns(4)
+                        
+                        with fin_cols_cc[0]:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background: linear-gradient(135deg, {margin_color}15 0%, {margin_color}08 100%);
+                                    border: 1px solid {margin_color}40;
+                                    padding: 1.5rem 1rem;
+                                    border-radius: 20px;
+                                    text-align: center;
+                                    min-height: 140px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    box-shadow: 0 4px 12px {margin_color}20;
+                                    transition: all 0.3s ease;
+                                    overflow: hidden;
+                                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px {margin_color}30'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px {margin_color}20'">
+                                    <div style="
+                                        font-size: 1.8rem;
+                                        font-weight: 900;
+                                        color: {margin_color};
+                                        margin-bottom: 0.5rem;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                        font-family: 'SF Mono', Monaco, monospace;
+                                        line-height: 1.2;
+                                        word-break: break-word;
+                                    ">{margin:,.2f} €</div>
+                                    <div style="
+                                        font-size: 0.75rem;
+                                        font-weight: 700;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        color: #64748b;
+                                        margin-bottom: 0.5rem;
+                                        line-height: 1.2;
+                                    ">{margin_label}</div>
                                 </div>
-                                <div class="kpi-card">
-                                    <p class="kpi-label">Total Income (Debs)</p>
-                                    <p class="kpi-value">{income_html}</p>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        
+                        with fin_cols_cc[1]:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background: linear-gradient(135deg, {income_color}15 0%, {income_color}08 100%);
+                                    border: 1px solid {income_color}40;
+                                    padding: 1.5rem 1rem;
+                                    border-radius: 20px;
+                                    text-align: center;
+                                    min-height: 140px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    box-shadow: 0 4px 12px {income_color}20;
+                                    transition: all 0.3s ease;
+                                    overflow: hidden;
+                                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px {income_color}30'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px {income_color}20'">
+                                    <div style="
+                                        font-size: 1.8rem;
+                                        font-weight: 900;
+                                        color: {income_color};
+                                        margin-bottom: 0.5rem;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                        font-family: 'SF Mono', Monaco, monospace;
+                                        line-height: 1.2;
+                                        word-break: break-word;
+                                    ">{income_total:,.2f} €</div>
+                                    <div style="
+                                        font-size: 0.75rem;
+                                        font-weight: 700;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        color: #64748b;
+                                        margin-bottom: 0.5rem;
+                                        line-height: 1.2;
+                                    ">{income_label}</div>
                                 </div>
-                                <div class="kpi-card">
-                                    <p class="kpi-label">Total Cost (Kreds)</p>
-                                    <p class="kpi-value">{cost_html}</p>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        
+                        with fin_cols_cc[2]:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background: linear-gradient(135deg, {cost_color}15 0%, {cost_color}08 100%);
+                                    border: 1px solid {cost_color}40;
+                                    padding: 1.5rem 1rem;
+                                    border-radius: 20px;
+                                    text-align: center;
+                                    min-height: 140px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    box-shadow: 0 4px 12px {cost_color}20;
+                                    transition: all 0.3s ease;
+                                    overflow: hidden;
+                                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px {cost_color}30'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px {cost_color}20'">
+                                    <div style="
+                                        font-size: 1.8rem;
+                                        font-weight: 900;
+                                        color: {cost_color};
+                                        margin-bottom: 0.5rem;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                        font-family: 'SF Mono', Monaco, monospace;
+                                        line-height: 1.2;
+                                        word-break: break-word;
+                                    ">{cost_total:,.2f} €</div>
+                                    <div style="
+                                        font-size: 0.75rem;
+                                        font-weight: 700;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        color: #64748b;
+                                        margin-bottom: 0.5rem;
+                                        line-height: 1.2;
+                                    ">{cost_label}</div>
                                 </div>
-                                <div class="kpi-card">
-                                    <p class="kpi-label">{t('analytics_page.num_cost_centers')}</p>
-                                    <p class="kpi-value">{num_cost_centers:,}</p>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        
+                        with fin_cols_cc[3]:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.04) 100%);
+                                    border: 1px solid rgba(99, 102, 241, 0.2);
+                                    padding: 1.5rem 1rem;
+                                    border-radius: 20px;
+                                    text-align: center;
+                                    min-height: 140px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+                                    transition: all 0.3s ease;
+                                    overflow: hidden;
+                                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.2)'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.1)'">
+                                    <div style="
+                                        font-size: 1.8rem;
+                                        font-weight: 900;
+                                        color: #6366f1;
+                                        margin-bottom: 0.5rem;
+                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                        font-family: 'SF Mono', Monaco, monospace;
+                                        line-height: 1.2;
+                                        word-break: break-word;
+                                    ">{num_cost_centers:,}</div>
+                                    <div style="
+                                        font-size: 0.75rem;
+                                        font-weight: 700;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        color: #64748b;
+                                        margin-bottom: 0.5rem;
+                                        line-height: 1.2;
+                                    ">{cc_count_label}</div>
                                 </div>
-                            </div>
-                        """
-
-                        st.markdown(kpi_html, unsafe_allow_html=True)
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
 
                         enriched_df = df_filtered.copy()
                         enriched_df["cc_parsed"] = enriched_df[cost_center_col].apply(
@@ -2366,31 +2593,10 @@ def render_analytics_page(
                         cc_breakdown = enriched_df.groupby(['cc_number', 'cc_display']).apply(calc_cc_metrics).reset_index()
                         cc_breakdown = cc_breakdown.sort_values('margin', ascending=False)
 
-                        col_split_header1, col_split_header2 = st.columns([4, 1])
-                        with col_split_header1:
-                            st.markdown(
-                                f'<div class="section-header"><div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); flex-shrink: 0; margin-right: 0.5rem;">💰</div> {t("analytics_page.cost_center_split")}</div>',
-                                unsafe_allow_html=True,
-                            )
-                        with col_split_header2:
-                            st.markdown(
-                                f"""
-                                <div style="text-align: right; padding-top: 2px;">
-                                    <span style="
-                                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                                        color: white;
-                                        padding: 4px 10px;
-                                        border-radius: 6px;
-                                        font-size: 0.75rem;
-                                        font-weight: 600;
-                                        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
-                                    " title="Total margin across all cost centers">
-                                        💰 Total Margin: {margin:,.2f} €
-                                    </span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+                        st.markdown(
+                            f'<div class="section-header" style="margin-bottom: 1.5rem;"><div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); flex-shrink: 0; margin-right: 0.5rem;">💰</div> {t("analytics_page.cost_center_split")}</div>',
+                            unsafe_allow_html=True,
+                        )
 
                         st.markdown(
                             """
@@ -2598,6 +2804,144 @@ def render_analytics_page(
                         table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th style="text-align:right;">Income</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Margin</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td style="text-align:right;">{income_fmt}</td><td style="text-align:right;">{cost_fmt}</td><td style="text-align:right;">{margin_fmt}</td></tr></tfoot></table></div></div>'
 
                         st.markdown(table_html, unsafe_allow_html=True)
+
+                        st.markdown("<br><br>", unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> {t("analytics_page.cost_centers_by_company")}</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                        if 'companyName' in df_filtered.columns or 'supplierName' in df_filtered.columns:
+                            company_col = 'companyName' if 'companyName' in df_filtered.columns else 'supplierName'
+                            
+                            company_cc_data = []
+                            for company in df_filtered[company_col].dropna().unique():
+                                company_df = df_filtered[df_filtered[company_col] == company]
+                                company_income = company_df.loc[company_df['__category'] == 'income', amount_col].apply(abs).sum()
+                                company_cost = company_df.loc[company_df['__category'] == 'cost', amount_col].apply(abs).sum()
+                                company_margin = company_income - company_cost
+                                company_cc_count = company_df[cost_center_col].nunique()
+                                
+                                company_cc_data.append({
+                                    'Company': company,
+                                    'Cost Centers': company_cc_count,
+                                    'Income': company_income,
+                                    'Cost': company_cost,
+                                    'Margin': company_margin,
+                                    'Records': len(company_df)
+                                })
+                            
+                            if company_cc_data:
+                                company_cc_df = pd.DataFrame(company_cc_data)
+                                
+                                col_sort1, col_sort2 = st.columns([1, 3])
+                                with col_sort1:
+                                    try:
+                                        company_label = t('analytics_page.companies')
+                                        if company_label == 'analytics_page.companies':
+                                            company_label = 'Company'
+                                    except:
+                                        company_label = 'Company'
+                                    
+                                    margin_label = t('analytics_page.margin')
+                                    if margin_label == 'analytics_page.margin':
+                                        margin_label = 'Margin'
+                                    
+                                    income_label = t('analytics_page.total_income_debs')
+                                    if income_label == 'analytics_page.total_income_debs':
+                                        income_label = 'Total Income (Debs)'
+                                    
+                                    cost_label = t('analytics_page.total_cost_kreds')
+                                    if cost_label == 'analytics_page.total_cost_kreds':
+                                        cost_label = 'Total Cost (Kreds)'
+                                    
+                                    records_label = t('analytics_page.records')
+                                    if records_label == 'analytics_page.records':
+                                        records_label = 'Records'
+                                    
+                                    cc_label = t('analytics_page.cost_centers')
+                                    if cc_label == 'analytics_page.cost_centers':
+                                        cc_label = 'Cost Centers'
+                                    
+                                    sort_options = {
+                                        'Margin': margin_label,
+                                        'Income': income_label,
+                                        'Cost': cost_label,
+                                        'Records': records_label,
+                                        'Cost Centers': cc_label,
+                                        'Company': company_label
+                                    }
+                                    sort_by_display = st.selectbox(
+                                        t('analytics_page.sort_by'),
+                                        options=list(sort_options.keys()),
+                                        format_func=lambda x: sort_options[x],
+                                        index=0,
+                                        key='company_sort_by'
+                                    )
+                                    sort_by = sort_by_display
+                                with col_sort2:
+                                    sort_order = st.selectbox(
+                                        t('analytics_page.sort_order'),
+                                        options=[t('analytics_page.descending'), t('analytics_page.ascending')],
+                                        index=0,
+                                        key='company_sort_order'
+                                    )
+                                
+                                ascending = sort_order == t('analytics_page.ascending')
+                                company_cc_df = company_cc_df.sort_values(sort_by, ascending=ascending)
+                                
+                                st.markdown("<br>", unsafe_allow_html=True)
+                                
+                                # Display as cards matching Financial Summary style - show top 6 companies
+                                company_cols = st.columns(3)  # Always 3 columns, will wrap
+                                for idx, (_, row) in enumerate(company_cc_df.head(6).iterrows()):
+                                    with company_cols[idx % 3]:
+                                            margin_color = "#dc2626" if row['Margin'] < 0 else "#16a34a"
+                                            st.markdown(
+                                                f"""
+                                                <div style="
+                                                    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.04) 100%);
+                                                    border: 1px solid rgba(139, 92, 246, 0.2);
+                                                    border-radius: 20px;
+                                                    padding: 1.5rem;
+                                                    margin-bottom: 1rem;
+                                                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+                                                    transition: all 0.3s ease;
+                                                " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(139, 92, 246, 0.2)'"
+                                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.1)'">
+                                                    <div style="font-weight: 700; font-size: 1rem; color: #1e293b; margin-bottom: 1rem; line-height: 1.2;">{row['Company'][:30]}</div>
+                                                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">
+                                                        <span>{t('analytics_page.cost_centers')}:</span>
+                                                        <strong style="color: #6366f1;">{int(row['Cost Centers'])}</strong>
+                                                    </div>
+                                                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-bottom: 1rem;">
+                                                        <span>{t('analytics_page.records')}:</span>
+                                                        <strong style="color: #6366f1;">{int(row['Records'])}</strong>
+                                                    </div>
+                                                    <div style="
+                                                        font-size: 2rem;
+                                                        font-weight: 900;
+                                                        color: {margin_color};
+                                                        margin-top: 0.5rem;
+                                                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                                        font-family: 'SF Mono', Monaco, monospace;
+                                                        margin-bottom: 0.5rem;
+                                                    ">
+                                                        {row['Margin']:,.2f} €
+                                                    </div>
+                                                    <div style="
+                                                        font-size: 0.875rem;
+                                                        font-weight: 700;
+                                                        text-transform: uppercase;
+                                                        letter-spacing: 0.8px;
+                                                        color: #64748b;
+                                                    ">{t('analytics_page.margin')}</div>
+                                                </div>
+                                                """,
+                                                unsafe_allow_html=True,
+                                            )
+                        else:
+                            st.info(t("analytics_page.no_company_data_available"))
                     else:
                         st.warning(t("analytics_page.no_amount_or_cc_column"))
 

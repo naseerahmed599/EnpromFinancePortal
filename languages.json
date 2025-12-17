@@ -387,7 +387,23 @@
       "unprocessed_documents": "Unprocessed Documents",
       "unprocessed_documents_message": "{count} documents ({percent}%) are still in draft. Start processing to improve workflow.",
       "view_more_insights": "View {count} more insights",
-      "detailed_analysis": "Detailed Analysis"
+      "detailed_analysis": "Detailed Analysis",
+      "filter_cost_centers": "Filter Cost Centers",
+      "select_cost_centers_to_analyze": "Select cost centers to analyze and view detailed breakdowns",
+      "load_cost_centers_first": "Please load cost centers first using 'Load Data' button above",
+      "cost_centers_by_company": "Cost Centers by Company",
+      "view_all_companies": "View {count} more companies",
+      "no_company_data_available": "No company data available in receipt splits",
+      "search": "Search",
+      "date_range": "Date Range",
+      "select_date_range_for_cost_centers": "Select date range to filter cost center data",
+      "cost_centers": "Cost Centers",
+      "records": "Records",
+      "margin": "Margin",
+      "sort_by": "Sort by",
+      "sort_order": "Order",
+      "descending": "Descending",
+      "ascending": "Ascending"
     },
     "data_explorer_page": {
       "title": "Data Explorer",
@@ -632,7 +648,14 @@
       "table_header_description": "Beschreibung",
       "table_header_income": "Einnahmen",
       "table_header_cost": "Kosten",
-      "table_header_margin": "Marge"
+      "table_header_margin": "Marge",
+      "cost_centers": "Kostenstellen",
+      "records": "Datensätze",
+      "margin": "Marge",
+      "sort_by": "Sortieren nach",
+      "sort_order": "Reihenfolge",
+      "descending": "Absteigend",
+      "ascending": "Aufsteigend"
     },
     "approved_docs_page": {
       "title": "Genehmigte Dokumente",
@@ -911,7 +934,15 @@
       "unprocessed_documents": "Unverarbeitete Dokumente",
       "unprocessed_documents_message": "{count} Dokumente ({percent}%) befinden sich noch im Entwurf. Beginnen Sie mit der Verarbeitung, um den Workflow zu verbessern.",
       "view_more_insights": "{count} weitere Einblicke anzeigen",
-      "detailed_analysis": "Detaillierte Analyse"
+      "detailed_analysis": "Detaillierte Analyse",
+      "filter_cost_centers": "Kostenstellen filtern",
+      "select_cost_centers_to_analyze": "Kostenstellen auswählen, um zu analysieren und detaillierte Aufschlüsselungen anzuzeigen",
+      "load_cost_centers_first": "Bitte laden Sie zuerst Kostenstellen über die Schaltfläche 'Daten laden' oben",
+      "cost_centers_by_company": "Kostenstellen nach Unternehmen",
+      "view_all_companies": "{count} weitere Unternehmen anzeigen",
+      "no_company_data_available": "Keine Unternehmensdaten in Belegsplits verfügbar",
+      "search": "Suchen",
+      "select_date_range_for_cost_centers": "Datumsbereich auswählen, um Kostenstellendaten zu filtern"
     },
     "data_explorer_page": {
       "title": "Daten-Explorer",
@@ -1156,7 +1187,14 @@
       "table_header_description": "Opis",
       "table_header_income": "Przychód",
       "table_header_cost": "Koszt",
-      "table_header_margin": "Marża"
+      "table_header_margin": "Marża",
+      "cost_centers": "Centra Kosztów",
+      "records": "Rekordy",
+      "margin": "Marża",
+      "sort_by": "Sortuj według",
+      "sort_order": "Kolejność",
+      "descending": "Malejąco",
+      "ascending": "Rosnąco"
     },
     "approved_docs_page": {
       "title": "Zatwierdzone Dokumenty",
@@ -1503,7 +1541,15 @@
       "unprocessed_documents": "Nieprzetworzone Dokumenty",
       "unprocessed_documents_message": "{count} dokumentów ({percent}%) jest nadal w wersji roboczej. Zacznij przetwarzanie, aby poprawić przepływ pracy.",
       "view_more_insights": "Wyświetl {count} więcej wglądów",
-      "detailed_analysis": "Szczegółowa Analiza"
+      "detailed_analysis": "Szczegółowa Analiza",
+      "filter_cost_centers": "Filtruj Centra Kosztów",
+      "select_cost_centers_to_analyze": "Wybierz centra kosztów do analizy i wyświetl szczegółowe podsumowania",
+      "load_cost_centers_first": "Najpierw załaduj centra kosztów za pomocą przycisku 'Załaduj dane' powyżej",
+      "cost_centers_by_company": "Centra Kosztów według Firm",
+      "view_all_companies": "Wyświetl {count} więcej firm",
+      "no_company_data_available": "Brak danych o firmach w podziałach paragonów",
+      "search": "Szukaj",
+      "select_date_range_for_cost_centers": "Wybierz zakres dat, aby filtrować dane centrów kosztów"
     },
     "data_explorer_page": {
       "title": "Eksplorator Danych",

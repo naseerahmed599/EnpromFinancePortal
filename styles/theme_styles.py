@@ -625,13 +625,13 @@ def get_tab_styles():
             /* Active/selected tab */
             [aria-selected="true"][data-baseweb="tab"] {
                 background: linear-gradient(135deg, 
-                    rgba(139, 92, 246, 0.15) 0%, 
-                    rgba(124, 58, 237, 0.1) 100%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.3) !important;
-                color: #6d28d9 !important;
+                    #6366f1 0%, 
+                    #4f46e5 100%) !important;
+                border: 1px solid #4f46e5 !important;
+                color: #ffffff !important;
                 box-shadow: 
-                    0 4px 12px rgba(139, 92, 246, 0.15),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+                    0 4px 12px rgba(99, 102, 241, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
             }
             
             /* Tab content panel */
@@ -695,13 +695,13 @@ def get_tab_styles():
             /* Active/selected tab */
             [aria-selected="true"][data-baseweb="tab"] {
                 background: linear-gradient(135deg, 
-                    rgba(139, 92, 246, 0.25) 0%, 
-                    rgba(124, 58, 237, 0.15) 100%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.4) !important;
-                color: #c4b5fd !important;
+                    #6366f1 0%, 
+                    #4f46e5 100%) !important;
+                border: 1px solid #4f46e5 !important;
+                color: #ffffff !important;
                 box-shadow: 
-                    0 4px 12px rgba(139, 92, 246, 0.2),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+                    0 4px 12px rgba(99, 102, 241, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
             }
             
             /* Tab content panel */
