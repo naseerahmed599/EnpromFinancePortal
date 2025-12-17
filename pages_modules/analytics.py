@@ -265,10 +265,10 @@ def render_analytics_page(
 
     with col3:
         cc_months_back = st.selectbox(
-            "Cost center lookback (months)",
+            t("analytics_page.cost_center_lookback_months"),
             options=[3, 6, 12, 24],
             index=1,  
-            help="Load cost centers from documents in the last N months (uses Find API - faster). Lower months = faster loading.",
+            help=t("analytics_page.cost_center_lookback_help"),
             key="analytics_cc_months_back",
         )
 
@@ -283,7 +283,7 @@ def render_analytics_page(
             cost_centers = None
             
             try:
-                with st.spinner("📄 Loading documents..."):
+                with st.spinner(f"📄 {t('analytics_page.loading_documents')}"):
                     docs = client.get_all_documents(
                         include_processed=include_processed_analytics,
                         include_deleted=include_deleted_analytics,
@@ -291,18 +291,18 @@ def render_analytics_page(
                     st.session_state.documents = docs
                     st.session_state.analytics_load_time = datetime.now()
             except Exception as e:
-                st.error(f"Error loading documents: {str(e)}")
+                st.error(f"{t('analytics_page.error_loading_documents')}: {str(e)}")
                 st.stop()
             
             if not client.api_key:
-                st.error("❌ API key not set! Please set your API key in Settings.")
+                st.error(f"❌ {t('analytics_page.api_key_not_set')}")
                 st.stop()
             
             try:
-                with st.spinner(f"🏢 Loading cost centers from last {cc_months_back} months..."):
+                with st.spinner(f"🏢 {t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
                     cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
             except Exception as e:
-                st.warning(f"Warning: Could not load cost centers: {str(e)}")
+                st.warning(f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}")
                 cost_centers = []
             
             if cost_centers:
@@ -322,12 +322,12 @@ def render_analytics_page(
                 st.session_state.analytics_cc_sync_months = cc_months_back
                 
                 st.toast(
-                    f"✅ Loaded {len(docs)} documents and {len(cleaned_cc)} cost centers",
+                    f"✅ {t('analytics_page.loaded_documents_cost_centers').format(docs=len(docs), cc=len(cleaned_cc))}",
                     icon="✅",
                 )
             else:
                 st.toast(
-                    f"✅ Loaded {len(docs)} documents (no cost centers found)",
+                    f"✅ {t('analytics_page.loaded_documents_no_cost_centers').format(docs=len(docs))}",
                     icon="✅",
                 )
             
@@ -366,7 +366,7 @@ def render_analytics_page(
     st.divider()
 
     if st.session_state.documents is None:
-        st.info("📊 Click 'Load Data' to view analytics and insights")
+        st.info(f"📊 {t('analytics_page.click_load_data')}")
     else:
         docs = st.session_state.documents
 
@@ -1007,31 +1007,31 @@ def render_analytics_page(
             filter_indicator_html = ""
         
         kpi_title = t('analytics_page.key_performance_indicators')
-        header_html = f"""
-        <div style="margin-bottom: 1.5rem;">
-            <div class="section-header">
-                <div style="
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 24px;
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-                    flex-shrink: 0;
-                ">📊</div>
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{kpi_title}</h3>
-                        {filter_indicator_html}
-                    </div>
-                    <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">Real-time insights and metrics</p>
-                </div>
-            </div>
-        </div>
-        """
+        header_html = (
+            '<div style="margin-bottom: 1.5rem;">'
+            '<div class="section-header">'
+            '<div style="'
+            'background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);'
+            'width: 48px;'
+            'height: 48px;'
+            'border-radius: 12px;'
+            'display: flex;'
+            'align-items: center;'
+            'justify-content: center;'
+            'font-size: 24px;'
+            'box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);'
+            'flex-shrink: 0;'
+            '">📊</div>'
+            '<div style="flex: 1;">'
+            '<div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">'
+            f'<h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{kpi_title}</h3>'
+            f'{filter_indicator_html}'
+            '</div>'
+            f'<p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t("analytics_page.real_time_insights_metrics")}</p>'
+            '</div>'
+            '</div>'
+            '</div>'
+        )
         st.markdown(header_html, unsafe_allow_html=True)
 
       
@@ -1208,46 +1208,46 @@ def render_analytics_page(
             insights.append({
                 "type": "warning",
                 "icon": "⚠️",
-                "title": "Low Approval Rate",
-                "message": f"Only {approval_rate:.1f}% of documents are approved. Consider reviewing workflow bottlenecks.",
+                "title": t("analytics_page.low_approval_rate"),
+                "message": t("analytics_page.low_approval_rate_message").format(rate=f"{approval_rate:.1f}"),
                 "color": "#f59e0b"
             })
         if pending_payment_value > total_gross * 0.3:
             insights.append({
                 "type": "alert",
                 "icon": "💳",
-                "title": "High Pending Payments",
-                "message": f"€{pending_payment_value:,.0f} in pending payments ({pending_payment_value/total_gross*100:.1f}% of total). Follow up on outstanding invoices.",
+                "title": t("analytics_page.high_pending_payments"),
+                "message": t("analytics_page.high_pending_payments_message").format(amount=f"{pending_payment_value:,.0f}", percent=f"{pending_payment_value/total_gross*100:.1f}"),
                 "color": "#ef4444"
             })
         if in_workflow > len(docs) * 0.4:
             insights.append({
                 "type": "info",
                 "icon": "📋",
-                "title": "Workflow Bottleneck",
-                "message": f"{in_workflow} documents ({in_workflow/len(docs)*100:.1f}%) are in approval stages. Review process efficiency.",
+                "title": t("analytics_page.workflow_bottleneck"),
+                "message": t("analytics_page.workflow_bottleneck_message").format(count=in_workflow, percent=f"{in_workflow/len(docs)*100:.1f}"),
                 "color": "#3b82f6"
             })
         if avg_invoice_value > 10000:
             insights.append({
                 "type": "success",
                 "icon": "💰",
-                "title": "High-Value Portfolio",
-                "message": f"Average invoice value is €{avg_invoice_value:,.0f}. Focus on high-value document processing.",
+                "title": t("analytics_page.high_value_portfolio"),
+                "message": t("analytics_page.high_value_portfolio_message").format(amount=f"{avg_invoice_value:,.0f}"),
                 "color": "#10b981"
             })
         if draft_count > len(docs) * 0.2:
             insights.append({
                 "type": "warning",
                 "icon": "📝",
-                "title": "Unprocessed Documents",
-                "message": f"{draft_count} documents ({draft_count/len(docs)*100:.1f}%) are still in draft. Start processing to improve workflow.",
+                "title": t("analytics_page.unprocessed_documents"),
+                "message": t("analytics_page.unprocessed_documents_message").format(count=draft_count, percent=f"{draft_count/len(docs)*100:.1f}"),
                 "color": "#f59e0b"
             })
         
         if insights:
             st.markdown(
-                """
+                f"""
                 <div style="margin: 2rem 0 1.5rem 0;">
                     <div class="section-header">
                         <div style="
@@ -1263,8 +1263,8 @@ def render_analytics_page(
                             flex-shrink: 0;
                         ">💡</div>
                         <div style="flex: 1;">
-                            <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">Key Insights & Recommendations</h3>
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">Actionable insights based on your data</p>
+                            <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{t('analytics_page.key_insights_recommendations')}</h3>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t('analytics_page.actionable_insights_data')}</p>
                         </div>
                     </div>
                 </div>
@@ -1307,7 +1307,7 @@ def render_analytics_page(
                     )
             
             if len(insights) > 3:
-                with st.expander(f"View {len(insights) - 3} more insights", expanded=False):
+                with st.expander(t("analytics_page.view_more_insights").format(count=len(insights) - 3), expanded=False):
                     for insight in insights[3:]:
                         st.markdown(
                             f"""
@@ -1398,7 +1398,7 @@ def render_analytics_page(
                     ">💰</div>
                     <div style="flex: 1;">
                         <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{t('analytics_page.financial_summary')}</h3>
-                        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">Comprehensive financial overview</p>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t('analytics_page.comprehensive_financial_overview')}</p>
                     </div>
                 </div>
             </div>
@@ -1538,7 +1538,7 @@ def render_analytics_page(
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(
-            """
+            f"""
             <div style='
                 border-top: 2px solid #e2e8f0;
                 margin: 2rem 0 1.5rem 0;
@@ -1556,7 +1556,7 @@ def render_analytics_page(
                     font-weight: 600;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                ">Detailed Analysis</div>
+                ">{t('analytics_page.detailed_analysis')}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -2120,7 +2120,7 @@ def render_analytics_page(
                         missing_ids = [doc_id for doc_id in unique_doc_ids if doc_id not in doc_type_cache]
                         
                         if missing_ids:
-                            with st.spinner(f"Enriching {len(missing_ids)} documents with type info..."):
+                            with st.spinner(t("analytics_page.enriching_documents_type").format(count=len(missing_ids))):
                                 for doc_id in missing_ids:
                                     try:
                                         detail = client.get_document(int(doc_id))
@@ -2714,7 +2714,7 @@ def render_analytics_page(
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-header"><div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🔍</div> Detailed Breakdowns</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🔍</div> {t("analytics_page.detailed_breakdowns")}</div>', unsafe_allow_html=True)
         export_row2 = st.columns(3)
 
         with export_row2[0]:
@@ -2818,7 +2818,7 @@ def render_analytics_page(
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown('<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> Company Analysis</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> {t("analytics_page.company_analysis")}</div>', unsafe_allow_html=True)
         export_row3 = st.columns([1, 2])
 
         with export_row3[0]:

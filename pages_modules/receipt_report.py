@@ -74,10 +74,10 @@ def render_receipt_report_page(
         st.markdown(f"### {t('receipt_report_page.load_cost_centers')}")
         st.caption(t("receipt_report_page.fetch_cost_centers"))
         cc_months_back = st.selectbox(
-            "Cost center lookback (months)",
+            t("receipt_report_page.cost_center_lookback_months"),
             options=[3, 6, 12, 24],
             index=1,
-            help="Quick filter: load cost centers from documents in the last N months.",
+            help=t("receipt_report_page.cost_center_lookback_help"),
             key="cc_months_back",
         )
     with col2:
@@ -88,7 +88,7 @@ def render_receipt_report_page(
         ):
             with st.spinner(t("receipt_report_page.loading")):
                 if not client.api_key:
-                    st.error("❌ API key not set! Please set your API key in Settings.")
+                    st.error(f"❌ {t('receipt_report_page.api_key_not_set')}")
                     st.stop()
                 
                 cost_centers = client.get_all_cost_centers(
@@ -129,7 +129,7 @@ def render_receipt_report_page(
         col1, col2 = st.columns([2, 3])
         with col1:
             search_term = st.text_input(
-                "Search",
+                t("receipt_report_page.search"),
                 placeholder=t("receipt_report_page.search_placeholder"),
                 help=t("receipt_report_page.search_help"),
             )
@@ -319,7 +319,7 @@ def render_receipt_report_page(
                 type_cache = st.session_state.get("receipt_doc_type_cache", {})
                 missing_ids = [i for i in unique_ids if i not in type_cache]
                 if missing_ids:
-                    with st.spinner("Fetching document types..."):
+                    with st.spinner(t("receipt_report_page.fetching_document_types")):
                         for doc_id in missing_ids:
                             try:
                                 detail = client.get_document(int(doc_id))
@@ -475,15 +475,15 @@ def render_receipt_report_page(
             kpi_html = f"""
                 <div class="kpi-cards-row">
                     <div class="kpi-card primary">
-                        <p class="kpi-label">Margin (Income - Cost)</p>
+                        <p class="kpi-label">{t('receipt_report_page.margin_income_cost')}</p>
                         <p class="kpi-value"><strong><span style="color:#ffffff">{margin:,.2f} €</span></strong></p>
                     </div>
                     <div class="kpi-card">
-                        <p class="kpi-label">Total Income (Debs)</p>
+                        <p class="kpi-label">{t('receipt_report_page.total_income_debs')}</p>
                         <p class="kpi-value">{color_value(income_total)}</p>
                     </div>
                     <div class="kpi-card">
-                        <p class="kpi-label">Total Cost (Kreds)</p>
+                        <p class="kpi-label">{t('receipt_report_page.total_cost_kreds')}</p>
                         <p class="kpi-value">{color_value(cost_total)}</p>
                     </div>
                     <div class="kpi-card">
@@ -540,8 +540,8 @@ def render_receipt_report_page(
                             font-size: 0.75rem;
                             font-weight: 600;
                             box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
-                        " title="Total margin across selected cost centers">
-                            💰 Total Margin: {margin:,.2f} €
+                        " title="{t('receipt_report_page.total_margin_title')}">
+                            💰 {t('receipt_report_page.total_margin')}: {margin:,.2f} €
                         </span>
                     </div>
                     """,
@@ -753,7 +753,7 @@ def render_receipt_report_page(
                     <table class="cc-table">
                       <thead class="cc-table-header">
                         <tr>
-                          <th>Cost Center</th><th>Description</th><th style="text-align:right;">Income</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Margin</th>
+                          <th>{t('receipt_report_page.table_header_cost_center')}</th><th>{t('receipt_report_page.table_header_description')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_income')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_cost')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_margin')}</th>
                         </tr>
                       </thead>
                       <tbody>{rows_html_str}</tbody>
