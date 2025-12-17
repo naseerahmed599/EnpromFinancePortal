@@ -683,7 +683,7 @@ if not st.session_state.client.api_key:
         """
         <style>
             .auth-container{
-                max-width: 520px;
+                max-width: 680px;
                 margin: 10vh auto 2rem auto;
                 text-align: center !important;
             }
@@ -695,7 +695,7 @@ if not st.session_state.client.api_key:
             .auth-logo-wrapper{
                 display: inline-block;
                 background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                padding: 2.5rem;
+                padding: 3.15rem;
                 border-radius: 24px;
                 box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3),
                             0 8px 16px rgba(0, 0, 0, 0.1),
@@ -717,7 +717,7 @@ if not st.session_state.client.api_key:
             .auth-logo-inner{
                 background: #ffffff;
                 border-radius: 16px;
-                padding: 1.5rem;
+                padding: 1.95rem;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
                 position: relative;
                 z-index: 1;
@@ -726,10 +726,15 @@ if not st.session_state.client.api_key:
                 align-items: center;
             }
             .auth-logo-inner img{
-                height: 48px;
-                max-width: 200px;
+                height: 58px;
+                max-width: 235px;
                 object-fit: contain;
                 display: block;
+            }
+            @media (max-width: 640px){
+                .auth-logo-wrapper{ padding: 2.4rem; border-radius: 22px; }
+                .auth-logo-inner{ padding: 1.45rem; }
+                .auth-logo-inner img{ height: 52px; max-width: 220px; }
             }
             .auth-title-section{
                 margin-top: 2rem;
@@ -739,13 +744,22 @@ if not st.session_state.client.api_key:
             .auth-main-title{
                 font-size: 2.25rem;
                 font-weight: 800;
-                background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
                 margin: 0 0 0.5rem 0;
                 letter-spacing: -0.5px;
                 text-align: center;
+                line-height: 1.15;
+                display: inline-block;
+                color: #1e293b;
+            }
+            /* Gradient text only when supported (prevents “rectangle” in dark mode) */
+            @supports (-webkit-background-clip: text) {
+                .auth-main-title{
+                    background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    color: transparent;
+                }
             }
             .auth-subtitle{
                 font-size: 1rem !important;
@@ -795,21 +809,78 @@ if not st.session_state.client.api_key:
     st.markdown(
         """
         <style>
-            /* Beautiful gradient background for login page */
-            .stApp {
-                background: linear-gradient(135deg, 
-                    #f8fafc 0%, 
-                    #f1f5f9 25%, 
-                    #e0e7ff 50%, 
-                    #ede9fe 75%, 
-                    #faf5ff 100%) !important;
+            /* Modern auth screen: gradient + centered glass card */
+            .stApp,
+            [data-testid="stAppViewContainer"]{
+                background: radial-gradient(1200px 800px at 20% 10%, rgba(99,102,241,0.22), transparent 60%),
+                            radial-gradient(1000px 700px at 90% 20%, rgba(168,85,247,0.18), transparent 55%),
+                            linear-gradient(135deg,
+                                #f8fafc 0%,
+                                #f1f5f9 30%,
+                                #eef2ff 60%,
+                                #faf5ff 100%) !important;
                 background-attachment: fixed !important;
             }
-            
-            /* Centered layout helpers */
+
+            /* Hide Streamlit chrome on the login screen */
+            header[data-testid="stHeader"], footer, #MainMenu{ visibility: hidden; }
+
+            /* Turn the main content area into a centered card */
             .block-container{
-                padding-top: 2rem;
-                background: transparent !important;
+                max-width: 680px !important;
+                margin: 9vh auto 0 auto !important;
+                padding: 2.5rem 2.75rem 2.25rem 2.75rem !important;
+                background: rgba(255, 255, 255, 0.75) !important;
+                border: 1px solid rgba(148, 163, 184, 0.35) !important;
+                border-radius: 22px !important;
+                box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+            }
+
+            @media (max-width: 640px){
+                .block-container{
+                    margin-top: 6vh !important;
+                    padding: 1.5rem 1.25rem 1.25rem 1.25rem !important;
+                    border-radius: 18px !important;
+                }
+            }
+
+            @media (prefers-color-scheme: dark){
+                .stApp,
+                [data-testid="stAppViewContainer"]{
+                    background: radial-gradient(1200px 800px at 20% 10%, rgba(99,102,241,0.30), transparent 60%),
+                                radial-gradient(1000px 700px at 90% 20%, rgba(168,85,247,0.26), transparent 55%),
+                                linear-gradient(135deg,
+                                    #0b1220 0%,
+                                    #0f172a 40%,
+                                    #111827 100%) !important;
+                }
+
+                .block-container{
+                    background: rgba(15, 23, 42, 0.72) !important;
+                    border-color: rgba(51, 65, 85, 0.55) !important;
+                    box-shadow: 0 24px 80px rgba(0,0,0,0.45) !important;
+                }
+
+                .auth-main-title{
+                    /* Fallback: visible solid title in dark mode even if background-clip isn't supported */
+                    background: none !important;
+                    color: #e2e8f0 !important;
+                    -webkit-text-fill-color: #e2e8f0 !important;
+                }
+                @supports (-webkit-background-clip: text) {
+                    .auth-main-title{
+                        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%) !important;
+                        -webkit-background-clip: text !important;
+                        background-clip: text !important;
+                        -webkit-text-fill-color: transparent !important;
+                        color: transparent !important;
+                    }
+                }
+
+                .auth-subtitle{ color: rgba(226,232,240,0.72) !important; }
+                .auth-divider{ background: linear-gradient(90deg, transparent, rgba(51,65,85,0.9), transparent) !important; }
             }
             
             /* Remove red border from input on focus */
@@ -817,24 +888,45 @@ if not st.session_state.client.api_key:
             input[type="text"]:focus,
             div[data-baseweb="input"] input:focus{
                 border-color: #6366f1 !important;
-                box-shadow: 0 0 0 1px #6366f1 !important;
+                box-shadow: 0 0 0 1px rgba(99,102,241,0.9) !important;
                 outline: none !important;
             }
             
             /* Style input container */
             div[data-baseweb="input"]{
                 border-radius: 12px !important;
-                border: 2px solid #e2e8f0 !important;
+                border: 1.5px solid rgba(226, 232, 240, 0.95) !important;
                 transition: all 0.2s ease !important;
-                background: white !important;
+                background: rgba(255, 255, 255, 0.85) !important;
+            }
+
+            /* Remove password reveal icon inside the input (login screen only) */
+            div[data-baseweb="input"] button{
+                display: none !important;
+            }
+            div[data-baseweb="input"] input{
+                padding-right: 0.75rem !important;
             }
             
             div[data-baseweb="input"]:focus-within{
                 border-color: #6366f1 !important;
                 box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
             }
+
+            @media (prefers-color-scheme: dark){
+                div[data-baseweb="input"]{
+                    border-color: rgba(71, 85, 105, 0.7) !important;
+                    background: rgba(2, 6, 23, 0.35) !important;
+                }
+                div[data-baseweb="input"] input{
+                    color: #e2e8f0 !important;
+                }
+            }
             
-            /* Primary button theme to match app - indigo/purple gradient */
+            /* Primary button theme to match app - indigo/purple gradient
+               (Target form submit buttons too; Streamlit DOM differs by version) */
+            button[kind="primary"],
+            button[data-testid="baseButton-primary"],
             div.stButton > button[kind="primary"],
             div.stButton > button[data-testid="baseButton-primary"]{
                 background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
@@ -843,71 +935,100 @@ if not st.session_state.client.api_key:
                 box-shadow: 0 8px 18px rgba(79,70,229,.25) !important;
                 font-weight: 600 !important;
                 border-radius: 12px !important;
-                padding: 0.75rem 2rem !important;
+                padding: 0.78rem 1.25rem !important;
                 transition: all 0.2s ease !important;
             }
+            button[kind="primary"]:hover,
+            button[data-testid="baseButton-primary"]:hover,
             div.stButton > button[kind="primary"]:hover,
             div.stButton > button[data-testid="baseButton-primary"]:hover{
                 transform: translateY(-1px);
                 box-shadow: 0 12px 28px rgba(79,70,229,.35) !important;
+            }
+
+            /* Secondary button */
+            button[kind="secondary"],
+            button[data-testid="baseButton-secondary"],
+            div.stButton > button[kind="secondary"],
+            div.stButton > button[data-testid="baseButton-secondary"]{
+                border-radius: 12px !important;
+                padding: 0.78rem 1.25rem !important;
+                font-weight: 600 !important;
+            }
+
+            /* Neutralize global glossy button overlays on login screen */
+            button::before{
+                content: none !important;
             }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    input_cols = st.columns([1, 2, 1])
-    with input_cols[1]:
+    has_saved_key = bool(st.session_state.get("correct_api_key"))
+
+    st.caption("Enter your Flowwer API key to continue.")
+
+    show_key = st.toggle("Show API key", value=False, help="Temporarily display the API key while typing.")
+
+    with st.form("api_key_login_form", clear_on_submit=False):
         new_api_key = st.text_input(
-            "API Key",
+            "Flowwer API Key",
             value="",
-            type="password",
+            type="default" if show_key else "password",
             placeholder="Paste your Flowwer API key",
             key="startup_api_key",
+            label_visibility="visible",
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        btn_left, btn_right = st.columns(2)
+        with btn_left:
+            submit = st.form_submit_button(
+                "Access",
+                type="primary",
+                use_container_width=True,
+            )
+        with btn_right:
+            use_saved = st.form_submit_button(
+                "Use saved key" if has_saved_key else "Use saved key",
+                disabled=not has_saved_key,
+                use_container_width=True,
+            )
 
-    btn_cols = st.columns([1.5, 1, 1.5])
-    with btn_cols[1]:
-        submit = st.button(
-            "Access",
-            type="primary",
-            key="btn_startup_save_key",
-            use_container_width=True,
-        )
+    if submit or use_saved:
+        api_key_to_verify = (st.session_state.correct_api_key or "").strip() if use_saved else (new_api_key or "").strip()
 
-    if submit:
-        if not new_api_key:
+        if not api_key_to_verify:
             st.warning("Please enter a valid API key.")
         else:
             # Verify the API key by making a test API call
-            # Use a more prominent loader with custom styling
-            st.markdown("""
+            st.markdown(
+                """
                 <style>
                     .stSpinner > div {
                         border-color: #6366f1 !important;
                         border-top-color: transparent !important;
                     }
                 </style>
-            """, unsafe_allow_html=True)
-            
-            with st.spinner("🔐 Verifying your API key with Flowwer..."):
-                time.sleep(0.3)  
-                is_valid, message = st.session_state.client.verify_api_key(new_api_key.strip())
-            
+                """,
+                unsafe_allow_html=True,
+            )
+
+            with st.spinner("Verifying with Flowwer..."):
+                time.sleep(0.2)
+                is_valid, message = st.session_state.client.verify_api_key(api_key_to_verify)
+
             if is_valid:
-                st.session_state.client.api_key = new_api_key.strip()
+                st.session_state.client.api_key = api_key_to_verify
                 st.session_state.client.session.headers.update(
-                    {"X-FLOWWER-ApiKey": new_api_key.strip()}
+                    {"X-FLOWWER-ApiKey": api_key_to_verify}
                 )
                 st.success(message)
-                st.balloons()  
-                time.sleep(1)
+                time.sleep(0.6)
                 st.rerun()
             else:
                 st.error(message)
-                st.info("💡 **Tip:** Make sure you're using the correct API key from your Flowwer account.")
+                st.info("Tip: confirm the key is copied without extra spaces and belongs to the correct Flowwer tenant.")
 
     st.stop()
 
