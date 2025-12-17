@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import json
+from utils.pagination import paginate_dataframe, get_page_size_selector
 
 
 def render_all_documents_page(client, t, get_all_document_page_styles, to_excel):
@@ -734,8 +735,21 @@ def render_all_documents_page(client, t, get_all_document_page_styles, to_excel)
 
             st.markdown(f"#### {t('common.documents_table')}")
 
-            st.dataframe(
+            page_size = get_page_size_selector(
+                current_size=50,
+                key="all_docs_page_size",
+                options=[25, 50, 100, 200, 500]
+            )
+            
+            paginated_df, current_page, total_pages, total_rows = paginate_dataframe(
                 df,
+                page_size=page_size,
+                page_key="all_docs_page",
+                show_info=True
+            )
+            
+            st.dataframe(
+                paginated_df,
                 use_container_width=True,
                 hide_index=True,
                 height=500,

@@ -11,6 +11,7 @@ import calendar
 import json
 from dateutil.relativedelta import relativedelta
 from utils.cost_center_parser import parse_cost_center, enrich_cost_center_data
+from utils.pagination import paginate_dataframe, get_page_size_selector
 from components.analytics_components import (
     render_kpi_card,
     render_total_badge,
@@ -20,6 +21,24 @@ from components.analytics_components import (
     get_filter_summary,
     render_filter_summary_badge,
 )
+
+try:
+    from analytics.utils.data_processing import (
+        calculate_kpis as calculate_kpis_optimized,
+        filter_documents as filter_documents_optimized,
+        classify_document,
+    )
+    from analytics.utils.caching import (
+        get_cached_cost_centers,
+        cache_cost_centers,
+        get_cached_receipt_data,
+        cache_receipt_data,
+        get_cached_filtered_documents,
+        cache_filtered_documents_manual,
+    )
+    PERFORMANCE_OPTIMIZATIONS_ENABLED = True
+except ImportError:
+    PERFORMANCE_OPTIMIZATIONS_ENABLED = False
 
 
 def render_analytics_page(
@@ -849,83 +868,107 @@ def render_analytics_page(
             else:
                 selected_cost_centers = []
 
-        filtered_docs = st.session_state.documents
+        if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+            filter_params = {
+                "company": selected_company if selected_company != t("analytics_page.all") else None,
+                "stage": selected_stage if selected_stage != t("analytics_page.all") else None,
+                "payment": selected_payment if selected_payment != t("analytics_page.all") else None,
+                "supplier": selected_supplier if selected_supplier != t("analytics_page.all") else None,
+                "currency": selected_currency if selected_currency != t("analytics_page.all") else None,
+                "flow": selected_flow if selected_flow != t("analytics_page.all") else None,
+                "date_from": date_from.isoformat() if date_from else None,
+                "date_to": date_to.isoformat() if date_to else None,
+                "min_value": value_threshold if value_threshold > 0 else None,
+                "cost_centers": selected_cost_centers if selected_cost_centers else None,
+            }
+            
+            cached_filtered = get_cached_filtered_documents(filter_params)
+            if cached_filtered is not None:
+                filtered_docs = cached_filtered
+            else:
+                filtered_docs = filter_documents_optimized(
+                    st.session_state.documents,
+                    **{k: v for k, v in filter_params.items() if v is not None}
+                )
+                cache_filtered_documents_manual(filtered_docs, filter_params)
+        else:
+            filtered_docs = st.session_state.documents
 
-        if selected_company != t("analytics_page.all"):
-            filtered_docs = [
-                doc
-                for doc in filtered_docs
-                if doc.get("companyName") == selected_company
-            ]
+            if selected_company != t("analytics_page.all"):
+                filtered_docs = [
+                    doc
+                    for doc in filtered_docs
+                    if doc.get("companyName") == selected_company
+                ]
 
-        if selected_stage != t("analytics_page.all"):
-            filtered_docs = [
-                doc
-                for doc in filtered_docs
-                if doc.get("currentStage") == selected_stage
-            ]
+            if selected_stage != t("analytics_page.all"):
+                filtered_docs = [
+                    doc
+                    for doc in filtered_docs
+                    if doc.get("currentStage") == selected_stage
+                ]
 
-        if selected_payment != t("analytics_page.all"):
-            filtered_docs = [
-                doc
-                for doc in filtered_docs
-                if doc.get("paymentState") == selected_payment
-            ]
+            if selected_payment != t("analytics_page.all"):
+                filtered_docs = [
+                    doc
+                    for doc in filtered_docs
+                    if doc.get("paymentState") == selected_payment
+                ]
 
-        if selected_supplier != t("analytics_page.all"):
-            filtered_docs = [
-                doc
-                for doc in filtered_docs
-                if doc.get("supplierName") == selected_supplier
-            ]
+            if selected_supplier != t("analytics_page.all"):
+                filtered_docs = [
+                    doc
+                    for doc in filtered_docs
+                    if doc.get("supplierName") == selected_supplier
+                ]
 
-        if selected_currency != t("analytics_page.all"):
-            filtered_docs = [
-                doc
-                for doc in filtered_docs
-                if doc.get("currencyCode") == selected_currency
-            ]
+            if selected_currency != t("analytics_page.all"):
+                filtered_docs = [
+                    doc
+                    for doc in filtered_docs
+                    if doc.get("currencyCode") == selected_currency
+                ]
 
-        if selected_flow != t("analytics_page.all"):
-            filtered_docs = [
-                doc for doc in filtered_docs if doc.get("flowName") == selected_flow
-            ]
+            if selected_flow != t("analytics_page.all"):
+                filtered_docs = [
+                    doc for doc in filtered_docs if doc.get("flowName") == selected_flow
+                ]
 
-        if date_from:
+            if date_from:
 
-            def is_date_after_or_equal(doc, target_date):
-                date_str = doc.get("invoiceDate")
-                if not date_str:
-                    return False
-                try:
-                    doc_date = pd.to_datetime(date_str, errors="coerce")
-                    if pd.isna(doc_date):
+                def is_date_after_or_equal(doc, target_date):
+                    date_str = doc.get("invoiceDate")
+                    if not date_str:
                         return False
-                    return doc_date.date() >= target_date
-                except:
-                    return False
-
-            filtered_docs = [
-                doc for doc in filtered_docs if is_date_after_or_equal(doc, date_from)
-            ]
-
-        if date_to:
-
-            def is_date_before_or_equal(doc, target_date):
-                date_str = doc.get("invoiceDate")
-                if not date_str:
-                    return False
-                try:
-                    doc_date = pd.to_datetime(date_str, errors="coerce")
-                    if pd.isna(doc_date):
+                    try:
+                        doc_date = pd.to_datetime(date_str, errors="coerce")
+                        if pd.isna(doc_date):
+                            return False
+                        return doc_date.date() >= target_date
+                    except:
                         return False
-                    return doc_date.date() <= target_date
-                except:
-                    return False
 
-            filtered_docs = [
-                doc for doc in filtered_docs if is_date_before_or_equal(doc, date_to)
-            ]
+                filtered_docs = [
+                    doc for doc in filtered_docs if is_date_after_or_equal(doc, date_from)
+                ]
+
+            if date_to:
+
+                def is_date_before_or_equal(doc, target_date):
+                    date_str = doc.get("invoiceDate")
+                    if not date_str:
+                        return False
+                    try:
+                        doc_date = pd.to_datetime(date_str, errors="coerce")
+                        if pd.isna(doc_date):
+                            return False
+                        return doc_date.date() <= target_date
+                    except:
+                        return False
+
+                filtered_docs = [
+                    doc for doc in filtered_docs if is_date_before_or_equal(doc, date_to)
+                ]
 
         if value_threshold > 0:
             filtered_docs = [
@@ -1034,34 +1077,52 @@ def render_analytics_page(
         )
         st.markdown(header_html, unsafe_allow_html=True)
 
-      
-        total_gross = sum([abs(doc.get("totalGross", 0)) for doc in docs])
-        total_net = sum([abs(doc.get("totalNet", 0)) for doc in docs])
-        total_tax = total_gross - total_net
-        avg_invoice_value = total_gross / len(docs) if len(docs) > 0 else 0
+        if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+            kpi_data = calculate_kpis_optimized(docs)
+            total_gross = kpi_data["total_gross"]
+            total_net = kpi_data["total_net"]
+            total_tax = kpi_data["total_tax"]
+            avg_invoice_value = kpi_data["avg_invoice_value"]
+            approved_count = kpi_data["approved_count"]
+            in_workflow = kpi_data["in_workflow"]
+            draft_count = kpi_data["draft_count"]
+            approval_rate = kpi_data["approval_rate"]
+            pending_payment_value = kpi_data["pending_payment_value"]
+            stage_counts = kpi_data.get("stage_counts", {})
+            payment_totals = kpi_data.get("payment_totals", {})
+            
+            payment_counts = {}
+            for doc in docs:
+                payment = doc.get("paymentState", "Unknown")
+                payment_counts[payment] = payment_counts.get(payment, 0) + 1
+        else:
+            total_gross = sum([abs(doc.get("totalGross", 0)) for doc in docs])
+            total_net = sum([abs(doc.get("totalNet", 0)) for doc in docs])
+            total_tax = total_gross - total_net
+            avg_invoice_value = total_gross / len(docs) if len(docs) > 0 else 0
 
-        stage_counts = {}
-        for doc in docs:
-            stage = doc.get("currentStage", "Unknown")
-            stage_counts[stage] = stage_counts.get(stage, 0) + 1
+            stage_counts = {}
+            for doc in docs:
+                stage = doc.get("currentStage", "Unknown")
+                stage_counts[stage] = stage_counts.get(stage, 0) + 1
 
-        approved_count = stage_counts.get("Approved", 0)
-        in_workflow = sum(stage_counts.get(f"Stage{i}", 0) for i in range(1, 6))
-        draft_count = stage_counts.get("Draft", 0)
-        approval_rate = (approved_count / len(docs) * 100) if len(docs) > 0 else 0
+            approved_count = stage_counts.get("Approved", 0)
+            in_workflow = sum(stage_counts.get(f"Stage{i}", 0) for i in range(1, 6))
+            draft_count = stage_counts.get("Draft", 0)
+            approval_rate = (approved_count / len(docs) * 100) if len(docs) > 0 else 0
 
-        payment_counts = {}
-        payment_totals = {}
-        for doc in docs:
-            payment = doc.get("paymentState", "Unknown")
-            payment_counts[payment] = payment_counts.get(payment, 0) + 1
-            payment_totals[payment] = payment_totals.get(payment, 0) + abs(doc.get(
-                "totalGross", 0
-            ))
+            payment_counts = {}
+            payment_totals = {}
+            for doc in docs:
+                payment = doc.get("paymentState", "Unknown")
+                payment_counts[payment] = payment_counts.get(payment, 0) + 1
+                payment_totals[payment] = payment_totals.get(payment, 0) + abs(doc.get(
+                    "totalGross", 0
+                ))
 
-        pending_payment_value = payment_totals.get("Open", 0) + payment_totals.get(
-            "Pending", 0
-        )
+            pending_payment_value = payment_totals.get("Open", 0) + payment_totals.get(
+                "Pending", 0
+            )
 
         unique_companies = len(
             set([doc.get("companyName") for doc in docs if doc.get("companyName")])
@@ -1900,6 +1961,21 @@ def render_analytics_page(
                 ]
             )[:10]
 
+            if len(company_df) > 10:
+                page_size = get_page_size_selector(
+                    current_size=10,
+                    key="company_page_size",
+                    options=[10, 25, 50]
+                )
+                
+                paginated_df, _, _, _ = paginate_dataframe(
+                    company_df,
+                    page_size=page_size,
+                    page_key="company_page",
+                    show_info=True
+                )
+                company_df = paginated_df
+
             st.dataframe(
                 company_df, use_container_width=True, hide_index=True, height=250
             )
@@ -2036,6 +2112,22 @@ def render_analytics_page(
 
             if supplier_summary:
                 df_suppliers = pd.DataFrame(supplier_summary)
+                
+                if len(df_suppliers) > 25:
+                    page_size = get_page_size_selector(
+                        current_size=25,
+                        key="suppliers_page_size",
+                        options=[10, 25, 50, 100]
+                    )
+                    
+                    paginated_df, _, _, _ = paginate_dataframe(
+                        df_suppliers,
+                        page_size=page_size,
+                        page_key="suppliers_page",
+                        show_info=True
+                    )
+                    df_suppliers = paginated_df
+                
                 st.dataframe(
                     df_suppliers, use_container_width=True, hide_index=True, height=350
                 )
@@ -2043,11 +2135,16 @@ def render_analytics_page(
         with tab4:
 
             current_date_key = f"{min_date.isoformat()}_{max_date.isoformat()}"
-            cached_date_key = st.session_state.get("analytics_receipt_date_key", "")
+            
+            if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+                receipt_data = get_cached_receipt_data(current_date_key)
+            else:
+                cached_date_key = st.session_state.get("analytics_receipt_date_key", "")
+                receipt_data = st.session_state.get("analytics_receipt_data", [])
+                if cached_date_key != current_date_key:
+                    receipt_data = []
 
-            receipt_data = st.session_state.get("analytics_receipt_data", [])
-
-            if len(receipt_data) == 0 or current_date_key != cached_date_key:
+            if len(receipt_data) == 0:
                 filter_params = {
                     "min_date": min_date.isoformat(),
                     "max_date": max_date.isoformat(),
