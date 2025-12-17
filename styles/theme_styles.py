@@ -508,6 +508,68 @@ def get_alert_box_styles():
     """
 
 
+def get_glass_section_styles():
+    """Reusable glass surface wrapper for grouping complex page sections (charts/tables/filters)."""
+    return """
+        <style>
+        .glass-section{
+            border-radius: 20px !important;
+            padding: 1.5rem 1.6rem !important;
+            margin: 1.25rem 0 !important;
+            position: relative !important;
+        }
+        .glass-section-tight{
+            padding: 1.1rem 1.25rem !important;
+            margin: 0 0 1.25rem 0 !important;
+        }
+
+        @media (prefers-color-scheme: light) {
+            .glass-section{
+                background: linear-gradient(135deg,
+                    rgba(255, 255, 255, 0.85) 0%,
+                    rgba(255, 255, 255, 0.68) 60%,
+                    rgba(99, 102, 241, 0.05) 100%) !important;
+                border: 1px solid rgba(226, 232, 240, 0.9) !important;
+                box-shadow:
+                    0 12px 34px rgba(15, 23, 42, 0.08),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+                backdrop-filter: blur(16px) saturate(180%) !important;
+                -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+            }
+            .glass-section:hover{
+                border-color: rgba(99, 102, 241, 0.22) !important;
+                box-shadow:
+                    0 18px 50px rgba(15, 23, 42, 0.10),
+                    0 6px 18px rgba(99, 102, 241, 0.10),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .glass-section{
+                background: linear-gradient(135deg,
+                    rgba(15, 23, 42, 0.65) 0%,
+                    rgba(2, 6, 23, 0.52) 60%,
+                    rgba(99, 102, 241, 0.10) 100%) !important;
+                border: 1px solid rgba(51, 65, 85, 0.75) !important;
+                box-shadow:
+                    0 16px 50px rgba(0, 0, 0, 0.45),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+                backdrop-filter: blur(16px) saturate(160%) !important;
+                -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+            }
+            .glass-section:hover{
+                border-color: rgba(99, 102, 241, 0.35) !important;
+                box-shadow:
+                    0 20px 64px rgba(0, 0, 0, 0.55),
+                    0 8px 22px rgba(99, 102, 241, 0.16),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+            }
+        }
+        </style>
+    """
+
+
 def get_all_document_page_styles():
     """
     Returns all combined CSS styles for the All Documents page

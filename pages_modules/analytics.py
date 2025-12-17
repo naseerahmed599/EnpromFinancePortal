@@ -56,7 +56,7 @@ def render_analytics_page(
 ):
     """Render the Analytics Dashboard page with comprehensive data visualization"""
 
-    from styles.theme_styles import get_kpi_card_styles
+    from styles.theme_styles import get_kpi_card_styles, get_glass_section_styles
 
     st.markdown(get_page_header_amber(), unsafe_allow_html=True)
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
@@ -158,6 +158,7 @@ def render_analytics_page(
         + get_theme_text_styles()
         + get_section_header_styles()
         + get_kpi_card_styles()
+        + get_glass_section_styles()
         + get_action_bar_styles(),
         unsafe_allow_html=True,
     )
@@ -267,6 +268,9 @@ def render_analytics_page(
         """,
         unsafe_allow_html=True,
     )
+
+    # Glass wrapper for the top filter/action row (matches login “surface” feel)
+    st.markdown('<div class="glass-section glass-section-tight">', unsafe_allow_html=True)
 
     col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.2, 1.2, 1.2])
 
@@ -383,6 +387,7 @@ def render_analytics_page(
             st.rerun()
 
     st.divider()
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.documents is None:
         st.info(f"📊 {t('analytics_page.click_load_data')}")
@@ -3085,6 +3090,7 @@ def render_analytics_page(
 
         st.markdown("<br>", unsafe_allow_html=True)
 
+        st.markdown('<div class="glass-section">', unsafe_allow_html=True)
         st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">📊</div> {t("analytics_page.comprehensive_reports")}</div>', unsafe_allow_html=True)
         export_row1 = st.columns(2)
 
@@ -3153,8 +3159,10 @@ def render_analytics_page(
                     use_container_width=True,
                 )
 
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
+        st.markdown('<div class="glass-section">', unsafe_allow_html=True)
         st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🔍</div> {t("analytics_page.detailed_breakdowns")}</div>', unsafe_allow_html=True)
         export_row2 = st.columns(3)
 
@@ -3257,8 +3265,10 @@ def render_analytics_page(
                 key="payment_csv",
             )
 
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
+        st.markdown('<div class="glass-section">', unsafe_allow_html=True)
         st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> {t("analytics_page.company_analysis")}</div>', unsafe_allow_html=True)
         export_row3 = st.columns([1, 2])
 
@@ -3325,3 +3335,4 @@ def render_analytics_page(
                 """,
                 unsafe_allow_html=True,
             )
+        st.markdown("</div>", unsafe_allow_html=True)
