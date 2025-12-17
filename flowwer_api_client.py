@@ -152,15 +152,14 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 document = response.json()
-                print(f"Retrieved document {document_id}")
                 return document
             else:
-                print(f"Failed to get document: {response.status_code}")
-                print(f"Response: {response.text}")
+                # Only print errors, not successful retrievals
+                print(f"Failed to get document {document_id}: {response.status_code}")
                 return None
 
         except Exception as e:
-            print(f"Error getting document: {e}")
+            print(f"Error getting document {document_id}: {e}")
             return None
 
     def get_companies_with_flows(self) -> Optional[List[Dict]]:
@@ -440,8 +439,9 @@ class FlowwerAPIClient:
                 if docs is None:
                     continue
                 for doc in docs:
-                    base_doc = {k: v for k, v in doc.items() if k != "documentReceiptSplits"}
-                    splits = doc.get("documentReceiptSplits") or []
+                   
+                    base_doc = {k: v for k, v in doc.items() if k not in ["documentReceiptSplits", "receiptSplits"]}
+                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
                     for split in splits:
                         merged = {**base_doc, **split}
                         rows.append(merged)
@@ -493,7 +493,7 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("documentReceiptSplits") or []
+                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
                     for split in splits:
                         cc = split.get("costCenter")
                         if cc not in [None, "", "None", "nan"]:
@@ -525,7 +525,7 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("documentReceiptSplits") or []
+                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
                     for split in splits:
                         cc = split.get("costCenter")
                         if cc not in [None, "", "None", "nan"]:
@@ -562,7 +562,7 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("documentReceiptSplits") or []
+                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
                     for split in splits:
                         acct = split.get("account")
                         if acct not in [None, "", "None", "nan"]:

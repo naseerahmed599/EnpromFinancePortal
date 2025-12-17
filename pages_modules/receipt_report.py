@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import calendar
+from dateutil.relativedelta import relativedelta
 from utils.cost_center_parser import parse_cost_center, enrich_cost_center_data
 
 
@@ -86,6 +87,10 @@ def render_receipt_report_page(
             key="btn_load_cost_centers_new",
         ):
             with st.spinner(t("receipt_report_page.loading")):
+                if not client.api_key:
+                    st.error("❌ API key not set! Please set your API key in Settings.")
+                    st.stop()
+                
                 cost_centers = client.get_all_cost_centers(
                     months_back=int(cc_months_back)
                 )
@@ -96,6 +101,15 @@ def render_receipt_report_page(
                         if cc and str(cc).strip() not in ["", "None", "nan"]
                     ]
                     st.session_state.cost_centers = sorted(cleaned_cc)
+                    
+                    today = date.today()
+                    start_date = (today - relativedelta(months=cc_months_back - 1)).replace(day=1)
+                    end_date = today
+                    
+                    st.session_state.receipt_cc_sync_start = start_date
+                    st.session_state.receipt_cc_sync_end = end_date
+                    st.session_state.receipt_cc_sync_months = cc_months_back
+                    
                     st.toast(
                         t("receipt_report_page.loaded_cost_centers").format(
                             count=len(st.session_state.cost_centers)
@@ -176,32 +190,56 @@ def render_receipt_report_page(
 
     st.markdown(f"**{t('receipt_report_page.date_range')}**")
 
+    if (
+        "receipt_cc_sync_start" in st.session_state
+        and "receipt_cc_sync_end" in st.session_state
+    ):
+        sync_start = st.session_state.receipt_cc_sync_start
+        sync_end = st.session_state.receipt_cc_sync_end
+        from_month_default = sync_start.month - 1
+        from_year_default = list(range(2020, datetime.now().year + 1)).index(
+            sync_start.year
+        )
+        to_month_default = sync_end.month - 1
+        to_year_default = list(range(2020, datetime.now().year + 1)).index(
+            sync_end.year
+        )
+    else:
+        from_month_default = 0
+        from_year_default = 3
+        to_month_default = datetime.now().month - 1
+        to_year_default = len(list(range(2020, datetime.now().year + 1))) - 1
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         from_month = st.selectbox(
             t("receipt_report_page.from_month"),
             options=list(range(1, 13)),
             format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
-            index=0,
+            index=from_month_default,
+            key="receipt_from_month",
         )
     with col2:
         from_year = st.selectbox(
             t("receipt_report_page.from_year"),
             options=list(range(2020, datetime.now().year + 1)),
-            index=3,
+            index=from_year_default,
+            key="receipt_from_year",
         )
     with col3:
         to_month = st.selectbox(
             t("receipt_report_page.to_month"),
             options=list(range(1, 13)),
             format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
-            index=datetime.now().month - 1,
+            index=to_month_default,
+            key="receipt_to_month",
         )
     with col4:
         to_year = st.selectbox(
             t("receipt_report_page.to_year"),
             options=list(range(2020, datetime.now().year + 1)),
-            index=len(list(range(2020, datetime.now().year + 1))) - 1,
+            index=to_year_default,
+            key="receipt_to_year",
         )
 
     min_date = date(from_year, from_month, 1)
@@ -394,22 +432,22 @@ def render_receipt_report_page(
                         }
                     }
                     .kpi-label {
-                        font-size: 0.75rem;
-                        font-weight: 600;
+                        font-size: 0.875rem;
+                        font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.05em;
+                        letter-spacing: 0.8px;
                         color: #64748b;
-                        margin: 0 0 0.5rem 0;
+                        margin-bottom: 0.5rem;
                     }
                     @media (prefers-color-scheme: dark) {
                         .kpi-label { color: #94a3b8; }
                     }
                     .kpi-value {
-                        font-size: 2rem !important;
-                        font-weight: 700;
+                        font-size: 2.5rem !important;
+                        font-weight: 900;
                         color: #1e293b;
-                        margin: 0;
-                        font-family: 'SF Mono', Monaco, monospace;
+                        margin-bottom: 0.75rem;
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                         white-space: nowrap;
                     }
                     @media (prefers-color-scheme: dark) {
@@ -446,7 +484,7 @@ def render_receipt_report_page(
                     </div>
                     <div class="kpi-card">
                         <p class="kpi-label">Total Cost (Kreds)</p>
-                        <p class="kpi-value"><span style="color:#dc2626">{cost_total:,.2f} €</span></p>
+                        <p class="kpi-value">{color_value(cost_total)}</p>
                     </div>
                     <div class="kpi-card">
                         <p class="kpi-label">{t('receipt_report_page.num_cost_centers')}</p>
@@ -715,7 +753,7 @@ def render_receipt_report_page(
                     <table class="cc-table">
                       <thead class="cc-table-header">
                         <tr>
-                          <th>Cost Center</th><th>Description</th><th>Income</th><th>Cost</th><th>Margin</th>
+                          <th>Cost Center</th><th>Description</th><th style="text-align:right;">Income</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Margin</th>
                         </tr>
                       </thead>
                       <tbody>{rows_html_str}</tbody>

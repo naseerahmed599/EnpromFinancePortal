@@ -193,6 +193,36 @@ Common response codes:
 - `404` - Not found
 - `503` - Service unavailable
 
+## Troubleshooting
+
+### Code Changes Not Taking Effect (Python Cache Issue)
+
+If you've modified code (especially `flowwer_api_client.py`) but changes aren't being picked up by Streamlit:
+
+**Quick Fix:**
+```bash
+# Run the clear cache script
+./clear_cache.sh
+
+# Or manually:
+find . -name "*.pyc" -delete
+find . -name "__pycache__" -type d -exec rm -r {} + 2>/dev/null || true
+```
+
+**Then restart Streamlit:**
+1. Stop the current process (Ctrl+C)
+2. Run: `streamlit run enprom_financial_app.py`
+
+**Why this happens:**
+- Python stores compiled bytecode (`.pyc` files) in `__pycache__` directories
+- Streamlit may not always reload all modules on code changes
+- Restarting forces Python to reload all modules from source
+
+**When to use:**
+- After modifying `flowwer_api_client.py` or other imported modules
+- When API calls behave unexpectedly after code changes
+- When you see old error messages or old behavior persisting
+
 ##  Support
 
 For API support, contact: support@flowwer.de

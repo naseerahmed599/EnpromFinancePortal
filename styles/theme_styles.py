@@ -1195,26 +1195,26 @@ def get_kpi_card_styles():
         
         .kpi-value-main {
             font-size: 2.5rem;
-            font-weight: 800;
+            font-weight: 900;
             color: var(--value-color, #1e293b);
-            margin: 0.5rem 0;
+            margin-bottom: 0.75rem;
             line-height: 1.1;
-            font-family: 'SF Mono', Monaco, monospace;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         @media (prefers-color-scheme: dark) {
             .kpi-value-main {
-                color: #f1f5f9;
+                color: var(--value-color, #f1f5f9);
             }
         }
         
         .kpi-label-main {
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.8px;
             color: #64748b;
-            margin: 0;
+            margin-bottom: 0.5rem;
         }
         
         @media (prefers-color-scheme: dark) {

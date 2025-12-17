@@ -230,8 +230,8 @@ def render_single_document_page(
                     st.session_state.selected_document = doc
                     if "doc_id" in locals() and doc_id:
                         normalized_splits = []
-                        if isinstance(doc, dict) and "documentReceiptSplits" in doc:
-                            embedded_splits = doc.get("documentReceiptSplits")
+                        if isinstance(doc, dict):
+                            embedded_splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits")
                             if embedded_splits:
                                 normalized_splits = normalize_splits(embedded_splits)
                         
@@ -246,11 +246,10 @@ def render_single_document_page(
                                     full_doc = st.session_state.client.get_document(int(doc_id))
                                     if full_doc and isinstance(full_doc, dict):
                                         full_doc = normalize_dict(full_doc)
-                                        if "documentReceiptSplits" in full_doc:
-                                            embedded_splits = full_doc.get("documentReceiptSplits")
-                                            if embedded_splits:
-                                                normalized_splits = normalize_splits(embedded_splits)
-                                                st.session_state.selected_document = full_doc
+                                        embedded_splits = full_doc.get("receiptSplits") or full_doc.get("documentReceiptSplits")
+                                        if embedded_splits:
+                                            normalized_splits = normalize_splits(embedded_splits)
+                                            st.session_state.selected_document = full_doc
                         
                         st.session_state.receipt_splits = normalized_splits
                     else:
