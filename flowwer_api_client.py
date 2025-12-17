@@ -32,6 +32,46 @@ class FlowwerAPIClient:
         if self.api_key:
             self.session.headers.update({"X-FLOWWER-ApiKey": self.api_key})
 
+    def verify_api_key(self, api_key: Optional[str] = None) -> tuple[bool, str]:
+        """
+        Verify if an API key is valid by making a lightweight API call
+        
+        Args:
+            api_key: The API key to verify (if None, uses self.api_key)
+            
+        Returns:
+            tuple: (is_valid: bool, message: str) - True if API key is valid, False otherwise
+                   Message contains details about the verification result
+        """
+        test_key = api_key or self.api_key
+        if not test_key:
+            return False, "No API key provided"
+        
+      
+        url = f"{self.base_url}/api/v1/companies/activeflows/reduced"
+        
+        try:
+            test_headers = {"X-FLOWWER-ApiKey": test_key}
+            response = requests.get(url, headers=test_headers, timeout=5)
+            
+            status_code = response.status_code
+            
+            if status_code == 200:
+                return True, "API key verified successfully! ✓"
+            elif status_code in [401, 403]:
+                return False, "The API key you entered is not valid. Please check your credentials and try again."
+            else:
+                return False, f"The API server returned an unexpected response (Status: {status_code}). Please try again later."
+                
+        except requests.exceptions.Timeout:
+            return False, "The verification request timed out. Please check your internet connection and try again."
+        except requests.exceptions.ConnectionError:
+            return False, "Unable to connect to the API server. Please check your internet connection and try again."
+        except requests.exceptions.RequestException as e:
+            return False, "A network error occurred during verification. Please check your connection and try again."
+        except Exception as e:
+            return False, "An unexpected error occurred during verification. Please try again."
+
     def authenticate(self, username: str, password: str) -> bool:
         """
         Authenticate and get API key

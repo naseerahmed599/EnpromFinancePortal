@@ -12,7 +12,7 @@ Interactive portal for financial document workflows
 #   - Set to False: Compare Data section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-IN_PRODUCTION = True
+IN_PRODUCTION = False
 
 # ============================================================================
 
@@ -27,6 +27,7 @@ import openpyxl
 from io import BytesIO
 import requests
 import os
+import time
 from styles import (
     get_all_document_page_styles,
     get_page_header_purple,
@@ -880,22 +881,33 @@ if not st.session_state.client.api_key:
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            if (
-                st.session_state.correct_api_key
-                and new_api_key.strip() == st.session_state.correct_api_key
-            ):
+            # Verify the API key by making a test API call
+            # Use a more prominent loader with custom styling
+            st.markdown("""
+                <style>
+                    .stSpinner > div {
+                        border-color: #6366f1 !important;
+                        border-top-color: transparent !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            with st.spinner("🔐 Verifying your API key with Flowwer..."):
+                time.sleep(0.3)  
+                is_valid, message = st.session_state.client.verify_api_key(new_api_key.strip())
+            
+            if is_valid:
                 st.session_state.client.api_key = new_api_key.strip()
                 st.session_state.client.session.headers.update(
                     {"X-FLOWWER-ApiKey": new_api_key.strip()}
                 )
-                st.success(
-                    t("messages.api_key_updated") if callable(t) else "API key saved."
-                )
+                st.success(message)
+                st.balloons()  
+                time.sleep(1)
                 st.rerun()
             else:
-                st.error(
-                    "Invalid API key. Please check your credentials and try again."
-                )
+                st.error(message)
+                st.info("💡 **Tip:** Make sure you're using the correct API key from your Flowwer account.")
 
     st.stop()
 

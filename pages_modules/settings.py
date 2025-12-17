@@ -4,6 +4,7 @@ Configure API settings and authentication.
 """
 
 import streamlit as st
+import time
 
 
 def render_settings_page(client, t, get_page_header_slate, get_card_styles):
@@ -90,12 +91,32 @@ def render_settings_page(client, t, get_page_header_slate, get_card_styles):
         if not new_api_key:
             st.warning("Please enter a valid API key.")
         else:
-            st.session_state.client.api_key = new_api_key
-            st.session_state.client.session.headers.update(
-                {"X-FLOWWER-ApiKey": new_api_key}
-            )
-            st.success(t("messages.api_key_updated"))
-            st.rerun()
+          
+            st.markdown("""
+                <style>
+                    .stSpinner > div {
+                        border-color: #6366f1 !important;
+                        border-top-color: transparent !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            with st.spinner("🔐 Verifying your API key with Flowwer..."):
+                time.sleep(0.3)  
+                is_valid, message = client.verify_api_key(new_api_key.strip())
+            
+            if is_valid:
+                st.session_state.client.api_key = new_api_key.strip()
+                st.session_state.client.session.headers.update(
+                    {"X-FLOWWER-ApiKey": new_api_key.strip()}
+                )
+                st.success(message)
+                st.balloons() 
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error(message)
+                st.info("💡 **Tip:** Make sure you're using the correct API key from your Flowwer account.")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### API Information")
