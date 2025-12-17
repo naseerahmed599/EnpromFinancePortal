@@ -396,6 +396,31 @@ def apply_custom_css():
         /* ====================================================================
            PREMIUM GLOSSY BUTTON STYLING
            ==================================================================== */
+
+        /* Consistent button sizing (main area only)
+           - Keeps height/padding consistent across pages
+           - Avoids affecting sidebar navigation buttons (sidebar has its own rules) */
+        [data-testid="stMain"]{
+            --enprom-btn-min-height: 44px;
+            --enprom-btn-pad-y: 0.60rem;
+            --enprom-btn-pad-x: 1.10rem;
+            --enprom-btn-font-size: 0.92rem;
+        }
+        [data-testid="stMain"] .stButton > button,
+        [data-testid="stMain"] .stDownloadButton > button{
+            min-height: var(--enprom-btn-min-height) !important;
+            padding: var(--enprom-btn-pad-y) var(--enprom-btn-pad-x) !important;
+            font-size: var(--enprom-btn-font-size) !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.45rem !important;
+            white-space: nowrap !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
         
         /* Primary Buttons - Glossy Blue with 3D effect */
         .stButton > button {
@@ -405,9 +430,7 @@ def apply_custom_css():
             color: white !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 12px !important;
-            padding: 0.75rem 1.75rem !important;
             font-weight: 600 !important;
-            font-size: 0.95rem !important;
             box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35),
                         0 2px 4px rgba(0, 0, 0, 0.1),
                         inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
@@ -454,9 +477,7 @@ def apply_custom_css():
             color: white !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 12px !important;
-            padding: 0.75rem 1.75rem !important;
             font-weight: 600 !important;
-            font-size: 0.95rem !important;
             box-shadow: 0 4px 16px rgba(100, 116, 139, 0.25),
                         0 2px 4px rgba(0, 0, 0, 0.1),
                         inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
