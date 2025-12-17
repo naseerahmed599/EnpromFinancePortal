@@ -133,25 +133,66 @@ def apply_custom_css():
         footer {visibility: hidden;}
         # header {visibility: hidden;}
         
-        /* Modern Sidebar Styling - Works for both light and dark themes */
+        /* ====================================================================
+           SIDEBAR (Glassmorphic) — keep width exactly the same
+           ==================================================================== */
         [data-testid="stSidebar"] {
-            background: linear-gradient(165deg, #2563a8 0%, #1a4d7a 50%, #0f2944 100%);
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
             position: relative !important;
             width: 300px !important;
             height: auto !important;
             box-sizing: border-box !important;
             flex-shrink: 0 !important;
+
+            /* True glass panel */
+            background: rgba(15, 23, 42, 0.38) !important;
+            backdrop-filter: blur(18px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+            border-right: 1px solid rgba(148, 163, 184, 0.18) !important;
+            box-shadow:
+                10px 0 40px rgba(0, 0, 0, 0.14),
+                2px 0 10px rgba(0, 0, 0, 0.06) !important;
+            overflow: hidden !important;
         }
-        
-        [data-testid="stSidebar"] > div:first-child {
-            padding-top: 2rem;
-            width: 330 !important;
+
+        /* Decorative gradient + vignette overlay (doesn't affect layout) */
+        [data-testid="stSidebar"]::before{
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(900px 520px at 20% 0%,
+                    rgba(59, 130, 246, 0.42),
+                    transparent 60%),
+                radial-gradient(800px 540px at 90% 20%,
+                    rgba(14, 165, 233, 0.28),
+                    transparent 60%),
+                linear-gradient(165deg,
+                    rgba(15, 29, 51, 0.15) 0%,
+                    rgba(12, 33, 58, 0.42) 55%,
+                    rgba(8, 29, 52, 0.62) 100%);
+            opacity: 0.90;
+            pointer-events: none;
+        }
+
+        [data-testid="stSidebar"]::after{
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), transparent 24%, transparent 76%, rgba(0,0,0,0.16));
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
+        /* Ensure sidebar content sits above overlays */
+        [data-testid="stSidebar"] > div:first-child{
+            position: relative;
+            z-index: 1;
+            padding: 2rem 1.1rem 1.5rem 1.1rem !important;
         }
         
         /* Sidebar text colors */
         [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-            color: #e8f1ff;
+            color: rgba(226, 232, 240, 0.92);
         }
         
         /* App Title Styling */
@@ -161,13 +202,13 @@ def apply_custom_css():
             font-size: 1.5rem !important;
             padding: 0.5rem 0 0.8rem 0 !important;
             margin-bottom: 0.5rem !important;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.22);
             letter-spacing: -0.02em;
         }
         
         /* Section Headers (h3) */
         [data-testid="stSidebar"] h3 {
-            color: #7ec8ff !important;
+            color: rgba(191, 219, 254, 0.95) !important;
             font-size: 0.7rem !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
@@ -178,44 +219,65 @@ def apply_custom_css():
             opacity: 0.9;
         }
         
-        /* Navigation Buttons - Modern Card Style */
+        /* Navigation Buttons - Glass pills */
         [data-testid="stSidebar"] button {
-            border-radius: 10px !important;
-            font-weight: 500 !important;
+            border-radius: 14px !important;
+            font-weight: 600 !important;
             font-size: 0.9rem !important;
-            padding: 0.65rem 1rem !important;
+            padding: 0.68rem 0.95rem !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            border: none !important;
+            border: 1px solid rgba(148, 163, 184, 0.18) !important;
             margin-bottom: 0.4rem !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            box-shadow:
+                0 10px 28px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(14px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+        }
+
+        [data-testid="stSidebar"] button:focus{
+            outline: none !important;
+            box-shadow:
+                0 0 0 3px rgba(59, 130, 246, 0.28),
+                0 10px 28px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
         }
         
         /* Secondary buttons (inactive) */
         [data-testid="stSidebar"] button[kind="secondary"] {
-            background: rgba(255, 255, 255, 0.08) !important;
-            color: #d4e6f7 !important;
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.06) !important;
+            color: rgba(226, 232, 240, 0.90) !important;
         }
         
         [data-testid="stSidebar"] button[kind="secondary"]:hover {
-            background: rgba(255, 255, 255, 0.15) !important;
+            background: rgba(255, 255, 255, 0.10) !important;
             color: #ffffff !important;
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            transform: translateX(3px);
+            border-color: rgba(59, 130, 246, 0.28) !important;
+            box-shadow:
+                0 14px 34px rgba(0, 0, 0, 0.26),
+                0 6px 16px rgba(59, 130, 246, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
         }
         
         /* Primary buttons (active page) */
         [data-testid="stSidebar"] button[kind="primary"] {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.96) 0%, rgba(37, 99, 235, 0.96) 100%) !important;
             color: #ffffff !important;
             font-weight: 600 !important;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
-            border-left: 3px solid #60a5fa !important;
+            border-color: rgba(59, 130, 246, 0.55) !important;
+            box-shadow:
+                0 18px 44px rgba(37, 99, 235, 0.35),
+                0 6px 18px rgba(0, 0, 0, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
         }
         
         [data-testid="stSidebar"] button[kind="primary"]:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5) !important;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.98) 0%, rgba(29, 78, 216, 0.98) 100%) !important;
+            box-shadow:
+                0 22px 56px rgba(37, 99, 235, 0.42),
+                0 8px 22px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.26) !important;
         }
         
         /* Dividers */
@@ -223,32 +285,33 @@ def apply_custom_css():
             margin: 1.5rem 0;
             border: none;
             height: 1px;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                rgba(255, 255, 255, 0.2) 50%, 
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(148, 163, 184, 0.28) 50%,
                 transparent 100%);
         }
         
         /* Quick Stats Panel - Glassmorphism */
         .quick-stats {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
             border-radius: 12px;
             padding: 1rem;
             margin: 1rem 0 1.5rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22);
         }
         
         .quick-stats-title {
-            color: #93c5fd;
+            color: rgba(191, 219, 254, 0.95);
             font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             margin-bottom: 0.8rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
         }
         
         .quick-stats-item {
@@ -256,9 +319,9 @@ def apply_custom_css():
             justify-content: space-between;
             align-items: center;
             padding: 0.5rem 0;
-            color: #e0f2fe;
+            color: rgba(226, 232, 240, 0.92);
             font-size: 0.85rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.10);
         }
         
         .quick-stats-item:last-child {
@@ -269,11 +332,22 @@ def apply_custom_css():
             font-weight: 700;
             font-size: 1rem;
             color: #ffffff;
-            background: rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.32);
             padding: 0.2rem 0.6rem;
             border-radius: 8px;
             min-width: 40px;
             text-align: center;
+        }
+
+        /* Make the ENPROM logo readable (black text) with a subtle frosted capsule */
+        [data-testid="stSidebar"] [data-testid="stImage"] img{
+            background: linear-gradient(135deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.65) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 18px;
+            padding: 8px 10px;
+            box-shadow:
+                0 10px 26px rgba(0, 0, 0, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.70);
         }
         
         /* Connection Status */
@@ -311,12 +385,12 @@ def apply_custom_css():
         }
         
         [data-testid="stSidebar"] > div::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(148, 163, 184, 0.28);
             border-radius: 10px;
         }
         
         [data-testid="stSidebar"] > div::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(148, 163, 184, 0.40);
         }
         
         /* ====================================================================
