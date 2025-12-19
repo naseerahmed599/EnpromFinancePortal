@@ -221,7 +221,7 @@ def apply_custom_css():
         
         /* Navigation Buttons - Glass pills */
         [data-testid="stSidebar"] button {
-            border-radius: 14px !important;
+            border-radius: 999px !important;
             font-weight: 600 !important;
             font-size: 0.9rem !important;
             padding: 0.68rem 0.95rem !important;
@@ -394,23 +394,70 @@ def apply_custom_css():
         }
         
         /* ====================================================================
-           PREMIUM GLOSSY BUTTON STYLING
+           HIDE ICONS FROM STREAMLIT MESSAGES (success, info, warning, error)
+           ==================================================================== */
+        
+        /* Hide icons from all Streamlit message types */
+        .stSuccess > div:first-child,
+        .stSuccess svg,
+        .stSuccess [data-testid="stIcon"],
+        .stSuccess .stIcon,
+        .stInfo > div:first-child,
+        .stInfo svg,
+        .stInfo [data-testid="stIcon"],
+        .stInfo .stIcon,
+        .stWarning > div:first-child,
+        .stWarning svg,
+        .stWarning [data-testid="stIcon"],
+        .stWarning .stIcon,
+        .stError > div:first-child,
+        .stError svg,
+        .stError [data-testid="stIcon"],
+        .stError .stIcon{
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* Hide icons from toast notifications */
+        [data-baseweb="toast"] svg,
+        [data-baseweb="toast"] [data-testid="stIcon"],
+        [data-baseweb="toast"] .stIcon{
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* Adjust padding since icons are removed */
+        .stSuccess,
+        .stInfo,
+        .stWarning,
+        .stError{
+            padding-left: 1rem !important;
+        }
+
+        /* ====================================================================
+           GLOBAL BUTTON STYLING (Main area only — excludes sidebar navigation)
+           - Inspired by Analytics "Load Data" look
+           - IMPORTANT: no leading dot / no ::before decoration
            ==================================================================== */
 
-        /* Consistent button sizing (main area only)
-           - Keeps height/padding consistent across pages
-           - Avoids affecting sidebar navigation buttons (sidebar has its own rules) */
         [data-testid="stMain"]{
-            --enprom-btn-min-height: 44px;
-            --enprom-btn-pad-y: 0.60rem;
-            --enprom-btn-pad-x: 1.10rem;
-            --enprom-btn-font-size: 0.92rem;
+            --enprom-pill-radius: 999px;
+            --enprom-pill-font-size: 0.86rem;
+            --enprom-pill-font-weight: 800;
+            --enprom-pill-pad-y: 0.56rem;
+            --enprom-pill-pad-x: 1.05rem;
+            --enprom-pill-min-height: 2.5rem;
         }
+
+        /* Base pill look for all buttons in main content (including download buttons) */
         [data-testid="stMain"] .stButton > button,
         [data-testid="stMain"] .stDownloadButton > button{
-            min-height: var(--enprom-btn-min-height) !important;
-            padding: var(--enprom-btn-pad-y) var(--enprom-btn-pad-x) !important;
-            font-size: var(--enprom-btn-font-size) !important;
+            border-radius: var(--enprom-pill-radius) !important;
+            font-size: var(--enprom-pill-font-size) !important;
+            font-weight: var(--enprom-pill-font-weight) !important;
+            letter-spacing: 0.01em !important;
+            min-height: var(--enprom-pill-min-height) !important;
+            padding: var(--enprom-pill-pad-y) var(--enprom-pill-pad-x) !important;
             line-height: 1 !important;
             display: inline-flex !important;
             align-items: center !important;
@@ -420,100 +467,92 @@ def apply_custom_css():
             max-width: 100% !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
+            backdrop-filter: blur(10px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(10px) saturate(160%) !important;
+            transition: all 0.2s ease !important;
+            transform: translateY(0px);
+            box-sizing: border-box !important;
         }
-        
-        /* Primary Buttons - Glossy Blue with 3D effect */
-        .stButton > button {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 12px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35),
-                        0 2px 4px rgba(0, 0, 0, 0.1),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            position: relative !important;
-            overflow: hidden !important;
+
+        /* Ensure no pseudo-element decoration on buttons */
+        [data-testid="stMain"] .stButton > button::before,
+        [data-testid="stMain"] .stDownloadButton > button::before{
+            content: none !important;
         }
-        
-        .stButton > button::before {
-            content: '' !important;
-            position: absolute !important;
-            top: -50% !important;
-            left: -50% !important;
-            width: 200% !important;
-            height: 200% !important;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%) !important;
-            opacity: 0 !important;
-            transition: opacity 0.3s ease !important;
+
+        /* Primary buttons */
+        [data-testid="stMain"] button[kind="primary"],
+        [data-testid="stMain"] button[data-testid="baseButton-primary"]{
+            background: rgba(59, 130, 246, 0.12) !important;
+            color: #1d4ed8 !important;
+            border: 1px solid rgba(59, 130, 246, 0.26) !important;
+            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.14) !important;
         }
-        
-        .stButton > button:hover {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(29, 78, 216, 0.95) 100%) !important;
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.45),
-                        0 4px 8px rgba(0, 0, 0, 0.15),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-            transform: translateY(-2px) !important;
+        [data-testid="stMain"] button[kind="primary"]:hover,
+        [data-testid="stMain"] button[data-testid="baseButton-primary"]:hover{
+            background: rgba(59, 130, 246, 0.16) !important;
+            border-color: rgba(59, 130, 246, 0.34) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.18) !important;
         }
-        
-        .stButton > button:hover::before {
-            opacity: 1 !important;
+        [data-testid="stMain"] button[kind="primary"]:active,
+        [data-testid="stMain"] button[data-testid="baseButton-primary"]:active{
+            transform: translateY(0px);
+            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.14) !important;
         }
-        
-        .stButton > button:active {
-            transform: translateY(0px) !important;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+
+        /* Secondary buttons (neutral — keep non-destructive actions non-red) */
+        [data-testid="stMain"] button[kind="secondary"],
+        [data-testid="stMain"] button[data-testid="baseButton-secondary"],
+        [data-testid="stMain"] .stDownloadButton > button{
+            background: rgba(100, 116, 139, 0.10) !important;
+            color: rgba(15, 23, 42, 0.86) !important;
+            border: 1px solid rgba(100, 116, 139, 0.22) !important;
+            box-shadow: 0 8px 22px rgba(100, 116, 139, 0.10) !important;
         }
-        
-        /* Download Buttons - Lighter Blue/Gray Color */
-        .stDownloadButton > button {
-            background: linear-gradient(135deg, rgba(100, 116, 139, 0.85) 0%, rgba(71, 85, 105, 0.85) 100%) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 12px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 4px 16px rgba(100, 116, 139, 0.25),
-                        0 2px 4px rgba(0, 0, 0, 0.1),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            position: relative !important;
-            overflow: hidden !important;
+        [data-testid="stMain"] button[kind="secondary"]:hover,
+        [data-testid="stMain"] button[data-testid="baseButton-secondary"]:hover,
+        [data-testid="stMain"] .stDownloadButton > button:hover{
+            background: rgba(100, 116, 139, 0.14) !important;
+            border-color: rgba(100, 116, 139, 0.30) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(100, 116, 139, 0.14) !important;
         }
-        
-        .stDownloadButton > button::before {
-            content: '' !important;
-            position: absolute !important;
-            top: -50% !important;
-            left: -50% !important;
-            width: 200% !important;
-            height: 200% !important;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%) !important;
-            opacity: 0 !important;
-            transition: opacity 0.3s ease !important;
+        [data-testid="stMain"] button[kind="secondary"]:active,
+        [data-testid="stMain"] button[data-testid="baseButton-secondary"]:active,
+        [data-testid="stMain"] .stDownloadButton > button:active{
+            transform: translateY(0px);
+            box-shadow: 0 8px 22px rgba(100, 116, 139, 0.10) !important;
         }
-        
-        .stDownloadButton > button:hover {
-            background: linear-gradient(135deg, rgba(71, 85, 105, 0.9) 0%, rgba(51, 65, 85, 0.9) 100%) !important;
-            box-shadow: 0 8px 24px rgba(100, 116, 139, 0.35),
-                        0 4px 8px rgba(0, 0, 0, 0.15),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-            transform: translateY(-2px) !important;
-        }
-        
-        .stDownloadButton > button:hover::before {
-            opacity: 1 !important;
-        }
-        
-        .stDownloadButton > button:active {
-            transform: translateY(0px) !important;
-            box-shadow: 0 2px 8px rgba(100, 116, 139, 0.25),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+
+        @media (prefers-color-scheme: dark){
+            [data-testid="stMain"] button[kind="primary"],
+            [data-testid="stMain"] button[data-testid="baseButton-primary"]{
+                background: rgba(59, 130, 246, 0.18) !important;
+                color: rgba(224, 242, 254, 0.95) !important;
+                border-color: rgba(59, 130, 246, 0.32) !important;
+                box-shadow: 0 10px 26px rgba(0,0,0,0.28), 0 8px 22px rgba(59, 130, 246, 0.16) !important;
+            }
+            [data-testid="stMain"] button[kind="primary"]:hover,
+            [data-testid="stMain"] button[data-testid="baseButton-primary"]:hover{
+                background: rgba(59, 130, 246, 0.22) !important;
+                border-color: rgba(59, 130, 246, 0.40) !important;
+            }
+
+            [data-testid="stMain"] button[kind="secondary"],
+            [data-testid="stMain"] button[data-testid="baseButton-secondary"],
+            [data-testid="stMain"] .stDownloadButton > button{
+                background: rgba(148, 163, 184, 0.14) !important;
+                color: rgba(226, 232, 240, 0.92) !important;
+                border-color: rgba(148, 163, 184, 0.22) !important;
+                box-shadow: 0 10px 26px rgba(0,0,0,0.28), 0 8px 22px rgba(148, 163, 184, 0.10) !important;
+            }
+            [data-testid="stMain"] button[kind="secondary"]:hover,
+            [data-testid="stMain"] button[data-testid="baseButton-secondary"]:hover,
+            [data-testid="stMain"] .stDownloadButton > button:hover{
+                background: rgba(148, 163, 184, 0.18) !important;
+                border-color: rgba(148, 163, 184, 0.30) !important;
+            }
         }
         
         /* Enhanced Input Styling - Theme Adaptive */
@@ -779,11 +818,12 @@ if not st.session_state.client.api_key:
         <style>
             .auth-container{
                 max-width: 680px;
-                margin: 10vh auto 2rem auto;
+                margin: 4vh auto 2rem auto;
                 text-align: center !important;
             }
             .auth-logo-section{
-                margin-bottom: 2rem;
+                margin-bottom: 1.5rem;
+                margin-top: 0;
                 animation: fadeInDown 0.6s ease-out;
                 text-align: center !important;
             }
@@ -1018,41 +1058,142 @@ if not st.session_state.client.api_key:
                 }
             }
             
-            /* Primary button theme to match app - indigo/purple gradient
+            /* Primary button theme to match app - pill style with consistent sizing
                (Target form submit buttons too; Streamlit DOM differs by version) */
+            .block-container button[kind="primary"],
+            .block-container button[data-testid="baseButton-primary"],
+            .block-container div.stButton > button[kind="primary"],
+            .block-container div.stButton > button[data-testid="baseButton-primary"],
             button[kind="primary"],
             button[data-testid="baseButton-primary"],
             div.stButton > button[kind="primary"],
-            div.stButton > button[data-testid="baseButton-primary"]{
+            div.stButton > button[data-testid="baseButton-primary"],
+            button[type="submit"][kind="primary"],
+            button[type="submit"][data-testid="baseButton-primary"],
+            div[data-testid="stForm"] button[kind="primary"],
+            div[data-testid="stForm"] button[data-testid="baseButton-primary"],
+            div[data-testid="stForm"] button[type="submit"]{
                 background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
                 color: #fff !important; 
                 border: 0 !important;
                 box-shadow: 0 8px 18px rgba(79,70,229,.25) !important;
-                font-weight: 600 !important;
-                border-radius: 12px !important;
-                padding: 0.78rem 1.25rem !important;
+                font-weight: 800 !important;
+                font-size: 0.86rem !important;
+                letter-spacing: 0.01em !important;
+                border-radius: 999px !important;
+                min-height: 2.5rem !important;
+                padding: 0.56rem 1.05rem !important;
                 transition: all 0.2s ease !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             button[kind="primary"]:hover,
             button[data-testid="baseButton-primary"]:hover,
             div.stButton > button[kind="primary"]:hover,
-            div.stButton > button[data-testid="baseButton-primary"]:hover{
+            div.stButton > button[data-testid="baseButton-primary"]:hover,
+            button[type="submit"][kind="primary"]:hover,
+            button[type="submit"][data-testid="baseButton-primary"]:hover,
+            div[data-testid="stForm"] button[kind="primary"]:hover,
+            div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover,
+            div[data-testid="stForm"] button[type="submit"]:hover{
                 transform: translateY(-1px);
                 box-shadow: 0 12px 28px rgba(79,70,229,.35) !important;
             }
 
-            /* Secondary button */
+            /* Secondary button - pill style with consistent sizing */
+            .block-container button[kind="secondary"],
+            .block-container button[data-testid="baseButton-secondary"],
+            .block-container div.stButton > button[kind="secondary"],
+            .block-container div.stButton > button[data-testid="baseButton-secondary"],
             button[kind="secondary"],
             button[data-testid="baseButton-secondary"],
             div.stButton > button[kind="secondary"],
-            div.stButton > button[data-testid="baseButton-secondary"]{
-                border-radius: 12px !important;
-                padding: 0.78rem 1.25rem !important;
-                font-weight: 600 !important;
+            div.stButton > button[data-testid="baseButton-secondary"],
+            button[type="submit"][kind="secondary"],
+            button[type="submit"][data-testid="baseButton-secondary"],
+            div[data-testid="stForm"] button[kind="secondary"],
+            div[data-testid="stForm"] button[data-testid="baseButton-secondary"],
+            div[data-testid="stForm"] button[type="submit"]:not([kind="primary"]){
+                border-radius: 999px !important;
+                min-height: 2.5rem !important;
+                padding: 0.56rem 1.05rem !important;
+                font-weight: 800 !important;
+                font-size: 0.86rem !important;
+                letter-spacing: 0.01em !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            /* Catch-all for ALL buttons on login page - ensure pill style with maximum specificity */
+            .block-container button,
+            .block-container button[type="button"],
+            .block-container button[type="submit"],
+            .block-container .stButton,
+            .block-container .stButton > button,
+            .block-container div.stButton > button,
+            .block-container form button,
+            .block-container form button[type="submit"],
+            .block-container form .stButton > button,
+            form button,
+            form button[type="button"],
+            form button[type="submit"],
+            form .stButton > button,
+            form div.stButton > button,
+            div[data-testid="stForm"] button,
+            div[data-testid="stForm"] button[type="button"],
+            div[data-testid="stForm"] button[type="submit"],
+            div[data-testid="stForm"] .stButton > button,
+            div[data-testid="stForm"] div.stButton > button,
+            form#api_key_login_form button,
+            form#api_key_login_form button[type="button"],
+            form#api_key_login_form button[type="submit"],
+            form#api_key_login_form .stButton > button,
+            form#api_key_login_form div.stButton > button,
+            div[data-testid="stForm"]:has(form#api_key_login_form) button,
+            .block-container:has(form#api_key_login_form) button,
+            .block-container:has(form#api_key_login_form) .stButton > button,
+            .block-container:has(form#api_key_login_form) div.stButton > button{
+                border-radius: 999px !important;
+                min-height: 2.5rem !important;
+                padding: 0.56rem 1.05rem !important;
+                font-weight: 800 !important;
+                font-size: 0.86rem !important;
+                letter-spacing: 0.01em !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            /* Ensure primary buttons on login page have blue gradient - maximum specificity */
+            .block-container button[kind="primary"],
+            .block-container button[data-testid="baseButton-primary"],
+            .block-container .stButton > button[kind="primary"],
+            .block-container .stButton > button[data-testid="baseButton-primary"],
+            .block-container form button[kind="primary"],
+            .block-container form button[data-testid="baseButton-primary"],
+            .block-container form .stButton > button[kind="primary"],
+            form button[kind="primary"],
+            form button[data-testid="baseButton-primary"],
+            form .stButton > button[kind="primary"],
+            form .stButton > button[data-testid="baseButton-primary"],
+            div[data-testid="stForm"] button[kind="primary"],
+            div[data-testid="stForm"] button[data-testid="baseButton-primary"],
+            div[data-testid="stForm"] .stButton > button[kind="primary"],
+            div[data-testid="stForm"] .stButton > button[data-testid="baseButton-primary"]{
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                background-image: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                color: #fff !important;
+                border: 0 !important;
+                border-width: 0 !important;
+                box-shadow: 0 8px 18px rgba(79,70,229,.25) !important;
             }
 
             /* Neutralize global glossy button overlays on login screen */
-            button::before{
+            .block-container button::before,
+            form button::before,
+            div[data-testid="stForm"] button::before{
                 content: none !important;
             }
         </style>

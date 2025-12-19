@@ -179,89 +179,6 @@ def render_analytics_page(
             justify-content: flex-end !important;
             align-items: flex-start !important;
         }
-        
-        /* Load Data / Clear Filters — match KPI indicator “glassy pill” style
-           Streamlit cannot wrap widgets with HTML from st.markdown, so we target the actual top control row
-           by selecting the horizontal block that contains BOTH a primary and secondary button. */
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) .stButton > button{
-            border-radius: 999px !important;
-            font-size: 0.8rem !important;
-            font-weight: 800 !important;
-            letter-spacing: 0.01em !important;
-            padding: 0.52rem 1.0rem 0.52rem 2.1rem !important; /* left space for dot */
-            position: relative !important;
-            backdrop-filter: blur(10px) saturate(160%) !important;
-            -webkit-backdrop-filter: blur(10px) saturate(160%) !important;
-            transition: all 0.2s ease !important;
-            transform: translateY(0px);
-        }
-
-        /* Replace global glossy overlay with a dot */
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) .stButton > button::before{
-            content: "" !important;
-            position: absolute !important;
-            left: 0.85rem !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            width: 8px !important;
-            height: 8px !important;
-            border-radius: 999px !important;
-            opacity: 1 !important;
-            transition: none !important;
-            background: transparent !important;
-        }
-
-        /* Load Data (primary) */
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"],
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]{
-            background: rgba(59, 130, 246, 0.12) !important;
-            color: #1d4ed8 !important;
-            border: 1px solid rgba(59, 130, 246, 0.26) !important;
-            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.14) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"]::before,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]::before{
-            background: rgba(59, 130, 246, 0.95) !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.20) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"]:hover,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]:hover{
-            background: rgba(59, 130, 246, 0.16) !important;
-            border-color: rgba(59, 130, 246, 0.34) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.18) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"]:active,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]:active{
-            transform: translateY(0px);
-            box-shadow: 0 8px 22px rgba(59, 130, 246, 0.14) !important;
-        }
-
-        /* Clear Filters (secondary) */
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"],
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]{
-            background: rgba(239, 68, 68, 0.10) !important;
-            color: #b91c1c !important;
-            border: 1px solid rgba(239, 68, 68, 0.22) !important;
-            box-shadow: 0 8px 22px rgba(239, 68, 68, 0.10) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"]::before,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]::before{
-            background: rgba(239, 68, 68, 0.92) !important;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"]:hover,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]:hover{
-            background: rgba(239, 68, 68, 0.14) !important;
-            border-color: rgba(239, 68, 68, 0.30) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(239, 68, 68, 0.14) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"]:active,
-        div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]:active{
-            transform: translateY(0px);
-            box-shadow: 0 8px 22px rgba(239, 68, 68, 0.10) !important;
-        }
 
         /* KPI header filter indicator (small, consistent, no "remove" UX) */
         .kpi-filter-indicator{
@@ -297,34 +214,6 @@ def render_analytics_page(
                 border-color: rgba(59, 130, 246, 0.32);
                 color: rgba(224, 242, 254, 0.95);
                 box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), 0 8px 22px rgba(59, 130, 246, 0.16);
-            }
-        }
-        
-        @media (prefers-color-scheme: dark) {
-            div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"],
-            div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]{
-                background: rgba(59, 130, 246, 0.18) !important;
-                color: rgba(224, 242, 254, 0.95) !important;
-                border-color: rgba(59, 130, 246, 0.32) !important;
-                box-shadow: 0 10px 26px rgba(0,0,0,0.28), 0 8px 22px rgba(59, 130, 246, 0.16) !important;
-            }
-            div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="primary"]:hover,
-            div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-primary"]:hover{
-                background: rgba(59, 130, 246, 0.24) !important;
-                border-color: rgba(59, 130, 246, 0.42) !important;
-            }
-
-            div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"],
-            div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]{
-                background: rgba(239, 68, 68, 0.16) !important;
-                color: rgba(254, 202, 202, 0.95) !important;
-                border-color: rgba(239, 68, 68, 0.30) !important;
-                box-shadow: 0 10px 26px rgba(0,0,0,0.28), 0 8px 22px rgba(239, 68, 68, 0.12) !important;
-            }
-            div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):has(button[kind="secondary"]) button[kind="secondary"]:hover,
-            div[data-testid="stHorizontalBlock"]:has(button[data-testid="baseButton-primary"]):has(button[data-testid="baseButton-secondary"]) button[data-testid="baseButton-secondary"]:hover{
-                background: rgba(239, 68, 68, 0.22) !important;
-                border-color: rgba(239, 68, 68, 0.40) !important;
             }
         }
         </style>
@@ -378,11 +267,11 @@ def render_analytics_page(
                 st.stop()
             
             if not client.api_key:
-                st.error(f"❌ {t('analytics_page.api_key_not_set')}")
+                st.error(f"{t('analytics_page.api_key_not_set')}")
                 st.stop()
             
             try:
-                with st.spinner(f"🏢 {t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
+                with st.spinner(f"{t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
                     cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
             except Exception as e:
                 st.warning(f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}")
@@ -405,13 +294,11 @@ def render_analytics_page(
                 st.session_state.analytics_cc_sync_months = cc_months_back
                 
                 st.toast(
-                    f"✅ {t('analytics_page.loaded_documents_cost_centers').format(docs=len(docs), cc=len(cleaned_cc))}",
-                    icon="✅",
+                    f"{t('analytics_page.loaded_documents_cost_centers').format(docs=len(docs), cc=len(cleaned_cc))}",
                 )
             else:
                 st.toast(
-                    f"✅ {t('analytics_page.loaded_documents_no_cost_centers').format(docs=len(docs))}",
-                    icon="✅",
+                    f"{t('analytics_page.loaded_documents_no_cost_centers').format(docs=len(docs))}",
                 )
             
             st.rerun()
@@ -449,7 +336,7 @@ def render_analytics_page(
     st.divider()
 
     if st.session_state.documents is None:
-        st.info(f"📊 {t('analytics_page.click_load_data')}")
+        st.info(f"{t('analytics_page.click_load_data')}")
     else:
         docs = st.session_state.documents
 
@@ -462,7 +349,7 @@ def render_analytics_page(
             st.markdown(
                 f"""
                 <div class="text-secondary" style="text-align: right; font-size: 0.85rem; margin-bottom: 1rem;">
-                    📡 Data loaded {freshness_text} | {len(docs)} documents
+                    Data loaded {freshness_text} | {len(docs)} documents
                 </div>
             """,
                 unsafe_allow_html=True,

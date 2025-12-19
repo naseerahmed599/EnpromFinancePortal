@@ -440,7 +440,7 @@ def render_data_comparison_page(
                             ).fillna("EUR")
                         else:
                             df_flowwer["currencyCode"] = "EUR"
-                            st.warning("⚠️ Document ID field not found. Using EUR as default currency.")
+                            st.warning("Document ID field not found. Using EUR as default currency.")
 
                     st.session_state.flowwer_data = df_flowwer
 

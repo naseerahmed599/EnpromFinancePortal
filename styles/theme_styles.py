@@ -650,14 +650,14 @@ def get_tab_styles():
                     rgba(255, 255, 255, 0.6) 100%) !important;
                 backdrop-filter: blur(16px) saturate(180%) !important;
                 -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.15) !important;
+                border: 1px solid rgba(59, 130, 246, 0.15) !important;
                 border-radius: 16px !important;
                 padding: 8px !important;
                 margin-bottom: 1.5rem !important;
                 margin-top: 1.5rem !important;
 
                 box-shadow: 
-                    0 4px 16px rgba(139, 92, 246, 0.08),
+                    0 4px 16px rgba(59, 130, 246, 0.08),
                     0 2px 8px rgba(0, 0, 0, 0.04),
                     inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
                 gap: 6px !important;
@@ -678,21 +678,21 @@ def get_tab_styles():
             /* Tab hover state */
             [data-baseweb="tab"]:hover {
                 background: linear-gradient(135deg, 
-                    rgba(139, 92, 246, 0.1) 0%, 
-                    rgba(124, 58, 237, 0.05) 100%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.2) !important;
-                color: #6d28d9 !important;
+                    rgba(59, 130, 246, 0.1) 0%, 
+                    rgba(37, 99, 235, 0.05) 100%) !important;
+                border: 1px solid rgba(59, 130, 246, 0.2) !important;
+                color: #1d4ed8 !important;
             }
             
             /* Active/selected tab */
             [aria-selected="true"][data-baseweb="tab"] {
                 background: linear-gradient(135deg, 
-                    #6366f1 0%, 
-                    #4f46e5 100%) !important;
-                border: 1px solid #4f46e5 !important;
+                    #3b82f6 0%, 
+                    #2563eb 100%) !important;
+                border: 1px solid #2563eb !important;
                 color: #ffffff !important;
                 box-shadow: 
-                    0 4px 12px rgba(99, 102, 241, 0.3),
+                    0 4px 12px rgba(59, 130, 246, 0.3),
                     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
             }
             
@@ -703,12 +703,12 @@ def get_tab_styles():
                     rgba(255, 255, 255, 0.5) 100%) !important;
                 backdrop-filter: blur(16px) saturate(180%) !important;
                 -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.12) !important;
+                border: 1px solid rgba(59, 130, 246, 0.12) !important;
                 border-radius: 16px !important;
                 padding: 1.5rem !important;
                 margin-top: 0 !important;
                 box-shadow: 
-                    0 4px 16px rgba(139, 92, 246, 0.06),
+                    0 4px 16px rgba(59, 130, 246, 0.06),
                     0 2px 8px rgba(0, 0, 0, 0.04),
                     inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
             }
@@ -722,12 +722,12 @@ def get_tab_styles():
                     rgba(20, 20, 20, 0.6) 100%) !important;
                 backdrop-filter: blur(16px) saturate(180%) !important;
                 -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.25) !important;
+                border: 1px solid rgba(59, 130, 246, 0.25) !important;
                 border-radius: 16px !important;
                 padding: 8px !important;
                 margin-bottom: 1.5rem !important;
                 box-shadow: 
-                    0 4px 16px rgba(139, 92, 246, 0.12),
+                    0 4px 16px rgba(59, 130, 246, 0.12),
                     0 2px 8px rgba(0, 0, 0, 0.2),
                     inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
                 gap: 6px !important;
@@ -748,21 +748,21 @@ def get_tab_styles():
             /* Tab hover state */
             [data-baseweb="tab"]:hover {
                 background: linear-gradient(135deg, 
-                    rgba(139, 92, 246, 0.2) 0%, 
-                    rgba(124, 58, 237, 0.1) 100%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.3) !important;
-                color: #c4b5fd !important;
+                    rgba(59, 130, 246, 0.2) 0%, 
+                    rgba(37, 99, 235, 0.1) 100%) !important;
+                border: 1px solid rgba(59, 130, 246, 0.3) !important;
+                color: #93c5fd !important;
             }
             
             /* Active/selected tab */
             [aria-selected="true"][data-baseweb="tab"] {
                 background: linear-gradient(135deg, 
-                    #6366f1 0%, 
-                    #4f46e5 100%) !important;
-                border: 1px solid #4f46e5 !important;
+                    #3b82f6 0%, 
+                    #2563eb 100%) !important;
+                border: 1px solid #2563eb !important;
                 color: #ffffff !important;
                 box-shadow: 
-                    0 4px 12px rgba(99, 102, 241, 0.4),
+                    0 4px 12px rgba(59, 130, 246, 0.4),
                     inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
             }
             
@@ -773,12 +773,12 @@ def get_tab_styles():
                     rgba(20, 20, 20, 0.5) 100%) !important;
                 backdrop-filter: blur(16px) saturate(180%) !important;
                 -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-                border: 1px solid rgba(139, 92, 246, 0.2) !important;
+                border: 1px solid rgba(59, 130, 246, 0.2) !important;
                 border-radius: 16px !important;
                 padding: 1.5rem !important;
                 margin-top: 0 !important;
                 box-shadow: 
-                    0 4px 16px rgba(139, 92, 246, 0.1),
+                    0 4px 16px rgba(59, 130, 246, 0.1),
                     0 2px 8px rgba(0, 0, 0, 0.2),
                     inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
             }

@@ -103,7 +103,7 @@ def render_signable_docs_page(
                     else:
                         st.info("ℹ️ No signable documents found. The API returned an empty list.")
                 else:
-                    st.error("❌ Failed to retrieve signable documents. Please check the API connection.")
+                    st.error("Failed to retrieve signable documents. Please check the API connection.")
 
     if "signable_documents" in st.session_state and st.session_state.signable_documents:
         docs = st.session_state.signable_documents

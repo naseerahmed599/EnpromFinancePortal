@@ -135,9 +135,9 @@ def render_download_page(
             if success:
                 st.session_state.viewed_document_id = download_doc_id
                 st.session_state.viewed_document_path = output_path
-                st.success(f"✅ Document {download_doc_id} loaded successfully")
+                st.success(f"Document {download_doc_id} loaded successfully")
             else:
-                st.error("❌ " + t("messages.download_failed"))
+                st.error(t("messages.download_failed"))
                 st.session_state.viewed_document_id = None
                 st.session_state.viewed_document_path = None
 

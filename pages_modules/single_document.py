@@ -221,9 +221,9 @@ def render_single_document_page(
                                     f"❌ No document found with invoice number: {search_value}"
                                 )
                         else:
-                            st.error("❌ Failed to retrieve documents")
+                            st.error("Failed to retrieve documents")
                     else:
-                        st.warning("⚠️ Please enter an invoice number")
+                        st.warning("Please enter an invoice number")
 
                 if doc:
                     doc = normalize_dict(doc)
@@ -256,13 +256,13 @@ def render_single_document_page(
                         st.session_state.receipt_splits = []
 
                     if search_type == "Document ID":
-                        st.success(f"✅ Document #{doc_id} loaded successfully")
+                        st.success(f"Document #{doc_id} loaded successfully")
                     else:
                         st.success(
-                            f"✅ Document found! (ID: {doc_id}, Invoice: {search_value})"
+                            f"Document found! (ID: {doc_id}, Invoice: {search_value})"
                         )
                 elif search_type == "Document ID":
-                    st.error(f"❌ Document #{search_value} not found")
+                    st.error(f"Document #{search_value} not found")
 
     if st.session_state.selected_document:
         doc = st.session_state.selected_document
@@ -274,7 +274,6 @@ def render_single_document_page(
             st.markdown(
                 f"""
                 <div class="info-box-green">
-                    <span style="font-size: 1.25rem;">✅</span>
                     <span style="font-weight: 600;">
                         Found {len(splits)} receipt split(s) (Belegaufteilung) for this document
                     </span>
@@ -395,7 +394,7 @@ def render_single_document_page(
                     with st.expander(f"🔍 All fields for split #{idx}"):
                         split_items = split.items()
                         if "raw" in split and len(split) == 1:
-                            st.warning(f"⚠️ Split #{idx} appears to be invalid. Raw value: {split.get('raw')}")
+                            st.warning(f"Split #{idx} appears to be invalid. Raw value: {split.get('raw')}")
                             st.info("💡 Tip: The receipt splits might be embedded in the document object. Check the 'Raw JSON' tab.")
                         else:
                             split_df = pd.DataFrame(
@@ -765,7 +764,7 @@ def render_single_document_page(
         with tab5:
             st.markdown("**🔧 Complete Raw JSON Data**")
 
-            st.info(f"📊 Total fields in API response: {len(doc)}")
+            st.info(f"Total fields in API response: {len(doc)}")
 
             search_term = st.text_input(
                 "🔍 Search in JSON data:", placeholder="e.g., booking, cost, date"
