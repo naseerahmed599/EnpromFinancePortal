@@ -270,12 +270,19 @@ def render_analytics_page(
                 st.error(f"{t('analytics_page.api_key_not_set')}")
                 st.stop()
             
-            try:
-                with st.spinner(f"{t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
-                    cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
-            except Exception as e:
-                st.warning(f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}")
-                cost_centers = []
+            cost_centers = None
+            if PERFORMANCE_OPTIMIZATIONS_ENABLED:
+                cost_centers = get_cached_cost_centers(months_back=int(cc_months_back))
+            
+            if cost_centers is None:
+                try:
+                    with st.spinner(f"{t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
+                        cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
+                        if PERFORMANCE_OPTIMIZATIONS_ENABLED and cost_centers:
+                            cache_cost_centers(cost_centers, months_back=int(cc_months_back))
+                except Exception as e:
+                    st.warning(f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}")
+                    cost_centers = []
             
             if cost_centers:
                 cleaned_cc = [
@@ -2483,10 +2490,28 @@ def render_analytics_page(
                         cc_breakdown = enriched_df.groupby(['cc_number', 'cc_display']).apply(calc_cc_metrics).reset_index()
                         cc_breakdown = cc_breakdown.sort_values('margin', ascending=False)
 
-                        st.markdown(
-                            f'<div class="section-header" style="margin-bottom: 1.5rem;"><div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); flex-shrink: 0; margin-right: 0.5rem;">💰</div> {t("analytics_page.cost_center_split")}</div>',
-                            unsafe_allow_html=True,
-                        )
+                        col_split_header1, col_split_header2 = st.columns([4, 1])
+                        with col_split_header1:
+                            st.markdown(f"**{t('analytics_page.cost_center_split')}:**")
+                        with col_split_header2:
+                            st.markdown(
+                                f"""
+                                <div style="text-align: right; padding-top: 2px;">
+                                    <span style="
+                                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                                        color: white;
+                                        padding: 4px 10px;
+                                        border-radius: 6px;
+                                        font-size: 0.75rem;
+                                        font-weight: 600;
+                                        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+                                    " title="{t('receipt_report_page.total_margin_title')}">
+                                        💰 {t('receipt_report_page.total_margin')}: {margin:,.2f} €
+                                    </span>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
                         st.markdown(
                             """
@@ -2598,9 +2623,7 @@ def render_analytics_page(
                                     width: 18%;
                                 }
                                 @media (prefers-color-scheme: dark) {
-                                    .cc-table-row td:nth-child(3),
-                                    .cc-table-row td:nth-child(4),
-                                    .cc-table-row td:nth-child(5) {
+                                    .cc-table-row td:last-child {
                                         color: #a5b4fc;
                                     }
                                 }
@@ -2686,12 +2709,28 @@ def render_analytics_page(
                             )
 
                         rows_html_str = "".join(rows_html)
-                        total_label = t("analytics_page.total")
-                        income_fmt = f'<span style="color:{"#dc2626" if income_total < 0 else "#16a34a"}">{income_total:,.2f} €</span>'
-                        cost_fmt = f'<span style="color:{"#dc2626" if cost_total < 0 else "#16a34a"}">{cost_total:,.2f} €</span>'
-                        margin_fmt = f'<span style="color:{"#dc2626" if margin < 0 else "#16a34a"}">{margin:,.2f} €</span>'
+                        total_label = t("receipt_report_page.total")
+                        total_income_fmt = f"{income_total:,.2f} €"
+                        total_cost_fmt = f"{cost_total:,.2f} €"
+                        total_margin_fmt = f"{margin:,.2f} €"
 
-                        table_html = f'<div class="cc-table-wrapper"><div class="cc-table-scroll"><table class="cc-table"><thead class="cc-table-header"><tr><th>Cost Center</th><th>Description</th><th style="text-align:right;">Income</th><th style="text-align:right;">Cost</th><th style="text-align:right;">Margin</th></tr></thead><tbody>{rows_html_str}</tbody><tfoot class="cc-table-footer"><tr><td colspan="2">{total_label}</td><td style="text-align:right;">{income_fmt}</td><td style="text-align:right;">{cost_fmt}</td><td style="text-align:right;">{margin_fmt}</td></tr></tfoot></table></div></div>'
+                        table_html = f"""
+                <div class="cc-table-wrapper">
+                  <div class="cc-table-scroll">
+                    <table class="cc-table">
+                      <thead class="cc-table-header">
+                        <tr>
+                          <th>{t('receipt_report_page.table_header_cost_center')}</th><th>{t('receipt_report_page.table_header_description')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_income')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_cost')}</th><th style="text-align:right;">{t('receipt_report_page.table_header_margin')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>{rows_html_str}</tbody>
+                      <tfoot class="cc-table-footer">
+                        <tr><td colspan="2">{total_label}</td><td style="text-align:right;">{total_income_fmt}</td><td style="text-align:right;">{total_cost_fmt}</td><td style="text-align:right;">{total_margin_fmt}</td></tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+            """
 
                         st.markdown(table_html, unsafe_allow_html=True)
 

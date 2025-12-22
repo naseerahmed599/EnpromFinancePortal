@@ -69,20 +69,86 @@ def render_receipt_report_page(
 
     st.markdown(get_card_styles(), unsafe_allow_html=True)
 
-    col1, col2 = st.columns([3, 1])
+    st.markdown(f"### {t('receipt_report_page.date_range')}")
+    st.caption("Select the time period for loading cost centers and generating the report")
+    
+    cc_months_back = st.selectbox(
+        t("receipt_report_page.cost_center_lookback_months"),
+        options=[3, 6, 12, 24],
+        index=1,
+        help=t("receipt_report_page.cost_center_lookback_help"),
+        key="cc_months_back",
+    )
+
+    today = date.today()
+    start_date = (today - relativedelta(months=cc_months_back - 1)).replace(day=1)
+    end_date = today
+    
+    from_month_default = start_date.month - 1
+    from_year_default = list(range(2020, datetime.now().year + 1)).index(
+        start_date.year
+    )
+    to_month_default = end_date.month - 1
+    to_year_default = list(range(2020, datetime.now().year + 1)).index(
+        end_date.year
+    )
+    
+    stored_months = st.session_state.get("receipt_cc_sync_months")
+    if stored_months is None or stored_months != cc_months_back:
+        st.session_state.receipt_from_month = start_date.month
+        st.session_state.receipt_from_year = start_date.year
+        st.session_state.receipt_to_month = end_date.month
+        st.session_state.receipt_to_year = end_date.year
+        st.session_state.receipt_cc_sync_months = cc_months_back
+        if stored_months is not None:
+            st.rerun()
+
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown(f"### {t('receipt_report_page.load_cost_centers')}")
-        st.caption(t("receipt_report_page.fetch_cost_centers"))
-        cc_months_back = st.selectbox(
-            t("receipt_report_page.cost_center_lookback_months"),
-            options=[3, 6, 12, 24],
-            index=1,
-            help=t("receipt_report_page.cost_center_lookback_help"),
-            key="cc_months_back",
+        from_month = st.selectbox(
+            t("receipt_report_page.from_month"),
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=from_month_default,
+            key="receipt_from_month",
         )
     with col2:
+        from_year = st.selectbox(
+            t("receipt_report_page.from_year"),
+            options=list(range(2020, datetime.now().year + 1)),
+            index=from_year_default,
+            key="receipt_from_year",
+        )
+    with col3:
+        to_month = st.selectbox(
+            t("receipt_report_page.to_month"),
+            options=list(range(1, 13)),
+            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
+            index=to_month_default,
+            key="receipt_to_month",
+        )
+    with col4:
+        to_year = st.selectbox(
+            t("receipt_report_page.to_year"),
+            options=list(range(2020, datetime.now().year + 1)),
+            index=to_year_default,
+            key="receipt_to_year",
+        )
+
+    min_date = date(from_year, from_month, 1)
+    last_day = calendar.monthrange(to_year, to_month)[1]
+    max_date = date(to_year, to_month, last_day)
+
+    st.divider()
+
+    st.markdown(f"### {t('receipt_report_page.load_cost_centers')}")
+    st.caption(t("receipt_report_page.fetch_cost_centers"))
+    
+    col_load1, col_load2 = st.columns([3, 1])
+    with col_load2:
         if st.button(
             t("receipt_report_page.load_data"),
+            type="primary",
             use_container_width=True,
             key="btn_load_cost_centers_new",
         ):
@@ -102,10 +168,6 @@ def render_receipt_report_page(
                     ]
                     st.session_state.cost_centers = sorted(cleaned_cc)
                     
-                    today = date.today()
-                    start_date = (today - relativedelta(months=cc_months_back - 1)).replace(day=1)
-                    end_date = today
-                    
                     st.session_state.receipt_cc_sync_start = start_date
                     st.session_state.receipt_cc_sync_end = end_date
                     st.session_state.receipt_cc_sync_months = cc_months_back
@@ -116,11 +178,12 @@ def render_receipt_report_page(
                         ),
                         icon="✅",
                     )
+                    st.rerun()
 
     st.divider()
 
+    # Step 3: Report Filters Section
     cost_center_list = st.session_state.get("cost_centers", [])
-
     st.markdown(f"### {t('receipt_report_page.report_filters')}")
 
     if cost_center_list:
@@ -185,69 +248,12 @@ def render_receipt_report_page(
                 )
             )
     else:
-        st.warning(t("receipt_report_page.load_first_warning"))
+        st.info("💡 " + t("receipt_report_page.load_first_warning"))
         selected_cost_centers = []
-
-    st.markdown(f"**{t('receipt_report_page.date_range')}**")
-
-    if (
-        "receipt_cc_sync_start" in st.session_state
-        and "receipt_cc_sync_end" in st.session_state
-    ):
-        sync_start = st.session_state.receipt_cc_sync_start
-        sync_end = st.session_state.receipt_cc_sync_end
-        from_month_default = sync_start.month - 1
-        from_year_default = list(range(2020, datetime.now().year + 1)).index(
-            sync_start.year
-        )
-        to_month_default = sync_end.month - 1
-        to_year_default = list(range(2020, datetime.now().year + 1)).index(
-            sync_end.year
-        )
-    else:
-        from_month_default = 0
-        from_year_default = 3
-        to_month_default = datetime.now().month - 1
-        to_year_default = len(list(range(2020, datetime.now().year + 1))) - 1
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        from_month = st.selectbox(
-            t("receipt_report_page.from_month"),
-            options=list(range(1, 13)),
-            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
-            index=from_month_default,
-            key="receipt_from_month",
-        )
-    with col2:
-        from_year = st.selectbox(
-            t("receipt_report_page.from_year"),
-            options=list(range(2020, datetime.now().year + 1)),
-            index=from_year_default,
-            key="receipt_from_year",
-        )
-    with col3:
-        to_month = st.selectbox(
-            t("receipt_report_page.to_month"),
-            options=list(range(1, 13)),
-            format_func=lambda x: datetime(2000, x, 1).strftime("%B"),
-            index=to_month_default,
-            key="receipt_to_month",
-        )
-    with col4:
-        to_year = st.selectbox(
-            t("receipt_report_page.to_year"),
-            options=list(range(2020, datetime.now().year + 1)),
-            index=to_year_default,
-            key="receipt_to_year",
-        )
-
-    min_date = date(from_year, from_month, 1)
-    last_day = calendar.monthrange(to_year, to_month)[1]
-    max_date = date(to_year, to_month, last_day)
 
     st.divider()
 
+    # Step 4: Generate Report Section
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button(

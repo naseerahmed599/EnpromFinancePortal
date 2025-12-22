@@ -1237,7 +1237,6 @@ if not st.session_state.client.api_key:
         if not api_key_to_verify:
             st.warning("Please enter a valid API key.")
         else:
-            # Verify the API key by making a test API call
             st.markdown(
                 """
                 <style>
@@ -1305,9 +1304,7 @@ with st.sidebar:
             stage = doc.get("currentStage", "Unknown")
             stage_counts[stage] = stage_counts.get(stage, 0) + 1
 
-        # Calculate counts based on actual stage values
         approved_count = stage_counts.get("Approved", 0)
-        # Pending includes Stage1 through Stage5
         pending_count = sum(stage_counts.get(f"Stage{i}", 0) for i in range(1, 6))
         unstarted_count = stage_counts.get("Draft", 0)
 
@@ -1348,10 +1345,34 @@ with st.sidebar:
 
         st.markdown("---")
 
-    st.markdown(f"### 📁 {t('nav_sections.documents')}")
-
     if "current_page" not in st.session_state or st.session_state.current_page is None:
         st.session_state.current_page = "📈 " + t("pages.analytics")
+
+    st.markdown(f"### 📊 {t('nav_sections.reports_analytics')}")
+
+    report_options = [
+        ("analytics", "📈 " + t("pages.analytics"), t("pages.analytics")),
+        (
+            "receipt_report",
+            "📑 " + t("pages.receipt_report"),
+            t("pages.receipt_report"),
+        ),
+        ("data_explorer", "📊 " + t("pages.data_explorer"), t("pages.data_explorer")),
+    ]
+
+    for key, page_key, label in report_options:
+        if st.button(
+            label,
+            use_container_width=True,
+            type=(
+                "primary" if st.session_state.current_page == page_key else "secondary"
+            ),
+            key=f"nav_report_{key}_{st.session_state.language}",
+        ):
+            st.session_state.current_page = page_key
+            st.rerun()
+
+    st.markdown(f"### 📁 {t('nav_sections.documents')}")
 
     doc_options = [
         ("all_documents", "📋 " + t("pages.all_documents"), t("pages.all_documents")),
@@ -1376,38 +1397,14 @@ with st.sidebar:
             st.session_state.current_page = page_key
             st.rerun()
 
-    st.markdown(f"### 📊 {t('nav_sections.reports_analytics')}")
-
-    report_options = [
-        (
-            "receipt_report",
-            "📑 " + t("pages.receipt_report"),
-            t("pages.receipt_report"),
-        ),
-        ("analytics", "📈 " + t("pages.analytics"), t("pages.analytics")),
-        ("data_explorer", "📊 " + t("pages.data_explorer"), t("pages.data_explorer")),
-    ]
-
-    for key, page_key, label in report_options:
-        if st.button(
-            label,
-            use_container_width=True,
-            type=(
-                "primary" if st.session_state.current_page == page_key else "secondary"
-            ),
-            key=f"nav_report_{key}_{st.session_state.language}",
-        ):
-            st.session_state.current_page = page_key
-            st.rerun()
-
     st.markdown(f"### 🔧 {t('nav_sections.tools')}")
 
     tool_options = [
-        ("companies", "🏢 " + t("pages.companies"), t("pages.companies")),
-        ("download", "  " + t("pages.download"), t("pages.download")),
-        ("upload", "📤 " + t("pages.upload"), t("pages.upload")),
-        ("test", "🧪 " + t("pages.test"), t("pages.test")),
         ("settings", "⚙️ " + t("pages.settings"), t("pages.settings")),
+        ("companies", "🏢 " + t("pages.companies"), t("pages.companies")),
+        ("upload", "📤 " + t("pages.upload"), t("pages.upload")),
+        ("download", "📥 " + t("pages.download"), t("pages.download")),
+        ("test", "🧪 " + t("pages.test"), t("pages.test")),
     ]
 
     for key, page_key, label in tool_options:
@@ -1478,7 +1475,7 @@ elif page == "🏢 " + t("pages.companies"):
 # ============================================================================
 # PAGE: DOWNLOAD DOCUMENT
 # ============================================================================
-elif page == "  " + t("pages.download"):
+elif page == "📥 " + t("pages.download"):
     render_download_page(
         st.session_state.client,
         t,
@@ -1568,7 +1565,7 @@ elif page == "📈 " + t("pages.analytics"):
 # ============================================================================
 elif page == "⚙️ " + t("pages.settings"):
     render_settings_page(
-        st.session_state.client, t, get_page_header_slate, get_card_styles
+        st.session_state.client, t, get_page_header_slate, get_action_bar_styles, get_card_styles
     )
 
 # ============================================================================
