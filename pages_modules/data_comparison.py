@@ -458,12 +458,29 @@ def render_data_comparison_page(
                     st.session_state.available_cost_centers = unique_cost_centers
 
                     currency_counts = df_flowwer["currencyCode"].value_counts()
+                    
+                    invoice_date_col = None
+                    for col in ["invoiceDate", "invoice_date", "InvoiceDate", "date", "Date"]:
+                        if col in df_flowwer.columns:
+                            invoice_date_col = col
+                            break
+                    
+                    date_info = ""
+                    if invoice_date_col:
+                        df_flowwer["_temp_date"] = pd.to_datetime(df_flowwer[invoice_date_col], errors="coerce")
+                        valid_dates = df_flowwer["_temp_date"].dropna()
+                        if len(valid_dates) > 0:
+                            actual_min = valid_dates.min()
+                            actual_max = valid_dates.max()
+                            date_info = f" • Date range: {actual_min.strftime('%Y-%m-%d')} to {actual_max.strftime('%Y-%m-%d')}"
+                        df_flowwer.drop(columns=["_temp_date"], inplace=True)
 
                     status_placeholder.success(
-                        f"✅ Data loaded: {len(df_excel):,} DATEV rows • "
+                        f"Data loaded: {len(df_excel):,} DATEV rows • "
                         f"{len(df_flowwer):,} Flowwer rows • "
                         f"{len(unique_cost_centers)} cost centers • "
                         f"Currencies: {', '.join([f'{curr} ({count})' for curr, count in currency_counts.items()])}"
+                        f"{date_info}"
                     )
                     flowwer_success = True
                 else:
@@ -508,7 +525,7 @@ def render_data_comparison_page(
                 """,
                 unsafe_allow_html=True,
             )
-            st.caption("💡 Cost centers were already filtered during data loading. This is an additional filter on the loaded data.")
+            st.caption("Cost centers were already filtered during data loading. This is an additional filter on the loaded data.")
 
             col1, col2 = st.columns([3, 1])
             with col1:
@@ -766,7 +783,18 @@ def render_data_comparison_page(
                     df_flowwer_clean["Invoice_Date"] = pd.to_datetime(
                         df_flowwer_clean[invoice_date_col], errors="coerce"
                     )
+                    missing_dates = df_flowwer_clean["Invoice_Date"].isna().sum()
+                    if missing_dates > 0:
+                        st.warning(
+                            f"⚠️ {missing_dates:,} Flowwer records have invalid/missing dates and will be excluded from comparison."
+                        )
                 else:
+                    available_cols = ", ".join(sorted(df_flowwer_clean.columns.tolist())[:20])
+                    st.error(
+                        f"Invoice date field not found in Flowwer data! "
+                        f"Available fields: {available_cols}... "
+                        f"All records will be excluded from comparison."
+                    )
                     df_flowwer_clean["Invoice_Date"] = pd.NaT
                 
                 cost_center_col = None
@@ -790,8 +818,50 @@ def render_data_comparison_page(
                     df_flowwer_clean["Amount"] = pd.to_numeric(
                         df_flowwer_clean[amount_col], errors="coerce"
                     )
+                    amount_type = "gross (incl. VAT)" if "gross" in amount_col.lower() else "net (excl. VAT)" if "net" in amount_col.lower() else "amount"
+                    st.info(f"ℹ️ Using '{amount_col}' field ({amount_type}) for Flowwer amounts")
                 else:
+                    available_cols = ", ".join(sorted(df_flowwer_clean.columns.tolist())[:20])
+                    st.warning(
+                        f"⚠️ Amount field not found in Flowwer data! Available fields: {available_cols}... "
+                        f"Setting all amounts to 0."
+                    )
                     df_flowwer_clean["Amount"] = 0
+
+                before_invoice_filter = len(df_flowwer_clean)
+                df_flowwer_clean = df_flowwer_clean[
+                    (df_flowwer_clean["Invoice_Number"] != "")
+                    & (df_flowwer_clean["Invoice_Number"] != "0")
+                    & (df_flowwer_clean["Invoice_Number"] != "nan")
+                    & (df_flowwer_clean["Invoice_Number"] != "None")
+                    & (df_flowwer_clean["Invoice_Number"].notna())
+                ]
+                after_invoice_filter = len(df_flowwer_clean)
+                
+                before_date_filter = len(df_flowwer_clean)
+                df_flowwer_clean = df_flowwer_clean[
+                    df_flowwer_clean["Invoice_Date"].notna()
+                    & (df_flowwer_clean["Invoice_Date"] >= from_date)
+                    & (df_flowwer_clean["Invoice_Date"] <= to_date)
+                ]
+                after_date_filter = len(df_flowwer_clean)
+                
+                if before_date_filter > after_date_filter:
+                    filtered_out_dates = before_date_filter - after_date_filter
+                    st.info(
+                        f"ℹ️ Filtered out {filtered_out_dates:,} Flowwer records outside date range "
+                        f"({from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}) or with missing dates"
+                    )
+                
+                if after_date_filter == 0 and before_date_filter > 0:
+                    st.error(
+                        f"All {before_date_filter:,} Flowwer records were filtered out! "
+                        f"This usually means:\n"
+                        f"• Invoice dates are missing from the API data\n"
+                        f"• Invoice dates are in an unexpected format\n"
+                        f"• No data exists for the selected date range ({from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')})\n\n"
+                        f"Please check the Flowwer API data structure and date range."
+                    )
 
                 if "currencyCode" in df_flowwer_clean.columns:
                     pln_mask = (
@@ -804,21 +874,11 @@ def render_data_comparison_page(
                             if isinstance(invoice_date, pd.Timestamp):
                                 date_str = invoice_date.strftime("%Y-%m-%d")
                             else:
-                                date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d")  # type: ignore
+                                date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d") 
 
                             rate = get_pln_eur_rate(date_str)
-                            current_amount = float(df_flowwer_clean.loc[idx, "Amount"])  # type: ignore
+                            current_amount = float(df_flowwer_clean.loc[idx, "Amount"]) 
                             df_flowwer_clean.loc[idx, "Amount"] = current_amount / rate
-
-                before_invoice_filter = len(df_flowwer_clean)
-                df_flowwer_clean = df_flowwer_clean[
-                    (df_flowwer_clean["Invoice_Number"] != "")
-                    & (df_flowwer_clean["Invoice_Number"] != "0")
-                    & (df_flowwer_clean["Invoice_Number"] != "nan")
-                    & (df_flowwer_clean["Invoice_Number"] != "None")
-                    & (df_flowwer_clean["Invoice_Number"].notna())
-                ]
-                after_invoice_filter = len(df_flowwer_clean)
                 
                 if before_invoice_filter > 0 and after_invoice_filter == 0:
                     st.warning(
@@ -837,7 +897,7 @@ def render_data_comparison_page(
                         {
                             "Invoice_Date": "first",
                             "Cost_Center": "first",
-                            "Amount": "sum",  # Sum all splits per invoice
+                            "Amount": "sum", 
                         }
                     )
                     .copy()
@@ -845,7 +905,6 @@ def render_data_comparison_page(
 
                 st.markdown("### Cross-Check Results")
 
-                # Show filtered data counts
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.info(f"Excel: {len(df_excel_clean):,} raw records")
@@ -890,141 +949,9 @@ def render_data_comparison_page(
 
                         if len(excel_matches) == 0:
                             results.append(
-                            {
-                                "Invoice_Number": invoice_num,
-                                "Status": "Not in DATEV",
-                                "Flowwer_Date": flowwer_date,
-                                "DATEV_Date": None,
-                                "Date_Match": False,
-                                "Flowwer_CC": flowwer_cc,
-                                "DATEV_CC": "",
-                                "CC_Match": False,
-                                "Flowwer_Amount": flowwer_amount,
-                                "DATEV_Amount": None,
-                                "Amount_Match": False,
-                                "Amount_Diff": None,
-                            }
-                        )
-                    else:
-                        exact_match = False
-                        best_match = None
-
-                        for _, excel_row in excel_matches.iterrows():
-                            excel_date = excel_row["Invoice_Date"]
-                            excel_cc = excel_row["Cost_Center"]
-                            excel_amount = excel_row["Amount"]
-
-                            excel_is_paid = (
-                                abs(excel_amount) <= 0.01
-                                if pd.notna(excel_amount)
-                                else False
-                            )
-
-                            amount_diff = (
-                                abs(abs(flowwer_amount) - abs(excel_amount))
-                                if pd.notna(excel_amount)
-                                else None
-                            )
-
-                            date_match = False
-                            if pd.notna(flowwer_date) and pd.notna(excel_date):
-                                date_match = flowwer_date.date() == excel_date.date()
-
-                            cc_match = str(flowwer_cc) == str(excel_cc)
-                            amount_match = (
-                                amount_diff is not None and amount_diff <= 0.01
-                            )
-
-                            if excel_is_paid or amount_match:
-                                exact_match = True
-                                best_match = {
-                                    "datev_date": excel_date,
-                                    "datev_cc": excel_cc,
-                                    "datev_amount": excel_amount,
-                                    "date_match": date_match,
-                                    "cc_match": cc_match,
-                                    "amount_match": amount_match,
-                                    "amount_diff": amount_diff,
-                                }
-                                break
-
-                            if best_match is None:
-                                best_match = {
-                                    "datev_date": excel_date,
-                                    "datev_cc": excel_cc,
-                                    "datev_amount": excel_amount,
-                                    "datev_is_paid": excel_is_paid,
-                                    "date_match": date_match,
-                                    "cc_match": cc_match,
-                                    "amount_match": amount_match,
-                                    "amount_diff": amount_diff,
-                                }
-
-                        if exact_match:
-                            status = (
-                                "Paid (DATEV)"
-                                if best_match and best_match.get("datev_is_paid", False)
-                                else "Match"
-                            )
-
-                            results.append(
                                 {
                                     "Invoice_Number": invoice_num,
-                                    "Status": status,
-                                    "Flowwer_Date": flowwer_date,
-                                    "DATEV_Date": excel_date if best_match else None,
-                                    "Date_Match": (
-                                        best_match["date_match"]
-                                        if best_match
-                                        else False
-                                    ),
-                                    "Flowwer_CC": flowwer_cc,
-                                    "DATEV_CC": (
-                                        best_match["datev_cc"] if best_match else ""
-                                    ),
-                                    "CC_Match": (
-                                        best_match["cc_match"] if best_match else False
-                                    ),
-                                    "Flowwer_Amount": flowwer_amount,
-                                    "DATEV_Amount": (
-                                        best_match["datev_amount"]
-                                        if best_match
-                                        else None
-                                    ),
-                                    "Amount_Match": (
-                                        best_match["amount_match"]
-                                        if best_match
-                                        else False
-                                    ),
-                                    "Amount_Diff": (
-                                        best_match["amount_diff"]
-                                        if best_match
-                                        else None
-                                    ),
-                                }
-                            )
-                        elif best_match is not None:
-                            results.append(
-                                {
-                                    "Invoice_Number": invoice_num,
-                                    "Status": "Mismatch",
-                                    "Flowwer_Date": flowwer_date,
-                                    "DATEV_Date": best_match["datev_date"],
-                                    "Date_Match": best_match["date_match"],
-                                    "Flowwer_CC": flowwer_cc,
-                                    "DATEV_CC": best_match["datev_cc"],
-                                    "CC_Match": best_match["cc_match"],
-                                    "Flowwer_Amount": flowwer_amount,
-                                    "DATEV_Amount": best_match["datev_amount"],
-                                    "Amount_Match": best_match["amount_match"],
-                                    "Amount_Diff": best_match["amount_diff"],
-                                }
-                            )
-                        else:
-                            results.append(
-                                {
-                                    "Invoice_Number": invoice_num,
-                                    "Status": "Mismatch",
+                                    "Status": "Not in DATEV",
                                     "Flowwer_Date": flowwer_date,
                                     "DATEV_Date": None,
                                     "Date_Match": False,
@@ -1037,6 +964,139 @@ def render_data_comparison_page(
                                     "Amount_Diff": None,
                                 }
                             )
+                        else:
+                            exact_match = False
+                            best_match = None
+                            
+                            total_excel_amount = excel_matches["Amount"].sum()
+                            excel_is_paid = abs(total_excel_amount) <= 0.01
+
+                            for _, excel_row in excel_matches.iterrows():
+                                excel_date = excel_row["Invoice_Date"]
+                                excel_cc = excel_row["Cost_Center"]
+                                excel_amount = excel_row["Amount"]
+
+                                amount_diff = (
+                                    abs(abs(flowwer_amount) - abs(excel_amount))
+                                    if pd.notna(excel_amount)
+                                    else None
+                                )
+                                
+                                total_amount_diff = abs(abs(flowwer_amount) - abs(total_excel_amount))
+
+                                date_match = False
+                                if pd.notna(flowwer_date) and pd.notna(excel_date):
+                                    date_match = flowwer_date.date() == excel_date.date()
+
+                                cc_match = str(flowwer_cc) == str(excel_cc)
+                                amount_match = (
+                                    amount_diff is not None and amount_diff <= 0.01
+                                )
+                                total_amount_match = total_amount_diff <= 0.01
+
+                                if excel_is_paid or amount_match or total_amount_match:
+                                    exact_match = True
+                                    best_match = {
+                                        "datev_date": excel_date,
+                                        "datev_cc": excel_cc,
+                                        "datev_amount": total_excel_amount, 
+                                        "date_match": date_match,
+                                        "cc_match": cc_match,
+                                        "amount_match": total_amount_match,
+                                        "amount_diff": total_amount_diff,
+                                        "datev_is_paid": excel_is_paid,
+                                    }
+                                    break
+
+                                if best_match is None:
+                                    best_match = {
+                                        "datev_date": excel_date,
+                                        "datev_cc": excel_cc,
+                                        "datev_amount": total_excel_amount, 
+                                        "datev_is_paid": excel_is_paid,
+                                        "date_match": date_match,
+                                        "cc_match": cc_match,
+                                        "amount_match": total_amount_match,
+                                        "amount_diff": total_amount_diff,
+                                    }
+
+                            if exact_match:
+                                status = (
+                                    "Paid (DATEV)"
+                                    if excel_is_paid
+                                    else "Match"
+                                )
+
+                                results.append(
+                                    {
+                                        "Invoice_Number": invoice_num,
+                                        "Status": status,
+                                        "Flowwer_Date": flowwer_date,
+                                        "DATEV_Date": best_match["datev_date"] if best_match else None,
+                                        "Date_Match": (
+                                            best_match["date_match"]
+                                            if best_match
+                                            else False
+                                        ),
+                                        "Flowwer_CC": flowwer_cc,
+                                        "DATEV_CC": (
+                                            best_match["datev_cc"] if best_match else ""
+                                        ),
+                                        "CC_Match": (
+                                            best_match["cc_match"] if best_match else False
+                                        ),
+                                        "Flowwer_Amount": flowwer_amount,
+                                        "DATEV_Amount": (
+                                            best_match["datev_amount"]
+                                            if best_match
+                                            else None
+                                        ),
+                                        "Amount_Match": (
+                                            best_match["amount_match"]
+                                            if best_match
+                                            else False
+                                        ),
+                                        "Amount_Diff": (
+                                            best_match["amount_diff"]
+                                            if best_match
+                                            else None
+                                        ),
+                                    }
+                                )
+                            elif best_match is not None:
+                                results.append(
+                                    {
+                                        "Invoice_Number": invoice_num,
+                                        "Status": "Mismatch",
+                                        "Flowwer_Date": flowwer_date,
+                                        "DATEV_Date": best_match["datev_date"],
+                                        "Date_Match": best_match["date_match"],
+                                        "Flowwer_CC": flowwer_cc,
+                                        "DATEV_CC": best_match["datev_cc"],
+                                        "CC_Match": best_match["cc_match"],
+                                        "Flowwer_Amount": flowwer_amount,
+                                        "DATEV_Amount": best_match["datev_amount"],
+                                        "Amount_Match": best_match["amount_match"],
+                                        "Amount_Diff": best_match["amount_diff"],
+                                    }
+                                )
+                            else:
+                                results.append(
+                                    {
+                                        "Invoice_Number": invoice_num,
+                                        "Status": "Mismatch",
+                                        "Flowwer_Date": flowwer_date,
+                                        "DATEV_Date": None,
+                                        "Date_Match": False,
+                                        "Flowwer_CC": flowwer_cc,
+                                        "DATEV_CC": "",
+                                        "CC_Match": False,
+                                        "Flowwer_Amount": flowwer_amount,
+                                        "DATEV_Amount": None,
+                                        "Amount_Match": False,
+                                        "Amount_Diff": None,
+                                    }
+                                )
 
                     df_results = pd.DataFrame(results)
 
@@ -1354,10 +1414,10 @@ def render_data_comparison_page(
                                     if isinstance(invoice_date, pd.Timestamp):
                                         date_str = invoice_date.strftime("%Y-%m-%d")
                                     else:
-                                        date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d")  # type: ignore
+                                        date_str = pd.to_datetime(invoice_date).strftime("%Y-%m-%d") 
 
                                     rate = get_pln_eur_rate(date_str)
-                                    current_amount = float(df_flowwer_inspect.loc[idx, "Amount"])  # type: ignore
+                                    current_amount = float(df_flowwer_inspect.loc[idx, "Amount"]) 
                                     df_flowwer_inspect.loc[idx, "Amount"] = (
                                         current_amount / rate
                                     )
