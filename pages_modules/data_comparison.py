@@ -147,6 +147,37 @@ def render_data_comparison_page(
 
     cost_center_list = st.session_state.get("comparison_cost_centers", [])
 
+    if not cost_center_list:
+        st.info(t("data_comparison_page.cc_filter_hint_text"))
+        if st.button(
+            t("data_comparison_page.load_cc_options_btn"),
+            key="btn_load_cc_options",
+            type="secondary",
+        ):
+            with st.spinner(t("data_comparison_page.loading_cc_spinner")):
+                try:
+
+                    cc_fetch_start = from_date
+                    cc_fetch_end = to_date
+
+                    cost_centers = client.get_cost_centers_for_range(
+                        min_date=cc_fetch_start.isoformat(),
+                        max_date=cc_fetch_end.isoformat(),
+                    )
+
+                    if cost_centers:
+                        cleaned_cc = [
+                            str(cc)
+                            for cc in cost_centers
+                            if cc and str(cc).strip() not in ["", "None", "nan"]
+                        ]
+                        st.session_state.comparison_cost_centers = sorted(cleaned_cc)
+                        st.rerun()
+                    else:
+                        st.warning(t("data_comparison_page.no_cc_found"))
+                except Exception as e:
+                    st.error(f"Error loading cost centers: {e}")
+
     if cost_center_list:
         col1, col2 = st.columns([2, 3])
         with col1:
@@ -1785,14 +1816,6 @@ def render_data_comparison_page(
                                 excel_display[rename_map["Invoice_Date"]] = (
                                     pd.to_datetime(
                                         excel_display[rename_map["Invoice_Date"]]
-                                    ).dt.strftime("%Y-%m-%d")
-                                )
-
-                                excel_display[rename_map["Amount"]] = excel_display[
-                                    rename_map["Amount"]
-                                ].apply(
-                                    lambda x: (
-                                        f"€{x:,.2f}" if x >= 0 else f"-€{abs(x):,.2f}"
                                     )
                                 )
 
@@ -1801,6 +1824,18 @@ def render_data_comparison_page(
                                     use_container_width=True,
                                     height=300,
                                     hide_index=True,
+                                    column_config={
+                                        rename_map[
+                                            "Invoice_Date"
+                                        ]: st.column_config.DateColumn(
+                                            format="YYYY-MM-DD"
+                                        ),
+                                        rename_map[
+                                            "Amount"
+                                        ]: st.column_config.NumberColumn(
+                                            format="€%.2f"
+                                        ),
+                                    },
                                 )
 
                                 total = excel_raw_records["Amount"].sum()
@@ -1848,14 +1883,6 @@ def render_data_comparison_page(
                                 flowwer_display[flowwer_display.columns[0]] = (
                                     pd.to_datetime(
                                         flowwer_display[flowwer_display.columns[0]]
-                                    ).dt.strftime("%Y-%m-%d")
-                                )
-
-                                flowwer_display[
-                                    flowwer_display.columns[2]
-                                ] = flowwer_display[flowwer_display.columns[2]].apply(
-                                    lambda x: (
-                                        f"€{x:,.2f}" if x >= 0 else f"-€{abs(x):,.2f}"
                                     )
                                 )
 
@@ -1864,6 +1891,18 @@ def render_data_comparison_page(
                                     use_container_width=True,
                                     height=300,
                                     hide_index=True,
+                                    column_config={
+                                        flowwer_display.columns[
+                                            0
+                                        ]: st.column_config.DateColumn(
+                                            format="YYYY-MM-DD"
+                                        ),
+                                        flowwer_display.columns[
+                                            2
+                                        ]: st.column_config.NumberColumn(
+                                            format="€%.2f"
+                                        ),
+                                    },
                                 )
 
                                 total = flowwer_raw_records["Amount"].sum()
@@ -1974,25 +2013,42 @@ def render_data_comparison_page(
 
                     display_df["Flowwer_Date"] = pd.to_datetime(
                         display_df["Flowwer_Date"]
-                    ).dt.strftime("%Y-%m-%d")
-                    display_df["DATEV_Date"] = pd.to_datetime(
-                        display_df["DATEV_Date"]
-                    ).dt.strftime("%Y-%m-%d")
-
-                    display_df["Flowwer_Amount"] = display_df["Flowwer_Amount"].apply(
-                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
                     )
-                    display_df["DATEV_Amount"] = display_df["DATEV_Amount"].apply(
-                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
-                    )
-                    display_df["Amount_Diff"] = display_df["Amount_Diff"].apply(
-                        lambda x: f"{x:.2f}" if pd.notna(x) else ""
-                    )
+                    display_df["DATEV_Date"] = pd.to_datetime(display_df["DATEV_Date"])
 
                     st.dataframe(
                         display_df,
                         use_container_width=True,
                         height=400,
+                        column_config={
+                            "Invoice_Number": st.column_config.TextColumn("Invoice"),
+                            "Flowwer_Date": st.column_config.DateColumn(
+                                "Flowwer Date", format="YYYY-MM-DD"
+                            ),
+                            "DATEV_Date": st.column_config.DateColumn(
+                                "DATEV Date", format="YYYY-MM-DD"
+                            ),
+                            "Date_Match": st.column_config.CheckboxColumn("Date OK"),
+                            "Flowwer_CC": st.column_config.TextColumn(
+                                "Flowwer Cost Center"
+                            ),
+                            "DATEV_CC": st.column_config.TextColumn(
+                                "DATEV Cost Center"
+                            ),
+                            "CC_Match": st.column_config.CheckboxColumn("CC OK"),
+                            "Flowwer_Amount": st.column_config.NumberColumn(
+                                "Flowwer Amount", format="€%.2f"
+                            ),
+                            "DATEV_Amount": st.column_config.NumberColumn(
+                                "DATEV Amount", format="€%.2f"
+                            ),
+                            "Amount_Diff": st.column_config.NumberColumn(
+                                "Difference", format="€%.2f"
+                            ),
+                            "Amount_Match": st.column_config.CheckboxColumn(
+                                "Amount OK"
+                            ),
+                        },
                     )
 
                 with tab2:
@@ -2013,19 +2069,32 @@ def render_data_comparison_page(
                         )
                         display_date_df["Flowwer_Date"] = pd.to_datetime(
                             display_date_df["Flowwer_Date"]
-                        ).dt.strftime("%Y-%m-%d")
+                        )
                         display_date_df["DATEV_Date"] = pd.to_datetime(
                             display_date_df["DATEV_Date"]
-                        ).dt.strftime("%Y-%m-%d")
-
-                        display_date_df["Flowwer_Amount"] = display_date_df[
-                            "Flowwer_Amount"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+                        )
 
                         st.dataframe(
                             display_date_df,
                             use_container_width=True,
                             height=400,
+                            column_config={
+                                "Invoice_Number": st.column_config.TextColumn(
+                                    "Invoice"
+                                ),
+                                "Flowwer_Date": st.column_config.DateColumn(
+                                    "Flowwer Date", format="YYYY-MM-DD"
+                                ),
+                                "DATEV_Date": st.column_config.DateColumn(
+                                    "DATEV Date", format="YYYY-MM-DD"
+                                ),
+                                "Flowwer_CC": st.column_config.TextColumn(
+                                    "Cost Center"
+                                ),
+                                "Flowwer_Amount": st.column_config.NumberColumn(
+                                    "Amount", format="€%.2f"
+                                ),
+                            },
                         )
                     else:
                         st.success(t("data_comparison_page.all_dates_match"))
@@ -2047,17 +2116,27 @@ def render_data_comparison_page(
                             .copy()
                         )
 
-                        display_cc_df["Flowwer_Amount"] = display_cc_df[
-                            "Flowwer_Amount"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-                        display_cc_df["DATEV_Amount"] = display_cc_df[
-                            "DATEV_Amount"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-
                         st.dataframe(
                             display_cc_df,
                             use_container_width=True,
                             height=400,
+                            column_config={
+                                "Invoice_Number": st.column_config.TextColumn(
+                                    "Invoice"
+                                ),
+                                "Flowwer_CC": st.column_config.TextColumn(
+                                    "Flowwer Cost Center"
+                                ),
+                                "DATEV_CC": st.column_config.TextColumn(
+                                    "DATEV Cost Center"
+                                ),
+                                "Flowwer_Amount": st.column_config.NumberColumn(
+                                    "Flowwer Amount", format="€%.2f"
+                                ),
+                                "DATEV_Amount": st.column_config.NumberColumn(
+                                    "DATEV Amount", format="€%.2f"
+                                ),
+                            },
                         )
                     else:
                         st.success(t("data_comparison_page.all_cc_match"))
@@ -2079,20 +2158,27 @@ def render_data_comparison_page(
                             .copy()
                         )
 
-                        display_amount_df["Flowwer_Amount"] = display_amount_df[
-                            "Flowwer_Amount"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-                        display_amount_df["DATEV_Amount"] = display_amount_df[
-                            "DATEV_Amount"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-                        display_amount_df["Amount_Diff"] = display_amount_df[
-                            "Amount_Diff"
-                        ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
-
                         st.dataframe(
                             display_amount_df,
                             use_container_width=True,
                             height=400,
+                            column_config={
+                                "Invoice_Number": st.column_config.TextColumn(
+                                    "Invoice"
+                                ),
+                                "Flowwer_Amount": st.column_config.NumberColumn(
+                                    "Flowwer Amount", format="€%.2f"
+                                ),
+                                "DATEV_Amount": st.column_config.NumberColumn(
+                                    "DATEV Amount", format="€%.2f"
+                                ),
+                                "Amount_Diff": st.column_config.NumberColumn(
+                                    "Difference", format="€%.2f"
+                                ),
+                                "Flowwer_CC": st.column_config.TextColumn(
+                                    "Cost Center"
+                                ),
+                            },
                         )
                     else:
                         st.success(t("data_comparison_page.all_amounts_match"))
@@ -2137,16 +2223,24 @@ def render_data_comparison_page(
                 )
                 display_not_found_df["Flowwer_Date"] = pd.to_datetime(
                     display_not_found_df["Flowwer_Date"]
-                ).dt.strftime("%Y-%m-%d")
-
-                display_not_found_df["Flowwer_Amount"] = display_not_found_df[
-                    "Flowwer_Amount"
-                ].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "")
+                )
 
                 st.dataframe(
                     display_not_found_df,
                     use_container_width=True,
                     height=300,
+                    column_config={
+                        "Invoice_Number": st.column_config.TextColumn("Invoice"),
+                        "Flowwer_Date": st.column_config.DateColumn(
+                            "Flowwer Date", format="YYYY-MM-DD"
+                        ),
+                        "Flowwer_CC": st.column_config.TextColumn(
+                            "Flowwer Cost Center"
+                        ),
+                        "Flowwer_Amount": st.column_config.NumberColumn(
+                            "Flowwer Amount", format="€%.2f"
+                        ),
+                    },
                 )
 
             if excel_only_count > 0:
@@ -2195,18 +2289,17 @@ def render_data_comparison_page(
                     "Description",
                 ]
 
-                display_excel_only["Date"] = pd.to_datetime(
-                    display_excel_only["Date"]
-                ).dt.strftime("%Y-%m-%d")
-                display_excel_only["Amount"] = display_excel_only["Amount"].apply(
-                    lambda x: f"€{x:,.2f}" if pd.notna(x) else ""
-                )
+                display_excel_only["Date"] = pd.to_datetime(display_excel_only["Date"])
 
                 st.dataframe(
                     display_excel_only,
                     use_container_width=True,
                     height=300,
                     hide_index=True,
+                    column_config={
+                        "Date": st.column_config.DateColumn(format="YYYY-MM-DD"),
+                        "Amount": st.column_config.NumberColumn(format="€%.2f"),
+                    },
                 )
 
             st.markdown(t("data_comparison_page.export_title"))
