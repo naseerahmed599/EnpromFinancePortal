@@ -12,7 +12,7 @@ Interactive portal for financial document workflows
 #   - Set to False: Compare Data section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-IN_PRODUCTION = False
+IN_PRODUCTION = True
 
 # ============================================================================
 
@@ -1205,7 +1205,11 @@ if not st.session_state.client.api_key:
 
     st.caption("Enter your Flowwer API key to continue.")
 
-    show_key = st.toggle("Show API key", value=False, help="Temporarily display the API key while typing.")
+    show_key = st.toggle(
+        "Show API key",
+        value=False,
+        help="Temporarily display the API key while typing.",
+    )
 
     with st.form("api_key_login_form", clear_on_submit=False):
         new_api_key = st.text_input(
@@ -1232,7 +1236,11 @@ if not st.session_state.client.api_key:
             )
 
     if submit or use_saved:
-        api_key_to_verify = (st.session_state.correct_api_key or "").strip() if use_saved else (new_api_key or "").strip()
+        api_key_to_verify = (
+            (st.session_state.correct_api_key or "").strip()
+            if use_saved
+            else (new_api_key or "").strip()
+        )
 
         if not api_key_to_verify:
             st.warning("Please enter a valid API key.")
@@ -1251,7 +1259,9 @@ if not st.session_state.client.api_key:
 
             with st.spinner("Verifying with Flowwer..."):
                 time.sleep(0.2)
-                is_valid, message = st.session_state.client.verify_api_key(api_key_to_verify)
+                is_valid, message = st.session_state.client.verify_api_key(
+                    api_key_to_verify
+                )
 
             if is_valid:
                 st.session_state.client.api_key = api_key_to_verify
@@ -1263,7 +1273,9 @@ if not st.session_state.client.api_key:
                 st.rerun()
             else:
                 st.error(message)
-                st.info("Tip: confirm the key is copied without extra spaces and belongs to the correct Flowwer tenant.")
+                st.info(
+                    "Tip: confirm the key is copied without extra spaces and belongs to the correct Flowwer tenant."
+                )
 
     st.stop()
 
@@ -1565,7 +1577,11 @@ elif page == "📈 " + t("pages.analytics"):
 # ============================================================================
 elif page == "⚙️ " + t("pages.settings"):
     render_settings_page(
-        st.session_state.client, t, get_page_header_slate, get_action_bar_styles, get_card_styles
+        st.session_state.client,
+        t,
+        get_page_header_slate,
+        get_action_bar_styles,
+        get_card_styles,
     )
 
 # ============================================================================

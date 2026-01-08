@@ -7,6 +7,7 @@ import requests
 from typing import Optional, Dict, List, Any
 from datetime import datetime, date
 import json
+import concurrent.futures
 
 
 class FlowwerAPIClient:
@@ -35,10 +36,10 @@ class FlowwerAPIClient:
     def verify_api_key(self, api_key: Optional[str] = None) -> tuple[bool, str]:
         """
         Verify if an API key is valid by making a lightweight API call
-        
+
         Args:
             api_key: The API key to verify (if None, uses self.api_key)
-            
+
         Returns:
             tuple: (is_valid: bool, message: str) - True if API key is valid, False otherwise
                    Message contains details about the verification result
@@ -46,31 +47,48 @@ class FlowwerAPIClient:
         test_key = api_key or self.api_key
         if not test_key:
             return False, "No API key provided"
-        
-      
+
         url = f"{self.base_url}/api/v1/companies/activeflows/reduced"
-        
+
         try:
             test_headers = {"X-FLOWWER-ApiKey": test_key}
             response = requests.get(url, headers=test_headers, timeout=5)
-            
+
             status_code = response.status_code
-            
+
             if status_code == 200:
                 return True, "API key verified successfully! ✓"
             elif status_code in [401, 403]:
-                return False, "The API key you entered is not valid. Please check your credentials and try again."
+                return (
+                    False,
+                    "The API key you entered is not valid. Please check your credentials and try again.",
+                )
             else:
-                return False, f"The API server returned an unexpected response (Status: {status_code}). Please try again later."
-                
+                return (
+                    False,
+                    f"The API server returned an unexpected response (Status: {status_code}). Please try again later.",
+                )
+
         except requests.exceptions.Timeout:
-            return False, "The verification request timed out. Please check your internet connection and try again."
+            return (
+                False,
+                "The verification request timed out. Please check your internet connection and try again.",
+            )
         except requests.exceptions.ConnectionError:
-            return False, "Unable to connect to the API server. Please check your internet connection and try again."
+            return (
+                False,
+                "Unable to connect to the API server. Please check your internet connection and try again.",
+            )
         except requests.exceptions.RequestException as e:
-            return False, "A network error occurred during verification. Please check your connection and try again."
+            return (
+                False,
+                "A network error occurred during verification. Please check your connection and try again.",
+            )
         except Exception as e:
-            return False, "An unexpected error occurred during verification. Please try again."
+            return (
+                False,
+                "An unexpected error occurred during verification. Please try again.",
+            )
 
     def authenticate(self, username: str, password: str) -> bool:
         """
@@ -354,14 +372,16 @@ class FlowwerAPIClient:
 
             if response.status_code == 200:
                 splits = response.json()
-                
+
                 if isinstance(splits, str):
                     try:
                         splits = json.loads(splits)
                     except (json.JSONDecodeError, ValueError):
-                        print(f"Warning: Receipt splits endpoint returned unexpected string: {splits}")
+                        print(
+                            f"Warning: Receipt splits endpoint returned unexpected string: {splits}"
+                        )
                         return None
-                
+
                 if isinstance(splits, dict):
                     if "documentReceiptSplits" in splits:
                         splits = splits["documentReceiptSplits"]
@@ -372,13 +392,17 @@ class FlowwerAPIClient:
                     elif "receiptSplits" in splits:
                         splits = splits["receiptSplits"]
                     else:
-                        print(f"Warning: Receipt splits response is a dict without expected keys: {list(splits.keys())}")
+                        print(
+                            f"Warning: Receipt splits response is a dict without expected keys: {list(splits.keys())}"
+                        )
                         return None
-                
+
                 if not isinstance(splits, list):
-                    print(f"Warning: Receipt splits response is not a list: {type(splits)}")
+                    print(
+                        f"Warning: Receipt splits response is not a list: {type(splits)}"
+                    )
                     return None
-                
+
                 print(
                     f"Retrieved {len(splits)} receipt split(s) for document {document_id}"
                 )
@@ -474,17 +498,45 @@ class FlowwerAPIClient:
 
         try:
             rows: List[Dict[str, Any]] = []
-            for path in paths:
-                docs = self._find_documents_with_receipt_splits(path)
-                if docs is None:
-                    continue
-                for doc in docs:
-                   
-                    base_doc = {k: v for k, v in doc.items() if k not in ["documentReceiptSplits", "receiptSplits"]}
-                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
-                    for split in splits:
-                        merged = {**base_doc, **split}
-                        rows.append(merged)
+
+            def process_path(path):
+                path_docs = self._find_documents_with_receipt_splits(path)
+                path_rows = []
+                if path_docs:
+                    for doc in path_docs:
+                        base_doc = {
+                            k: v
+                            for k, v in doc.items()
+                            if k not in ["documentReceiptSplits", "receiptSplits"]
+                        }
+                        splits = (
+                            doc.get("receiptSplits")
+                            or doc.get("documentReceiptSplits")
+                            or []
+                        )
+                        for split in splits:
+                            merged = {**base_doc, **split}
+                            path_rows.append(merged)
+                return path_rows
+
+            max_workers = min(len(paths), 10)
+            if max_workers < 1:
+                max_workers = 1
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                future_to_path = {
+                    executor.submit(process_path, path): path for path in paths
+                }
+
+                for future in concurrent.futures.as_completed(future_to_path):
+                    path = future_to_path[future]
+                    try:
+                        data = future.result()
+                        rows.extend(data)
+                    except Exception as exc:
+                        print(f"Path {path} generated an exception: {exc}")
 
             if cost_center:
                 rows = [
@@ -496,8 +548,7 @@ class FlowwerAPIClient:
                 rows = [
                     r
                     for r in rows
-                    if str(r.get("supplierName", "")).lower()
-                    == str(company).lower()
+                    if str(r.get("supplierName", "")).lower() == str(company).lower()
                 ]
 
             print(f"Retrieved {len(rows)} receipt splitting report entries")
@@ -507,7 +558,10 @@ class FlowwerAPIClient:
             return None
 
     def get_all_cost_centers(
-        self, months_back: int = 6, min_date: Optional[str] = None, max_date: Optional[str] = None
+        self,
+        months_back: int = 6,
+        min_date: Optional[str] = None,
+        max_date: Optional[str] = None,
     ) -> Optional[List[str]]:
         """
         Get a list of all cost centers from documents
@@ -533,7 +587,11 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
+                    splits = (
+                        doc.get("receiptSplits")
+                        or doc.get("documentReceiptSplits")
+                        or []
+                    )
                     for split in splits:
                         cc = split.get("costCenter")
                         if cc not in [None, "", "None", "nan"]:
@@ -565,7 +623,11 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
+                    splits = (
+                        doc.get("receiptSplits")
+                        or doc.get("documentReceiptSplits")
+                        or []
+                    )
                     for split in splits:
                         cc = split.get("costCenter")
                         if cc not in [None, "", "None", "nan"]:
@@ -602,7 +664,11 @@ class FlowwerAPIClient:
                 if not docs:
                     continue
                 for doc in docs:
-                    splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits") or []
+                    splits = (
+                        doc.get("receiptSplits")
+                        or doc.get("documentReceiptSplits")
+                        or []
+                    )
                     for split in splits:
                         acct = split.get("account")
                         if acct not in [None, "", "None", "nan"]:
@@ -639,9 +705,7 @@ class FlowwerAPIClient:
             print(f"Error calling Find API for path {path}: {e}")
             return None
 
-    def _build_month_paths(
-        self, min_date: str, max_date: str
-    ) -> List[str]:
+    def _build_month_paths(self, min_date: str, max_date: str) -> List[str]:
         """Build list of CreationDate-Months/<YYYY-MM> paths inclusive."""
         try:
             start = datetime.fromisoformat(min_date).date()
@@ -699,22 +763,24 @@ class FlowwerAPIClient:
 
         if use_filter_method:
             try:
-                all_docs = self.get_all_documents(include_processed=True, include_deleted=False)
+                all_docs = self.get_all_documents(
+                    include_processed=True, include_deleted=False
+                )
                 if all_docs is None:
                     return None
-                
+
                 approved_docs = [
-                    doc for doc in all_docs 
-                    if doc.get("currentStage") == "Approved"
+                    doc for doc in all_docs if doc.get("currentStage") == "Approved"
                 ]
-                
+
                 if flow_id:
                     approved_docs = [
-                        doc for doc in approved_docs
-                        if doc.get("flowId") == flow_id
+                        doc for doc in approved_docs if doc.get("flowId") == flow_id
                     ]
-                
-                print(f"Retrieved {len(approved_docs)} approved documents (via filter method)")
+
+                print(
+                    f"Retrieved {len(approved_docs)} approved documents (via filter method)"
+                )
                 return approved_docs
             except Exception as e:
                 print(f"Error getting approved documents via filter method: {e}")
@@ -736,14 +802,20 @@ class FlowwerAPIClient:
                     elif "data" in documents:
                         documents = documents["data"]
                     else:
-                        print(f"Warning: Approved documents response is a dict without expected keys: {list(documents.keys())}")
+                        print(
+                            f"Warning: Approved documents response is a dict without expected keys: {list(documents.keys())}"
+                        )
                         return []
-                
+
                 if not isinstance(documents, list):
-                    print(f"Warning: Approved documents response is not a list: {type(documents)}")
+                    print(
+                        f"Warning: Approved documents response is not a list: {type(documents)}"
+                    )
                     return []
-                
-                print(f"Retrieved {len(documents)} approved documents (via /approved endpoint)")
+
+                print(
+                    f"Retrieved {len(documents)} approved documents (via /approved endpoint)"
+                )
                 return documents
             else:
                 print(f"Failed to get approved documents: {response.status_code}")
@@ -774,17 +846,22 @@ class FlowwerAPIClient:
 
         if use_filter_method:
             try:
-                all_docs = self.get_all_documents(include_processed=False, include_deleted=False)
+                all_docs = self.get_all_documents(
+                    include_processed=False, include_deleted=False
+                )
                 if all_docs is None:
                     return None
-                
+
                 signable_stages = [f"Stage{i}" for i in range(1, 6)]
                 signable_docs = [
-                    doc for doc in all_docs 
+                    doc
+                    for doc in all_docs
                     if doc.get("currentStage") in signable_stages
                 ]
-                
-                print(f"Retrieved {len(signable_docs)} signable documents (via filter method)")
+
+                print(
+                    f"Retrieved {len(signable_docs)} signable documents (via filter method)"
+                )
                 return signable_docs
             except Exception as e:
                 print(f"Error getting signable documents via filter method: {e}")
@@ -804,14 +881,20 @@ class FlowwerAPIClient:
                     elif "data" in documents:
                         documents = documents["data"]
                     else:
-                        print(f"Warning: Signable documents response is a dict without expected keys: {list(documents.keys())}")
+                        print(
+                            f"Warning: Signable documents response is a dict without expected keys: {list(documents.keys())}"
+                        )
                         return []
-                
+
                 if not isinstance(documents, list):
-                    print(f"Warning: Signable documents response is not a list: {type(documents)}")
+                    print(
+                        f"Warning: Signable documents response is not a list: {type(documents)}"
+                    )
                     return []
-                
-                print(f"Retrieved {len(documents)} signable documents (via /signable endpoint)")
+
+                print(
+                    f"Retrieved {len(documents)} signable documents (via /signable endpoint)"
+                )
                 return documents
             else:
                 print(f"Failed to get signable documents: {response.status_code}")
