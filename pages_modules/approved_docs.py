@@ -117,7 +117,22 @@ def render_approved_docs_page(
             key="btn_load_approved_docs",
         ):
             with st.spinner(t("approved_docs_page.loading")):
-                docs = client.get_approved_documents(flow_id=selected_flow_id)
+               
+                all_docs_cache = st.session_state.get("documents")
+                docs = None
+                
+                if all_docs_cache:
+                    docs = [d for d in all_docs_cache if d.get("currentStage") == "Approved"]
+                    if selected_flow_id:
+                        docs = [d for d in docs if d.get("flowId") == selected_flow_id]
+                else:
+                
+                    try:
+                        docs = client.get_approved_documents(flow_id=selected_flow_id, use_filter_method=False)
+                    except Exception as e:
+                        print(f"Dedicated endpoint failed, falling back: {e}")
+                        docs = client.get_approved_documents(flow_id=selected_flow_id, use_filter_method=True)
+                
                 if docs is not None:
                     normalized_docs = []
                     for doc in docs:

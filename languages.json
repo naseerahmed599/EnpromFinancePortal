@@ -312,13 +312,16 @@
       "info": "To download a document, you need both the Document ID and Unique ID (UUID)",
       "document_id": "Document ID",
       "unique_id": "Unique ID (UUID)",
-      "tip": "Tip: Get the Unique ID by first viewing the document details",
+      "tip": "Tip: Get the Unique ID by first viewing the document details in 'Single Document' or 'All Documents' page",
       "get_uuid": "Get Unique ID",
       "download": "Download PDF",
       "downloading": "Downloading document...",
       "success": "Document downloaded successfully!",
       "save": "Save to Computer",
-      "failed": "Download failed. Check the Document ID and Unique ID."
+      "failed": "Download failed. Check the Document ID and Unique ID.",
+      "doc_preview": "Document Preview",
+      "view_doc_btn": "View Document",
+      "get_details_btn": "Get Document Details (to find Unique ID)"
     },
     "upload_page": {
       "title": "Upload Documents",
@@ -976,13 +979,16 @@
       "info": "Um ein Dokument herunterzuladen, benötigen Sie sowohl die Dokument-ID als auch die eindeutige ID (UUID)",
       "document_id": "Dokument-ID",
       "unique_id": "Eindeutige ID (UUID)",
-      "tip": "Tipp: Rufen Sie die eindeutige ID ab, indem Sie zuerst die Dokumentdetails anzeigen",
+      "tip": "Tipp: Rufen Sie die eindeutige ID ab, indem Sie zuerst die Dokumentdetails auf der Seite 'Einzeldokument' oder 'Alle Dokumente' anzeigen",
       "get_uuid": "Eindeutige ID abrufen",
       "download": "PDF herunterladen",
       "downloading": "Dokument wird heruntergeladen...",
       "success": "Dokument erfolgreich heruntergeladen!",
       "save": "Auf Computer speichern",
-      "failed": "Download fehlgeschlagen. Überprüfen Sie die Dokument-ID und die eindeutige ID."
+      "failed": "Download fehlgeschlagen. Überprüfen Sie die Dokument-ID und die eindeutige ID.",
+      "doc_preview": "Dokumentvorschau",
+      "view_doc_btn": "Dokument anzeigen",
+      "get_details_btn": "Dokumentdetails abrufen (um eindeutige ID zu finden)"
     },
     "upload_page": {
       "title": "Dokumente hochladen",
@@ -1560,13 +1566,16 @@
       "info": "Aby pobrać dokument, potrzebujesz zarówno ID Dokumentu, jak i Unikalnego ID (UUID)",
       "document_id": "ID Dokumentu",
       "unique_id": "Unikalny ID (UUID)",
-      "tip": "Wskazówka: Uzyskaj Unikalny ID, najpierw przeglądając szczegóły dokumentu",
+      "tip": "Wskazówka: Uzyskaj Unikalny ID, najpierw przeglądając szczegóły dokumentu na stronie 'Pojedynczy dokument' lub 'Wszystkie dokumenty'",
       "get_uuid": "Pobierz Unikalny ID",
       "download": "Pobierz PDF",
       "downloading": "Pobieranie dokumentu...",
       "success": "Dokument pobrany pomyślnie!",
       "save": "Zapisz na Komputerze",
-      "failed": "Pobieranie nie powiodło się. Sprawdź ID Dokumentu i Unikalny ID."
+      "failed": "Pobieranie nie powiodło się. Sprawdź ID Dokumentu i Unikalny ID.",
+      "doc_preview": "Podgląd dokumentu",
+      "view_doc_btn": "Zobacz dokument",
+      "get_details_btn": "Pobierz szczegóły dokumentu (aby znaleźć unikalny identyfikator)"
     },
     "upload_page": {
       "title": "Prześlij Dokumenty",

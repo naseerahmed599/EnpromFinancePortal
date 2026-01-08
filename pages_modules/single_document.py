@@ -39,7 +39,7 @@ def normalize_splits(splits):
     """
     if not splits:
         return []
-    
+
     if isinstance(splits, dict):
         if "documentReceiptSplits" in splits:
             splits = splits["documentReceiptSplits"]
@@ -51,21 +51,21 @@ def normalize_splits(splits):
             splits = splits["data"]
         else:
             return [splits]
-    
+
     if isinstance(splits, str):
         try:
             parsed = json.loads(splits)
             return normalize_splits(parsed)
         except (json.JSONDecodeError, ValueError):
             return []
-    
+
     if not isinstance(splits, list):
         return []
-    
+
     normalized = []
     for split in splits:
         normalized_split = normalize_split(split)
-       
+
         if normalized_split and isinstance(normalized_split, dict):
             if "raw" in normalized_split and len(normalized_split) == 1:
                 raw_value = normalized_split["raw"]
@@ -77,10 +77,10 @@ def normalize_splits(splits):
                         elif isinstance(parsed, dict):
                             normalized.append(parsed)
                     except (json.JSONDecodeError, ValueError):
-                        pass  
+                        pass
             elif "raw" not in normalized_split or len(normalized_split) > 1:
                 normalized.append(normalized_split)
-    
+
     return normalized
 
 
@@ -165,7 +165,7 @@ def render_single_document_page(
         )
 
     with col2:
-        pass  
+        pass
 
     col1, col2 = st.columns([4, 1])
 
@@ -203,18 +203,33 @@ def render_single_document_page(
                     doc_id = int(search_value)
                 else:
                     if search_value:
-                        all_docs = st.session_state.client.get_all_documents(
-                            include_processed=True
-                        )
+                        all_docs = st.session_state.get("documents")
+
+                        if not all_docs:
+                            with st.spinner("Downloading document list..."):
+                                all_docs = st.session_state.client.get_all_documents(
+                                    include_processed=True
+                                )
+                                if all_docs:
+                                    st.session_state.documents = all_docs
+
                         if all_docs:
                             matching_docs = []
+                            search_val_lower = str(search_value).lower().strip()
+
                             for d in all_docs:
                                 normalized_d = normalize_dict(d)
-                                if normalized_d.get("invoiceNumber") == search_value:
+                                inv_num = (
+                                    str(normalized_d.get("invoiceNumber", ""))
+                                    .lower()
+                                    .strip()
+                                )
+
+                                if inv_num == search_val_lower:
                                     matching_docs.append(normalized_d)
-                            
+
                             if matching_docs:
-                                doc = matching_docs[0]  
+                                doc = matching_docs[0]
                                 doc_id = doc.get("documentId")
                             else:
                                 st.error(
@@ -231,26 +246,38 @@ def render_single_document_page(
                     if "doc_id" in locals() and doc_id:
                         normalized_splits = []
                         if isinstance(doc, dict):
-                            embedded_splits = doc.get("receiptSplits") or doc.get("documentReceiptSplits")
+                            embedded_splits = doc.get("receiptSplits") or doc.get(
+                                "documentReceiptSplits"
+                            )
                             if embedded_splits:
                                 normalized_splits = normalize_splits(embedded_splits)
-                        
+
                         if not normalized_splits:
-                            splits = st.session_state.client.get_receipt_splits(int(doc_id))
+                            splits = st.session_state.client.get_receipt_splits(
+                                int(doc_id)
+                            )
                             if splits:
                                 normalized_splits = normalize_splits(splits)
                                 if not normalized_splits or all(
-                                    isinstance(s, dict) and "raw" in s and len(s) == 1 
+                                    isinstance(s, dict) and "raw" in s and len(s) == 1
                                     for s in normalized_splits
                                 ):
-                                    full_doc = st.session_state.client.get_document(int(doc_id))
+                                    full_doc = st.session_state.client.get_document(
+                                        int(doc_id)
+                                    )
                                     if full_doc and isinstance(full_doc, dict):
                                         full_doc = normalize_dict(full_doc)
-                                        embedded_splits = full_doc.get("receiptSplits") or full_doc.get("documentReceiptSplits")
+                                        embedded_splits = full_doc.get(
+                                            "receiptSplits"
+                                        ) or full_doc.get("documentReceiptSplits")
                                         if embedded_splits:
-                                            normalized_splits = normalize_splits(embedded_splits)
-                                            st.session_state.selected_document = full_doc
-                        
+                                            normalized_splits = normalize_splits(
+                                                embedded_splits
+                                            )
+                                            st.session_state.selected_document = (
+                                                full_doc
+                                            )
+
                         st.session_state.receipt_splits = normalized_splits
                     else:
                         st.session_state.receipt_splits = []
@@ -281,7 +308,7 @@ def render_single_document_page(
             """,
                 unsafe_allow_html=True,
             )
-            
+
             with st.expander(
                 "Receipt Splits / Belegaufteilung - Click to expand", expanded=True
             ):
@@ -326,9 +353,9 @@ def render_single_document_page(
                             or split.get("Kost2")
                             or split.get("costUnit2")
                             or split.get("cost_unit2")
-                            or split.get("account")  
+                            or split.get("account")
                         )
-                        
+
                         if not cost_unit or cost_unit == "N/A":
                             if isinstance(doc, dict):
                                 cost_unit = (
@@ -340,10 +367,10 @@ def render_single_document_page(
                                     or doc.get("KOST2")
                                     or doc.get("Kost2")
                                 )
-                        
+
                         if not cost_unit:
                             cost_unit = "Not set"
-                        
+
                         st.metric("Cost Unit", cost_unit)
                         gross_value = (
                             split.get("grossValue")
@@ -370,23 +397,35 @@ def render_single_document_page(
                         invoice_number = (
                             split.get("invoiceNumber")
                             or split.get("invoice_number")
-                            or (doc.get("invoiceNumber") if isinstance(doc, dict) else None)
+                            or (
+                                doc.get("invoiceNumber")
+                                if isinstance(doc, dict)
+                                else None
+                            )
                             or "N/A"
                         )
                         st.write("**Invoice Number:**", invoice_number)
-                        
+
                         invoice_date = (
                             split.get("invoiceDate")
                             or split.get("invoice_date")
-                            or (doc.get("invoiceDate") if isinstance(doc, dict) else None)
+                            or (
+                                doc.get("invoiceDate")
+                                if isinstance(doc, dict)
+                                else None
+                            )
                             or "N/A"
                         )
                         st.write("**Invoice Date:**", invoice_date)
-                        
+
                         payment_state = (
                             split.get("paymentState")
                             or split.get("payment_state")
-                            or (doc.get("paymentState") if isinstance(doc, dict) else None)
+                            or (
+                                doc.get("paymentState")
+                                if isinstance(doc, dict)
+                                else None
+                            )
                             or "N/A"
                         )
                         st.write("**Payment State:**", payment_state)
@@ -394,8 +433,12 @@ def render_single_document_page(
                     with st.expander(f"🔍 All fields for split #{idx}"):
                         split_items = split.items()
                         if "raw" in split and len(split) == 1:
-                            st.warning(f"Split #{idx} appears to be invalid. Raw value: {split.get('raw')}")
-                            st.info("💡 Tip: The receipt splits might be embedded in the document object. Check the 'Raw JSON' tab.")
+                            st.warning(
+                                f"Split #{idx} appears to be invalid. Raw value: {split.get('raw')}"
+                            )
+                            st.info(
+                                "💡 Tip: The receipt splits might be embedded in the document object. Check the 'Raw JSON' tab."
+                            )
                         else:
                             split_df = pd.DataFrame(
                                 [
@@ -548,7 +591,7 @@ def render_single_document_page(
                     return str(value)
 
             all_fields = {}
-            nested_fields = {}  
+            nested_fields = {}
 
             for key, value in doc.items():
                 readable_key = key.replace("_", " ").replace("  ", " ").title()

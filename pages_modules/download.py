@@ -87,9 +87,7 @@ def render_download_page(
             "Unique ID (UUID)", placeholder="e.g., a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         )
 
-    st.write(
-        "**Tip:** Get the Unique ID by first viewing the document details in the 'Single Document' page"
-    )
+    st.write(f"**{t('download_page.tip')}**")
 
     st.markdown(get_action_bar_styles(), unsafe_allow_html=True)
 
@@ -99,22 +97,22 @@ def render_download_page(
         st.session_state.viewed_document_path = None
 
     col1, col2 = st.columns(2)
-    
+
     with col1:
         get_details_button = st.button(
-            "🔍 Get Document Details (to find Unique ID)", 
-            type="secondary", 
+            t("download_page.get_details_btn"),
+            type="secondary",
             key="btn_get_download_details",
-            use_container_width=True
+            use_container_width=True,
         )
-    
+
     with col2:
         view_button = st.button(
-            "👁️ View Document", 
-            type="primary", 
+            t("download_page.view_doc_btn"),
+            type="primary",
             key="btn_view_pdf",
             disabled=not unique_id,
-            use_container_width=True
+            use_container_width=True,
         )
 
     if get_details_button:
@@ -128,9 +126,7 @@ def render_download_page(
 
     if unique_id and view_button:
         output_path = f"document_{download_doc_id}.pdf"
-        with st.spinner(
-            f"Loading document {download_doc_id} for viewing..."
-        ):
+        with st.spinner(f"Loading document {download_doc_id} for viewing..."):
             success = client.download_document(download_doc_id, unique_id, output_path)
             if success:
                 st.session_state.viewed_document_id = download_doc_id
@@ -141,17 +137,19 @@ def render_download_page(
                 st.session_state.viewed_document_id = None
                 st.session_state.viewed_document_path = None
 
-    if (st.session_state.viewed_document_path and 
-        os.path.exists(st.session_state.viewed_document_path) and
-        st.session_state.viewed_document_id == download_doc_id):
+    if (
+        st.session_state.viewed_document_path
+        and os.path.exists(st.session_state.viewed_document_path)
+        and st.session_state.viewed_document_id == download_doc_id
+    ):
         st.markdown("---")
-        st.markdown("### 📄 Document Preview")
-        
+        st.markdown(f"### 📄 {t('download_page.doc_preview')}")
+
         try:
             with open(st.session_state.viewed_document_path, "rb") as f:
                 pdf_bytes = f.read()
-                base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-                
+                base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+
                 pdf_display = f"""
                 <iframe 
                     src="data:application/pdf;base64,{base64_pdf}" 
@@ -162,7 +160,7 @@ def render_download_page(
                 </iframe>
                 """
                 st.markdown(pdf_display, unsafe_allow_html=True)
-                
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 with open(st.session_state.viewed_document_path, "rb") as f:
                     pdf_data = f.read()
@@ -174,7 +172,4 @@ def render_download_page(
                         use_container_width=True,
                     )
         except Exception as e:
-            st.error(
-                t("messages.error_reading_file").replace("{error}", str(e))
-            )
-
+            st.error(t("messages.error_reading_file").replace("{error}", str(e)))

@@ -90,7 +90,28 @@ def render_signable_docs_page(
         st.write("")
         if st.button(" " + t("signable_docs_page.load_documents"), type="primary"):
             with st.spinner(t("signable_docs_page.loading")):
-                docs = client.get_signable_documents(backup_list=backup_list)
+                all_docs_cache = st.session_state.get("documents")
+                docs = None
+
+                if all_docs_cache and not backup_list:
+
+                    signable_stages = [f"Stage{i}" for i in range(1, 6)]
+                    docs = [
+                        d
+                        for d in all_docs_cache
+                        if d.get("currentStage") in signable_stages
+                    ]
+                else:
+
+                    try:
+                        docs = client.get_signable_documents(
+                            backup_list=backup_list, use_filter_method=False
+                        )
+                    except:
+                        docs = client.get_signable_documents(
+                            backup_list=backup_list, use_filter_method=True
+                        )
+
                 if docs is not None:
                     normalized_docs = []
                     for doc in docs:
@@ -99,11 +120,17 @@ def render_signable_docs_page(
                             normalized_docs.append(normalized_doc)
                     st.session_state.signable_documents = normalized_docs
                     if normalized_docs:
-                        st.success(f"{len(normalized_docs)} " + t("signable_docs_page.found"))
+                        st.success(
+                            f"{len(normalized_docs)} " + t("signable_docs_page.found")
+                        )
                     else:
-                        st.info("ℹ️ No signable documents found. The API returned an empty list.")
+                        st.info(
+                            "ℹ️ No signable documents found. The API returned an empty list."
+                        )
                 else:
-                    st.error("Failed to retrieve signable documents. Please check the API connection.")
+                    st.error(
+                        "Failed to retrieve signable documents. Please check the API connection."
+                    )
 
     if "signable_documents" in st.session_state and st.session_state.signable_documents:
         docs = st.session_state.signable_documents

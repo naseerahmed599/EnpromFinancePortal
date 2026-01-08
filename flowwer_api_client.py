@@ -562,9 +562,16 @@ class FlowwerAPIClient:
         months_back: int = 6,
         min_date: Optional[str] = None,
         max_date: Optional[str] = None,
+        progress_callback: Optional[Any] = None,
     ) -> Optional[List[str]]:
         """
         Get a list of all cost centers from documents
+
+        Args:
+            months_back: Approximate months to look back
+            min_date: Optional start date (ISO string)
+            max_date: Optional end date (ISO string)
+            progress_callback: Optional callback accepting (percentage: float, text: str)
 
         Returns:
             List of cost center strings or None if failed
@@ -582,20 +589,53 @@ class FlowwerAPIClient:
                 return []
 
             cost_centers: set[str] = set()
-            for path in paths:
+
+            def process_path(path):
+                path_ccs = set()
                 docs = self._find_documents_with_receipt_splits(path)
-                if not docs:
-                    continue
-                for doc in docs:
-                    splits = (
-                        doc.get("receiptSplits")
-                        or doc.get("documentReceiptSplits")
-                        or []
-                    )
-                    for split in splits:
-                        cc = split.get("costCenter")
-                        if cc not in [None, "", "None", "nan"]:
-                            cost_centers.add(str(cc))
+                if docs:
+                    for doc in docs:
+                        splits = (
+                            doc.get("receiptSplits")
+                            or doc.get("documentReceiptSplits")
+                            or []
+                        )
+                        for split in splits:
+                            cc = split.get("costCenter")
+                            if cc not in [None, "", "None", "nan"]:
+                                path_ccs.add(str(cc))
+                return path_ccs
+
+            max_workers = min(len(paths), 10)
+            if max_workers < 1:
+                max_workers = 1
+
+            total_paths = len(paths)
+            processed_count = 0
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                future_to_path = {
+                    executor.submit(process_path, path): path for path in paths
+                }
+
+                for future in concurrent.futures.as_completed(future_to_path):
+                    path = future_to_path[future]
+                    processed_count += 1
+
+                    if progress_callback:
+                        progress = processed_count / total_paths
+                        progress_callback(
+                            progress,
+                            f"Processed {processed_count}/{total_paths} months",
+                        )
+
+                    try:
+                        path_ccs = future.result()
+                        cost_centers.update(path_ccs)
+                    except Exception as exc:
+                        print(f"Path {path} generated an exception: {exc}")
 
             sorted_cc = sorted(cost_centers)
             print(f"Retrieved {len(sorted_cc)} cost centers (via Find API)")
@@ -618,20 +658,41 @@ class FlowwerAPIClient:
                 return []
 
             cost_centers: set[str] = set()
-            for path in paths:
+
+            def process_path(path):
+                path_ccs = set()
                 docs = self._find_documents_with_receipt_splits(path)
-                if not docs:
-                    continue
-                for doc in docs:
-                    splits = (
-                        doc.get("receiptSplits")
-                        or doc.get("documentReceiptSplits")
-                        or []
-                    )
-                    for split in splits:
-                        cc = split.get("costCenter")
-                        if cc not in [None, "", "None", "nan"]:
-                            cost_centers.add(str(cc))
+                if docs:
+                    for doc in docs:
+                        splits = (
+                            doc.get("receiptSplits")
+                            or doc.get("documentReceiptSplits")
+                            or []
+                        )
+                        for split in splits:
+                            cc = split.get("costCenter")
+                            if cc not in [None, "", "None", "nan"]:
+                                path_ccs.add(str(cc))
+                return path_ccs
+
+            max_workers = min(len(paths), 10)
+            if max_workers < 1:
+                max_workers = 1
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                future_to_path = {
+                    executor.submit(process_path, path): path for path in paths
+                }
+
+                for future in concurrent.futures.as_completed(future_to_path):
+                    path = future_to_path[future]
+                    try:
+                        path_ccs = future.result()
+                        cost_centers.update(path_ccs)
+                    except Exception as exc:
+                        print(f"Path {path} generated an exception: {exc}")
 
             sorted_cc = sorted(cost_centers)
             print(

@@ -34,6 +34,7 @@ try:
         get_cached_filtered_documents,
         cache_filtered_documents_manual,
     )
+
     PERFORMANCE_OPTIMIZATIONS_ENABLED = True
 except ImportError:
     PERFORMANCE_OPTIMIZATIONS_ENABLED = False
@@ -61,7 +62,7 @@ def render_analytics_page(
 
     if st.session_state.documents is not None:
         docs = st.session_state.documents
-        
+
         st.markdown(
             f"""
             <div class="page-header-amber" style="
@@ -239,7 +240,7 @@ def render_analytics_page(
         cc_months_back = st.selectbox(
             t("analytics_page.cost_center_lookback_months"),
             options=[3, 6, 12, 24],
-            index=1,  
+            index=1,
             help=t("analytics_page.cost_center_lookback_help"),
             key="analytics_cc_months_back",
         )
@@ -253,7 +254,7 @@ def render_analytics_page(
         ):
             docs = None
             cost_centers = None
-            
+
             try:
                 with st.spinner(f"📄 {t('analytics_page.loading_documents')}"):
                     docs = client.get_all_documents(
@@ -265,25 +266,53 @@ def render_analytics_page(
             except Exception as e:
                 st.error(f"{t('analytics_page.error_loading_documents')}: {str(e)}")
                 st.stop()
-            
+
             if not client.api_key:
                 st.error(f"{t('analytics_page.api_key_not_set')}")
                 st.stop()
-            
+
             cost_centers = None
             if PERFORMANCE_OPTIMIZATIONS_ENABLED:
                 cost_centers = get_cached_cost_centers(months_back=int(cc_months_back))
-            
+
             if cost_centers is None:
                 try:
-                    with st.spinner(f"{t('analytics_page.loading_cost_centers_months').format(months=cc_months_back)}"):
-                        cost_centers = client.get_all_cost_centers(months_back=int(cc_months_back))
-                        if PERFORMANCE_OPTIMIZATIONS_ENABLED and cost_centers:
-                            cache_cost_centers(cost_centers, months_back=int(cc_months_back))
+                    from analytics.utils.caching import fetch_cost_centers_cached
+
+                    progress_text = t(
+                        "analytics_page.loading_cost_centers_months"
+                    ).format(months=cc_months_back)
+                    progress_bar = st.progress(0, text=progress_text)
+
+                    def ui_progress_callback(p, text):
+                        progress_bar.progress(
+                            p, text=f"{progress_text} ({int(p*100)}%)"
+                        )
+
+                    cost_centers = fetch_cost_centers_cached(
+                        client.api_key,
+                        client.base_url,
+                        int(cc_months_back),
+                        progress_callback=ui_progress_callback,
+                    )
+
+                    progress_bar.empty()
+
+                    if PERFORMANCE_OPTIMIZATIONS_ENABLED and cost_centers:
+                        cache_cost_centers(
+                            cost_centers, months_back=int(cc_months_back)
+                        )
                 except Exception as e:
-                    st.warning(f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}")
-                    cost_centers = []
-            
+                    st.warning(
+                        f"{t('analytics_page.warning_could_not_load_cost_centers')}: {str(e)}"
+                    )
+                    try:
+                        cost_centers = client.get_all_cost_centers(
+                            months_back=int(cc_months_back)
+                        )
+                    except:
+                        cost_centers = []
+
             if cost_centers:
                 cleaned_cc = [
                     str(cc)
@@ -291,15 +320,17 @@ def render_analytics_page(
                     if cc and str(cc).strip() not in ["", "None", "nan"]
                 ]
                 st.session_state.analytics_cost_centers = sorted(cleaned_cc)
-                
+
                 today = date.today()
-                start_date = (today - relativedelta(months=cc_months_back - 1)).replace(day=1)
+                start_date = (today - relativedelta(months=cc_months_back - 1)).replace(
+                    day=1
+                )
                 end_date = today
-                
+
                 st.session_state.analytics_cc_sync_start = start_date
                 st.session_state.analytics_cc_sync_end = end_date
                 st.session_state.analytics_cc_sync_months = cc_months_back
-                
+
                 st.toast(
                     f"{t('analytics_page.loaded_documents_cost_centers').format(docs=len(docs), cc=len(cleaned_cc))}",
                 )
@@ -307,7 +338,7 @@ def render_analytics_page(
                 st.toast(
                     f"{t('analytics_page.loaded_documents_no_cost_centers').format(docs=len(docs))}",
                 )
-            
+
             st.rerun()
 
     with col5:
@@ -746,30 +777,51 @@ def render_analytics_page(
 
             value_threshold = 0.0
 
-           
             selected_cost_centers = []
 
         if PERFORMANCE_OPTIMIZATIONS_ENABLED:
-         
+
             filter_params = {
-                "company": selected_company if selected_company != t("analytics_page.all") else None,
-                "stage": selected_stage if selected_stage != t("analytics_page.all") else None,
-                "payment": selected_payment if selected_payment != t("analytics_page.all") else None,
-                "supplier": selected_supplier if selected_supplier != t("analytics_page.all") else None,
-                "currency": selected_currency if selected_currency != t("analytics_page.all") else None,
-                "flow": selected_flow if selected_flow != t("analytics_page.all") else None,
+                "company": (
+                    selected_company
+                    if selected_company != t("analytics_page.all")
+                    else None
+                ),
+                "stage": (
+                    selected_stage
+                    if selected_stage != t("analytics_page.all")
+                    else None
+                ),
+                "payment": (
+                    selected_payment
+                    if selected_payment != t("analytics_page.all")
+                    else None
+                ),
+                "supplier": (
+                    selected_supplier
+                    if selected_supplier != t("analytics_page.all")
+                    else None
+                ),
+                "currency": (
+                    selected_currency
+                    if selected_currency != t("analytics_page.all")
+                    else None
+                ),
+                "flow": (
+                    selected_flow if selected_flow != t("analytics_page.all") else None
+                ),
                 "date_from": date_from.isoformat() if date_from else None,
                 "date_to": date_to.isoformat() if date_to else None,
                 "min_value": value_threshold if value_threshold > 0 else None,
             }
-            
+
             cached_filtered = get_cached_filtered_documents(filter_params)
             if cached_filtered is not None:
                 filtered_docs = cached_filtered if cached_filtered else []
             else:
                 filtered_docs = filter_documents_optimized(
                     st.session_state.documents,
-                    **{k: v for k, v in filter_params.items() if v is not None}
+                    **{k: v for k, v in filter_params.items() if v is not None},
                 )
                 if filtered_docs is None:
                     filtered_docs = []
@@ -832,7 +884,9 @@ def render_analytics_page(
                         return False
 
                 filtered_docs = [
-                    doc for doc in filtered_docs if is_date_after_or_equal(doc, date_from)
+                    doc
+                    for doc in filtered_docs
+                    if is_date_after_or_equal(doc, date_from)
                 ]
 
             if date_to:
@@ -850,7 +904,9 @@ def render_analytics_page(
                         return False
 
                 filtered_docs = [
-                    doc for doc in filtered_docs if is_date_before_or_equal(doc, date_to)
+                    doc
+                    for doc in filtered_docs
+                    if is_date_before_or_equal(doc, date_to)
                 ]
 
         if value_threshold > 0:
@@ -862,42 +918,43 @@ def render_analytics_page(
 
         docs = filtered_docs
 
-      
         st.markdown("<br>", unsafe_allow_html=True)
 
-        total_docs = len(st.session_state.documents) if st.session_state.documents else len(docs)
+        total_docs = (
+            len(st.session_state.documents) if st.session_state.documents else len(docs)
+        )
         is_filtered = total_docs > 0 and len(docs) < total_docs
         filter_indicator_html = (
             f'<span class="kpi-filter-indicator"><span class="dot"></span>Filtered {len(docs):,}/{total_docs:,}</span>'
             if is_filtered
             else ""
         )
-        
-        kpi_title = t('analytics_page.key_performance_indicators')
+
+        kpi_title = t("analytics_page.key_performance_indicators")
         header_html = (
             '<div style="margin-bottom: 1.5rem;">'
             '<div class="section-header">'
             '<div style="'
-            'background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);'
-            'width: 48px;'
-            'height: 48px;'
-            'border-radius: 12px;'
-            'display: flex;'
-            'align-items: center;'
-            'justify-content: center;'
-            'font-size: 24px;'
-            'box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);'
-            'flex-shrink: 0;'
+            "background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);"
+            "width: 48px;"
+            "height: 48px;"
+            "border-radius: 12px;"
+            "display: flex;"
+            "align-items: center;"
+            "justify-content: center;"
+            "font-size: 24px;"
+            "box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);"
+            "flex-shrink: 0;"
             '">📊</div>'
             '<div style="flex: 1;">'
             '<div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">'
             f'<h3 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{kpi_title}</h3>'
-            f'{filter_indicator_html}'
-            '</div>'
+            f"{filter_indicator_html}"
+            "</div>"
             f'<p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; opacity: 0.8;">{t("analytics_page.real_time_insights_metrics")}</p>'
-            '</div>'
-            '</div>'
-            '</div>'
+            "</div>"
+            "</div>"
+            "</div>"
         )
         st.markdown(header_html, unsafe_allow_html=True)
 
@@ -914,7 +971,7 @@ def render_analytics_page(
             pending_payment_value = kpi_data["pending_payment_value"]
             stage_counts = kpi_data.get("stage_counts", {})
             payment_totals = kpi_data.get("payment_totals", {})
-            
+
             payment_counts = {}
             for doc in docs:
                 payment = doc.get("paymentState", "Unknown")
@@ -940,9 +997,9 @@ def render_analytics_page(
             for doc in docs:
                 payment = doc.get("paymentState", "Unknown")
                 payment_counts[payment] = payment_counts.get(payment, 0) + 1
-                payment_totals[payment] = payment_totals.get(payment, 0) + abs(doc.get(
-                    "totalGross", 0
-                ))
+                payment_totals[payment] = payment_totals.get(payment, 0) + abs(
+                    doc.get("totalGross", 0)
+                )
 
             pending_payment_value = payment_totals.get("Open", 0) + payment_totals.get(
                 "Pending", 0
@@ -954,7 +1011,6 @@ def render_analytics_page(
         unique_suppliers = len(
             set([doc.get("supplierName") for doc in docs if doc.get("supplierName")])
         )
-
 
         kpis = [
             (
@@ -1027,7 +1083,8 @@ def render_analytics_page(
 
         # KPI cards now use theme styles from get_kpi_card_styles()
         # Additional custom styling for icon wrapper
-        st.markdown("""
+        st.markdown(
+            """
             <style>
                 /* Enhanced KPI card layout with icon - extends theme's kpi-card-enhanced */
                 .kpi-card-enhanced {
@@ -1056,16 +1113,22 @@ def render_analytics_page(
                     }
                 }
             </style>
-        """, unsafe_allow_html=True)
-        
+        """,
+            unsafe_allow_html=True,
+        )
+
         for row in range(0, len(kpis), 3):
             kpi_cols = st.columns(3)
             for col_idx, kpi_idx in enumerate(range(row, min(row + 3, len(kpis)))):
                 label, value, icon, color, bg = kpis[kpi_idx]
-                color_rgb = color.replace('#', '')
-                r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
+                color_rgb = color.replace("#", "")
+                r, g, b = (
+                    int(color_rgb[0:2], 16),
+                    int(color_rgb[2:4], 16),
+                    int(color_rgb[4:6], 16),
+                )
                 shadow_color = f"rgba({r}, {g}, {b}, 0.2)"
-                
+
                 with kpi_cols[col_idx]:
                     st.markdown(
                         f"""
@@ -1087,49 +1150,70 @@ def render_analytics_page(
                 st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        
+
         insights = []
         if approval_rate < 50:
-            insights.append({
-                "type": "warning",
-                "icon": "⚠️",
-                "title": t("analytics_page.low_approval_rate"),
-                "message": t("analytics_page.low_approval_rate_message").format(rate=f"{approval_rate:.1f}"),
-                "color": "#f59e0b"
-            })
+            insights.append(
+                {
+                    "type": "warning",
+                    "icon": "⚠️",
+                    "title": t("analytics_page.low_approval_rate"),
+                    "message": t("analytics_page.low_approval_rate_message").format(
+                        rate=f"{approval_rate:.1f}"
+                    ),
+                    "color": "#f59e0b",
+                }
+            )
         if pending_payment_value > total_gross * 0.3:
-            insights.append({
-                "type": "alert",
-                "icon": "💳",
-                "title": t("analytics_page.high_pending_payments"),
-                "message": t("analytics_page.high_pending_payments_message").format(amount=f"{pending_payment_value:,.0f}", percent=f"{pending_payment_value/total_gross*100:.1f}"),
-                "color": "#ef4444"
-            })
+            insights.append(
+                {
+                    "type": "alert",
+                    "icon": "💳",
+                    "title": t("analytics_page.high_pending_payments"),
+                    "message": t("analytics_page.high_pending_payments_message").format(
+                        amount=f"{pending_payment_value:,.0f}",
+                        percent=f"{pending_payment_value/total_gross*100:.1f}",
+                    ),
+                    "color": "#ef4444",
+                }
+            )
         if in_workflow > len(docs) * 0.4:
-            insights.append({
-                "type": "info",
-                "icon": "📋",
-                "title": t("analytics_page.workflow_bottleneck"),
-                "message": t("analytics_page.workflow_bottleneck_message").format(count=in_workflow, percent=f"{in_workflow/len(docs)*100:.1f}"),
-                "color": "#3b82f6"
-            })
+            insights.append(
+                {
+                    "type": "info",
+                    "icon": "📋",
+                    "title": t("analytics_page.workflow_bottleneck"),
+                    "message": t("analytics_page.workflow_bottleneck_message").format(
+                        count=in_workflow, percent=f"{in_workflow/len(docs)*100:.1f}"
+                    ),
+                    "color": "#3b82f6",
+                }
+            )
         if avg_invoice_value > 10000:
-            insights.append({
-                "type": "success",
-                "icon": "💰",
-                "title": t("analytics_page.high_value_portfolio"),
-                "message": t("analytics_page.high_value_portfolio_message").format(amount=f"{avg_invoice_value:,.0f}"),
-                "color": "#10b981"
-            })
+            insights.append(
+                {
+                    "type": "success",
+                    "icon": "💰",
+                    "title": t("analytics_page.high_value_portfolio"),
+                    "message": t("analytics_page.high_value_portfolio_message").format(
+                        amount=f"{avg_invoice_value:,.0f}"
+                    ),
+                    "color": "#10b981",
+                }
+            )
         if draft_count > len(docs) * 0.2:
-            insights.append({
-                "type": "warning",
-                "icon": "📝",
-                "title": t("analytics_page.unprocessed_documents"),
-                "message": t("analytics_page.unprocessed_documents_message").format(count=draft_count, percent=f"{draft_count/len(docs)*100:.1f}"),
-                "color": "#f59e0b"
-            })
-        
+            insights.append(
+                {
+                    "type": "warning",
+                    "icon": "📝",
+                    "title": t("analytics_page.unprocessed_documents"),
+                    "message": t("analytics_page.unprocessed_documents_message").format(
+                        count=draft_count, percent=f"{draft_count/len(docs)*100:.1f}"
+                    ),
+                    "color": "#f59e0b",
+                }
+            )
+
         if insights:
             st.markdown(
                 f"""
@@ -1156,7 +1240,7 @@ def render_analytics_page(
                 """,
                 unsafe_allow_html=True,
             )
-            
+
             insight_cols = st.columns(min(len(insights), 3))
             for idx, insight in enumerate(insights[:3]):
                 with insight_cols[idx]:
@@ -1190,9 +1274,14 @@ def render_analytics_page(
                         """,
                         unsafe_allow_html=True,
                     )
-            
+
             if len(insights) > 3:
-                with st.expander(t("analytics_page.view_more_insights").format(count=len(insights) - 3), expanded=False):
+                with st.expander(
+                    t("analytics_page.view_more_insights").format(
+                        count=len(insights) - 3
+                    ),
+                    expanded=False,
+                ):
                     for insight in insights[3:]:
                         st.markdown(
                             f"""
@@ -1447,8 +1536,6 @@ def render_analytics_page(
             unsafe_allow_html=True,
         )
 
-       
-        
         tab1, tab2, tab3, tab4 = st.tabs(
             [
                 f"💰 {t('analytics_page.financial_tab')}",
@@ -1552,7 +1639,9 @@ def render_analytics_page(
                     fig_payment.update_traces(
                         textposition="inside",
                         textinfo="percent+label",
-                        textfont=dict(size=12, color="white", family="Inter, sans-serif"),
+                        textfont=dict(
+                            size=12, color="white", family="Inter, sans-serif"
+                        ),
                         hovertemplate="<b>%{label}</b><br>%{value} documents<br>%{percent}<extra></extra>",
                         marker=dict(line=dict(color="#ffffff", width=2)),
                     )
@@ -1767,16 +1856,14 @@ def render_analytics_page(
 
             if len(company_df) > 10:
                 page_size = get_page_size_selector(
-                    current_size=10,
-                    key="company_page_size",
-                    options=[10, 25, 50]
+                    current_size=10, key="company_page_size", options=[10, 25, 50]
                 )
-                
+
                 paginated_df, _, _, _ = paginate_dataframe(
                     company_df,
                     page_size=page_size,
                     page_key="company_page",
-                    show_info=True
+                    show_info=True,
                 )
                 company_df = paginated_df
 
@@ -1916,22 +2003,22 @@ def render_analytics_page(
 
             if supplier_summary:
                 df_suppliers = pd.DataFrame(supplier_summary)
-                
+
                 if len(df_suppliers) > 25:
                     page_size = get_page_size_selector(
                         current_size=25,
                         key="suppliers_page_size",
-                        options=[10, 25, 50, 100]
+                        options=[10, 25, 50, 100],
                     )
-                    
+
                     paginated_df, _, _, _ = paginate_dataframe(
                         df_suppliers,
                         page_size=page_size,
                         page_key="suppliers_page",
-                        show_info=True
+                        show_info=True,
                     )
                     df_suppliers = paginated_df
-                
+
                 st.dataframe(
                     df_suppliers, use_container_width=True, hide_index=True, height=350
                 )
@@ -1991,7 +2078,9 @@ def render_analytics_page(
                         key="analytics_select_all_tab4",
                         use_container_width=True,
                     ):
-                        st.session_state.analytics_cc_multiselect_tab4 = filtered_cc_list
+                        st.session_state.analytics_cc_multiselect_tab4 = (
+                            filtered_cc_list
+                        )
                         st.rerun()
                 with col_btn2:
                     if st.button(
@@ -2142,7 +2231,7 @@ def render_analytics_page(
             st.markdown("<br>", unsafe_allow_html=True)
 
             current_date_key = f"{cc_date_from.isoformat()}_{cc_date_to.isoformat()}"
-            
+
             if PERFORMANCE_OPTIMIZATIONS_ENABLED:
                 receipt_data = get_cached_receipt_data(current_date_key)
                 if receipt_data is None:
@@ -2170,7 +2259,9 @@ def render_analytics_page(
                                 cache_receipt_data(receipt_report, current_date_key)
                             else:
                                 st.session_state.analytics_receipt_data = receipt_report
-                                st.session_state.analytics_receipt_date_key = current_date_key
+                                st.session_state.analytics_receipt_date_key = (
+                                    current_date_key
+                                )
                             receipt_data = receipt_report if receipt_report else []
                         else:
                             receipt_data = []
@@ -2222,84 +2313,158 @@ def render_analytics_page(
                             df_filtered[amount_col], errors="coerce"
                         ).fillna(0)
 
-                        if 'analytics_doc_type_cache' not in st.session_state:
+                        if "analytics_doc_type_cache" not in st.session_state:
                             st.session_state.analytics_doc_type_cache = {}
-                        
+
                         doc_type_cache = st.session_state.analytics_doc_type_cache
-                        unique_doc_ids = [int(x) for x in pd.Series(df_filtered['documentId']).dropna().unique()]
-                        
-                        missing_ids = [doc_id for doc_id in unique_doc_ids if doc_id not in doc_type_cache]
-                        
+                        unique_doc_ids = [
+                            int(x)
+                            for x in pd.Series(df_filtered["documentId"])
+                            .dropna()
+                            .unique()
+                        ]
+
+                        missing_ids = [
+                            doc_id
+                            for doc_id in unique_doc_ids
+                            if doc_id not in doc_type_cache
+                        ]
+
                         if missing_ids:
-                            with st.spinner(t("analytics_page.enriching_documents_type").format(count=len(missing_ids))):
-                                for doc_id in missing_ids:
+                            # Replace spinner with progress bar
+                            progress_text = t(
+                                "analytics_page.enriching_documents_type"
+                            ).format(count=len(missing_ids))
+                            progress_bar = st.progress(0, text=progress_text)
+
+                            import concurrent.futures
+
+                            def fetch_doc_type(d_id):
+                                try:
+                                    detail = client.get_document(int(d_id))
+                                    if detail:
+                                        return (
+                                            d_id,
+                                            detail.get("documentType")
+                                            or detail.get("documentKind")
+                                            or "",
+                                        )
+                                except Exception:
+                                    pass
+                                return d_id, ""
+
+                            max_workers = min(len(missing_ids), 20)
+                            processed_count = 0
+                            total_docs = len(missing_ids)
+
+                            with concurrent.futures.ThreadPoolExecutor(
+                                max_workers=max_workers
+                            ) as executor:
+                                future_to_doc = {
+                                    executor.submit(fetch_doc_type, doc_id): doc_id
+                                    for doc_id in missing_ids
+                                }
+                                for future in concurrent.futures.as_completed(
+                                    future_to_doc
+                                ):
+                                    processed_count += 1
+                                    progress_bar.progress(
+                                        processed_count / total_docs,
+                                        text=f"{progress_text} ({processed_count}/{total_docs})",
+                                    )
                                     try:
-                                        detail = client.get_document(int(doc_id))
-                                        if detail:
-                                            doc_type_cache[doc_id] = detail.get('documentType') or detail.get('documentKind') or ''
-                                        else:
-                                            doc_type_cache[doc_id] = ''
+                                        d_id, d_type = future.result()
+                                        doc_type_cache[d_id] = d_type
                                     except Exception:
-                                        doc_type_cache[doc_id] = ''
-                            
+                                        doc_type_cache[future_to_doc[future]] = ""
+
+                            progress_bar.empty()
                             st.session_state.analytics_doc_type_cache = doc_type_cache
-                        
-                        df_filtered['_documentType'] = df_filtered['documentId'].map(doc_type_cache)
+
+                        df_filtered["_documentType"] = df_filtered["documentId"].map(
+                            doc_type_cache
+                        )
 
                         def classify_row(row):
-                            doc_type = str(row.get('_documentType') or row.get('documentType') or row.get('documentKind') or '').lower()
+                            doc_type = str(
+                                row.get("_documentType")
+                                or row.get("documentType")
+                                or row.get("documentKind")
+                                or ""
+                            ).lower()
                             amount = row[amount_col]
-                            if 'ausgangsrechnung' in doc_type or 'outgoinginvoice' in doc_type or 'ausgang' in doc_type:
-                                return 'income'
-                            if 'eingangsrechnung' in doc_type or 'incominginvoice' in doc_type or 'eingang' in doc_type:
-                                return 'cost'
-                            return 'income' if amount < 0 else 'cost'
-                        
-                        df_filtered['__category'] = df_filtered.apply(classify_row, axis=1)
-                        
-                        cost_total = df_filtered.loc[df_filtered['__category'] == 'cost', amount_col].apply(abs).sum()
-                        income_total = df_filtered.loc[df_filtered['__category'] == 'income', amount_col].apply(abs).sum()
+                            if (
+                                "ausgangsrechnung" in doc_type
+                                or "outgoinginvoice" in doc_type
+                                or "ausgang" in doc_type
+                            ):
+                                return "income"
+                            if (
+                                "eingangsrechnung" in doc_type
+                                or "incominginvoice" in doc_type
+                                or "eingang" in doc_type
+                            ):
+                                return "cost"
+                            return "income" if amount < 0 else "cost"
+
+                        df_filtered["__category"] = df_filtered.apply(
+                            classify_row, axis=1
+                        )
+
+                        cost_total = (
+                            df_filtered.loc[
+                                df_filtered["__category"] == "cost", amount_col
+                            ]
+                            .apply(abs)
+                            .sum()
+                        )
+                        income_total = (
+                            df_filtered.loc[
+                                df_filtered["__category"] == "income", amount_col
+                            ]
+                            .apply(abs)
+                            .sum()
+                        )
                         margin = income_total - cost_total
                         net_total = df_filtered[amount_col].sum()
-                        
+
                         num_cost_centers = df_filtered[cost_center_col].nunique()
                         num_records = len(df_filtered)
 
                         margin_color = "#dc2626" if margin < 0 else "#16a34a"
                         income_color = "#dc2626" if income_total < 0 else "#16a34a"
                         cost_color = "#dc2626" if cost_total < 0 else "#16a34a"
-                        
-                        
+
                         try:
-                            margin_label = t('analytics_page.margin_income_cost')
-                            if margin_label == 'analytics_page.margin_income_cost':
-                                margin_label = 'Margin (Income - Cost)'
+                            margin_label = t("analytics_page.margin_income_cost")
+                            if margin_label == "analytics_page.margin_income_cost":
+                                margin_label = "Margin (Income - Cost)"
                         except:
-                            margin_label = 'Margin (Income - Cost)'
-                        
+                            margin_label = "Margin (Income - Cost)"
+
                         try:
-                            income_label = t('analytics_page.total_income_debs')
-                            if income_label == 'analytics_page.total_income_debs':
-                                income_label = 'Total Income (Debs)'
+                            income_label = t("analytics_page.total_income_debs")
+                            if income_label == "analytics_page.total_income_debs":
+                                income_label = "Total Income (Debs)"
                         except:
-                            income_label = 'Total Income (Debs)'
-                        
+                            income_label = "Total Income (Debs)"
+
                         try:
-                            cost_label = t('analytics_page.total_cost_kreds')
-                            if cost_label == 'analytics_page.total_cost_kreds':
-                                cost_label = 'Total Cost (Kreds)'
+                            cost_label = t("analytics_page.total_cost_kreds")
+                            if cost_label == "analytics_page.total_cost_kreds":
+                                cost_label = "Total Cost (Kreds)"
                         except:
-                            cost_label = 'Total Cost (Kreds)'
-                        
+                            cost_label = "Total Cost (Kreds)"
+
                         try:
-                            cc_count_label = t('analytics_page.num_cost_centers')
-                            if cc_count_label == 'analytics_page.num_cost_centers':
-                                cc_count_label = 'Cost Centers'
+                            cc_count_label = t("analytics_page.num_cost_centers")
+                            if cc_count_label == "analytics_page.num_cost_centers":
+                                cc_count_label = "Cost Centers"
                         except:
-                            cc_count_label = 'Cost Centers'
-                        
+                            cc_count_label = "Cost Centers"
+
                         fin_cols_cc = st.columns(4)
-                        
+
                         with fin_cols_cc[0]:
                             st.markdown(
                                 f"""
@@ -2341,7 +2506,7 @@ def render_analytics_page(
                                 """,
                                 unsafe_allow_html=True,
                             )
-                        
+
                         with fin_cols_cc[1]:
                             st.markdown(
                                 f"""
@@ -2383,7 +2548,7 @@ def render_analytics_page(
                                 """,
                                 unsafe_allow_html=True,
                             )
-                        
+
                         with fin_cols_cc[2]:
                             st.markdown(
                                 f"""
@@ -2425,7 +2590,7 @@ def render_analytics_page(
                                 """,
                                 unsafe_allow_html=True,
                             )
-                        
+
                         with fin_cols_cc[3]:
                             st.markdown(
                                 f"""
@@ -2467,7 +2632,7 @@ def render_analytics_page(
                                 """,
                                 unsafe_allow_html=True,
                             )
-                        
+
                         st.markdown("<br>", unsafe_allow_html=True)
 
                         enriched_df = df_filtered.copy()
@@ -2480,15 +2645,31 @@ def render_analytics_page(
                         enriched_df["cc_number"] = enriched_df[cost_center_col].astype(
                             str
                         )
-                        
+
                         def calc_cc_metrics(group):
-                            income = group.loc[group['__category'] == 'income', amount_col].apply(abs).sum()
-                            cost = group.loc[group['__category'] == 'cost', amount_col].apply(abs).sum()
+                            income = (
+                                group.loc[group["__category"] == "income", amount_col]
+                                .apply(abs)
+                                .sum()
+                            )
+                            cost = (
+                                group.loc[group["__category"] == "cost", amount_col]
+                                .apply(abs)
+                                .sum()
+                            )
                             margin = income - cost
-                            return pd.Series({'income': income, 'cost': cost, 'margin': margin})
-                        
-                        cc_breakdown = enriched_df.groupby(['cc_number', 'cc_display']).apply(calc_cc_metrics).reset_index()
-                        cc_breakdown = cc_breakdown.sort_values('margin', ascending=False)
+                            return pd.Series(
+                                {"income": income, "cost": cost, "margin": margin}
+                            )
+
+                        cc_breakdown = (
+                            enriched_df.groupby(["cc_number", "cc_display"])
+                            .apply(calc_cc_metrics)
+                            .reset_index()
+                        )
+                        cc_breakdown = cc_breakdown.sort_values(
+                            "margin", ascending=False
+                        )
 
                         col_split_header1, col_split_header2 = st.columns([4, 1])
                         with col_split_header1:
@@ -2740,94 +2921,133 @@ def render_analytics_page(
                             unsafe_allow_html=True,
                         )
 
-                        if 'companyName' in df_filtered.columns or 'supplierName' in df_filtered.columns:
-                            company_col = 'companyName' if 'companyName' in df_filtered.columns else 'supplierName'
-                            
+                        if (
+                            "companyName" in df_filtered.columns
+                            or "supplierName" in df_filtered.columns
+                        ):
+                            company_col = (
+                                "companyName"
+                                if "companyName" in df_filtered.columns
+                                else "supplierName"
+                            )
+
                             company_cc_data = []
                             for company in df_filtered[company_col].dropna().unique():
-                                company_df = df_filtered[df_filtered[company_col] == company]
-                                company_income = company_df.loc[company_df['__category'] == 'income', amount_col].apply(abs).sum()
-                                company_cost = company_df.loc[company_df['__category'] == 'cost', amount_col].apply(abs).sum()
+                                company_df = df_filtered[
+                                    df_filtered[company_col] == company
+                                ]
+                                company_income = (
+                                    company_df.loc[
+                                        company_df["__category"] == "income", amount_col
+                                    ]
+                                    .apply(abs)
+                                    .sum()
+                                )
+                                company_cost = (
+                                    company_df.loc[
+                                        company_df["__category"] == "cost", amount_col
+                                    ]
+                                    .apply(abs)
+                                    .sum()
+                                )
                                 company_margin = company_income - company_cost
                                 company_cc_count = company_df[cost_center_col].nunique()
-                                
-                                company_cc_data.append({
-                                    'Company': company,
-                                    'Cost Centers': company_cc_count,
-                                    'Income': company_income,
-                                    'Cost': company_cost,
-                                    'Margin': company_margin,
-                                    'Records': len(company_df)
-                                })
-                            
+
+                                company_cc_data.append(
+                                    {
+                                        "Company": company,
+                                        "Cost Centers": company_cc_count,
+                                        "Income": company_income,
+                                        "Cost": company_cost,
+                                        "Margin": company_margin,
+                                        "Records": len(company_df),
+                                    }
+                                )
+
                             if company_cc_data:
                                 company_cc_df = pd.DataFrame(company_cc_data)
-                                
+
                                 col_sort1, col_sort2 = st.columns([1, 3])
                                 with col_sort1:
                                     try:
-                                        company_label = t('analytics_page.companies')
-                                        if company_label == 'analytics_page.companies':
-                                            company_label = 'Company'
+                                        company_label = t("analytics_page.companies")
+                                        if company_label == "analytics_page.companies":
+                                            company_label = "Company"
                                     except:
-                                        company_label = 'Company'
-                                    
-                                    margin_label = t('analytics_page.margin')
-                                    if margin_label == 'analytics_page.margin':
-                                        margin_label = 'Margin'
-                                    
-                                    income_label = t('analytics_page.total_income_debs')
-                                    if income_label == 'analytics_page.total_income_debs':
-                                        income_label = 'Total Income (Debs)'
-                                    
-                                    cost_label = t('analytics_page.total_cost_kreds')
-                                    if cost_label == 'analytics_page.total_cost_kreds':
-                                        cost_label = 'Total Cost (Kreds)'
-                                    
-                                    records_label = t('analytics_page.records')
-                                    if records_label == 'analytics_page.records':
-                                        records_label = 'Records'
-                                    
-                                    cc_label = t('analytics_page.cost_centers')
-                                    if cc_label == 'analytics_page.cost_centers':
-                                        cc_label = 'Cost Centers'
-                                    
+                                        company_label = "Company"
+
+                                    margin_label = t("analytics_page.margin")
+                                    if margin_label == "analytics_page.margin":
+                                        margin_label = "Margin"
+
+                                    income_label = t("analytics_page.total_income_debs")
+                                    if (
+                                        income_label
+                                        == "analytics_page.total_income_debs"
+                                    ):
+                                        income_label = "Total Income (Debs)"
+
+                                    cost_label = t("analytics_page.total_cost_kreds")
+                                    if cost_label == "analytics_page.total_cost_kreds":
+                                        cost_label = "Total Cost (Kreds)"
+
+                                    records_label = t("analytics_page.records")
+                                    if records_label == "analytics_page.records":
+                                        records_label = "Records"
+
+                                    cc_label = t("analytics_page.cost_centers")
+                                    if cc_label == "analytics_page.cost_centers":
+                                        cc_label = "Cost Centers"
+
                                     sort_options = {
-                                        'Margin': margin_label,
-                                        'Income': income_label,
-                                        'Cost': cost_label,
-                                        'Records': records_label,
-                                        'Cost Centers': cc_label,
-                                        'Company': company_label
+                                        "Margin": margin_label,
+                                        "Income": income_label,
+                                        "Cost": cost_label,
+                                        "Records": records_label,
+                                        "Cost Centers": cc_label,
+                                        "Company": company_label,
                                     }
                                     sort_by_display = st.selectbox(
-                                        t('analytics_page.sort_by'),
+                                        t("analytics_page.sort_by"),
                                         options=list(sort_options.keys()),
                                         format_func=lambda x: sort_options[x],
                                         index=0,
-                                        key='company_sort_by'
+                                        key="company_sort_by",
                                     )
                                     sort_by = sort_by_display
                                 with col_sort2:
                                     sort_order = st.selectbox(
-                                        t('analytics_page.sort_order'),
-                                        options=[t('analytics_page.descending'), t('analytics_page.ascending')],
+                                        t("analytics_page.sort_order"),
+                                        options=[
+                                            t("analytics_page.descending"),
+                                            t("analytics_page.ascending"),
+                                        ],
                                         index=0,
-                                        key='company_sort_order'
+                                        key="company_sort_order",
                                     )
-                                
-                                ascending = sort_order == t('analytics_page.ascending')
-                                company_cc_df = company_cc_df.sort_values(sort_by, ascending=ascending)
-                                
+
+                                ascending = sort_order == t("analytics_page.ascending")
+                                company_cc_df = company_cc_df.sort_values(
+                                    sort_by, ascending=ascending
+                                )
+
                                 st.markdown("<br>", unsafe_allow_html=True)
-                                
+
                                 # Display as cards matching Financial Summary style - show top 6 companies
-                                company_cols = st.columns(3)  # Always 3 columns, will wrap
-                                for idx, (_, row) in enumerate(company_cc_df.head(6).iterrows()):
+                                company_cols = st.columns(
+                                    3
+                                )  # Always 3 columns, will wrap
+                                for idx, (_, row) in enumerate(
+                                    company_cc_df.head(6).iterrows()
+                                ):
                                     with company_cols[idx % 3]:
-                                            margin_color = "#dc2626" if row['Margin'] < 0 else "#16a34a"
-                                            st.markdown(
-                                                f"""
+                                        margin_color = (
+                                            "#dc2626"
+                                            if row["Margin"] < 0
+                                            else "#16a34a"
+                                        )
+                                        st.markdown(
+                                            f"""
                                                 <div style="
                                                     background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.04) 100%);
                                                     border: 1px solid rgba(139, 92, 246, 0.2);
@@ -2867,8 +3087,8 @@ def render_analytics_page(
                                                     ">{t('analytics_page.margin')}</div>
                                                 </div>
                                                 """,
-                                                unsafe_allow_html=True,
-                                            )
+                                            unsafe_allow_html=True,
+                                        )
                         else:
                             st.info(t("analytics_page.no_company_data_available"))
                     else:
@@ -3015,7 +3235,10 @@ def render_analytics_page(
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">📊</div> {t("analytics_page.comprehensive_reports")}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-header"><div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">📊</div> {t("analytics_page.comprehensive_reports")}</div>',
+            unsafe_allow_html=True,
+        )
         export_row1 = st.columns(2)
 
         with export_row1[0]:
@@ -3087,7 +3310,10 @@ def render_analytics_page(
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🔍</div> {t("analytics_page.detailed_breakdowns")}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-header"><div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🔍</div> {t("analytics_page.detailed_breakdowns")}</div>',
+            unsafe_allow_html=True,
+        )
         export_row2 = st.columns(3)
 
         with export_row2[0]:
@@ -3193,7 +3419,10 @@ def render_analytics_page(
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown('<div class="glass-section">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> {t("analytics_page.company_analysis")}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-header"><div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); flex-shrink: 0; margin-right: 0.5rem;">🏢</div> {t("analytics_page.company_analysis")}</div>',
+            unsafe_allow_html=True,
+        )
         export_row3 = st.columns([1, 2])
 
         with export_row3[0]:
