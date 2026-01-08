@@ -12,7 +12,7 @@ Interactive portal for financial document workflows
 #   - Set to False: Compare Data section is hidden from navigation and disabled
 #   - Use Case: Enable for development/testing, disable for production
 #
-IN_PRODUCTION = True
+IN_PRODUCTION = False
 
 # ============================================================================
 
