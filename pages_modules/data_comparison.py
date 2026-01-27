@@ -7,6 +7,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import os
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 def render_data_comparison_page(
@@ -233,43 +235,11 @@ def render_data_comparison_page(
         unsafe_allow_html=True,
     )
 
-    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    excel_file_path = os.path.join(script_dir, "Financial_Dashboard_Latest.xlsx")
-
-    uploaded_file = None
-    if not IN_PRODUCTION:
-        st.markdown(f"#### {t('data_comparison_page.data_source_title')}")
-        uploaded_file = st.file_uploader(
-            t("data_comparison_page.upload_label"),
-            type=["xlsx"],
-            help=t("data_comparison_page.upload_help"),
-        )
-
-    file_to_use = None
-    file_source = None
-
-    if uploaded_file is not None:
-        file_to_use = uploaded_file
-        file_source = "uploaded"
-
-    elif os.path.exists(excel_file_path):
-        file_to_use = excel_file_path
-        file_source = "local"
-    else:
-        warning_msg = f"{t('data_comparison_page.no_file_warning')}\n\n"
-        if not IN_PRODUCTION:
-            warning_msg += "Please upload a DATEV Excel file above, or "
-        else:
-            warning_msg += "Local file not found. "
-        warning_msg += f"place `{excel_file_path}` in:\n`{os.getcwd()}`"
-        st.warning(warning_msg)
-
     if st.button(
-        t("data_comparison_page.load_both_btn"),
+        "🚀 Sync and Compare Data",
         key="btn_load_both",
         type="primary",
         use_container_width=True,
-        disabled=file_to_use is None,
     ):
         if "excel_data" in st.session_state:
             del st.session_state.excel_data
@@ -280,327 +250,126 @@ def render_data_comparison_page(
 
         datev_success = False
         flowwer_success = False
-
-        status_placeholder = st.empty()
-
-        cost_center_list = st.session_state.get("comparison_cost_centers", [])
-        if not cost_center_list:
-            with st.spinner(
-                t("data_comparison_page.loading_cc").format(
-                    **{
-                        "from": from_date.strftime("%Y-%m-%d"),
-                        "to": to_date.strftime("%Y-%m-%d"),
-                    }
-                )
-            ):
-                cost_centers = client.get_cost_centers_for_range(
-                    min_date=from_date.isoformat(), max_date=to_date.isoformat()
-                )
-                if cost_centers:
-                    cleaned_cc = [
-                        str(cc)
-                        for cc in cost_centers
-                        if cc and str(cc).strip() not in ["", "None", "nan"]
-                    ]
-                    st.session_state.comparison_cost_centers = sorted(cleaned_cc)
-                    cost_center_list = st.session_state.comparison_cost_centers
-                    status_placeholder.info(
-                        t("data_comparison_page.loaded_cc").format(
-                            count=len(cost_center_list)
-                        )
-                    )
-
+        
         selected_cost_centers = st.session_state.get("comparison_cc_multiselect", [])
 
-        try:
-            with st.spinner(t("data_comparison_page.loading_datev")):
-                if file_source == "uploaded":
-                    df_excel = pd.read_excel(
-                        file_to_use,
-                        sheet_name="Booking General",
-                        engine="openpyxl",
-                        header=1,
-                    )
-                else:
-                    df_excel = pd.read_excel(
-                        excel_file_path,
-                        sheet_name="Booking General",
-                        engine="openpyxl",
-                        header=1,
-                    )
-
-                initial_rows = len(df_excel)
-                status_placeholder.info(
-                    t("data_comparison_page.loaded_datev").format(
-                        count=f"{initial_rows:,}"
-                    )
-                )
-
-                if "Belegdatum" not in df_excel.columns:
-                    available_cols = ", ".join(df_excel.columns.tolist()[:10])
-                    status_placeholder.error(
-                        f"{t('data_comparison_page.col_not_found')}\n"
-                        f"Available columns: {available_cols}..."
-                    )
-                    datev_success = False
-                else:
-                    df_excel["Belegdatum"] = pd.to_datetime(
-                        df_excel["Belegdatum"], errors="coerce"
-                    )
-
-                    valid_dates = df_excel["Belegdatum"].notna().sum()
-                    status_placeholder.info(
-                        t("data_comparison_page.found_valid_dates").format(
-                            count=f"{valid_dates:,}", total=f"{initial_rows:,}"
-                        )
-                    )
-
-                    if valid_dates > 0:
-                        min_date_in_file = df_excel["Belegdatum"].min()
-                        max_date_in_file = df_excel["Belegdatum"].max()
-                        status_placeholder.info(
-                            f"{t('data_comparison_page.date_range_file').format(min=min_date_in_file.strftime('%Y-%m-%d'), max=max_date_in_file.strftime('%Y-%m-%d'))}\n"
-                            f"{t('data_comparison_page.filtering_for').format(start=from_date.strftime('%Y-%m-%d'), end=to_date.strftime('%Y-%m-%d'))}"
-                        )
-
-                    df_excel = df_excel[
-                        (df_excel["Belegdatum"] >= from_date)
-                        & (df_excel["Belegdatum"] <= to_date)
-                    ]
-
-                    filtered_rows = len(df_excel)
-                    if filtered_rows == 0:
-                        status_placeholder.warning(
-                            t("data_comparison_page.no_rows_match").format(
-                                start=from_date.strftime("%Y-%m-%d"),
-                                end=to_date.strftime("%Y-%m-%d"),
-                            )
-                            + "\n"
-                            + "Try adjusting the date range or check if the file contains data for this period."
-                        )
-                    else:
-                        status_placeholder.success(
-                            t("data_comparison_page.filtered_success").format(
-                                count=f"{filtered_rows:,}"
-                            )
-                        )
-
-                    st.session_state.excel_data = df_excel
-                    datev_success = True
-        except Exception as e:
-            import traceback
-
-            error_details = traceback.format_exc()
-            status_placeholder.error(
-                f"{t('data_comparison_page.error_loading_datev').format(error=e)}\n\n"
-                f"Details: {error_details[:500]}"
-            )
+        with st.status("🚀 Processing Data Sync...", expanded=True) as sync_status:
             datev_success = False
-
-        if datev_success:
+            flowwer_success = False
             try:
-                status_placeholder.info(t("data_comparison_page.loading_flowwer"))
+                sync_status.write("📡 Connecting to PowerApps Dataverse...")
+                dv_client = st.session_state.get("dv_client")
+                if dv_client:
+                    date_filter = f"cr597_belegdatum ge {from_date.strftime('%Y-%m-%d')} and cr597_belegdatum le {to_date.strftime('%Y-%m-%d')}"
+                    df_pa = dv_client.get_table_data("cr597_fin_kontobuchungens", filter_query=date_filter)
+                    
+                    if not df_pa.empty:
+                        sync_status.write(f"📊 Mapping {len(df_pa)} records from PowerApps...")
+                        mapping = {
+                            "cr597_belegdatum": "Belegdatum", "cr597_belegfeld1": "Belegfeld 1",
+                            "cr597_kost1kostenstelle": "KOST1 - Kostenstelle", "cr597_amount": "Amount",
+                            "cr597_buchungstext": "Buchungstext"
+                        }
+                        df_mapped = df_pa.rename(columns={k: v for k, v in mapping.items() if k in df_pa.columns})
+                        if "Belegdatum" in df_mapped.columns:
+                            df_mapped["Belegdatum"] = pd.to_datetime(df_mapped["Belegdatum"], errors='coerce').dt.tz_localize(None)
+                        
+                        if selected_cost_centers:
+                            df_mapped["KOST_STR"] = df_mapped["KOST1 - Kostenstelle"].astype(str)
+                            df_mapped = df_mapped[df_mapped["KOST_STR"].isin([str(cc) for cc in selected_cost_centers])]
+                            df_mapped.drop(columns=["KOST_STR"], inplace=True)
 
-                lookahead_days = search_lookahead_months * 30
-                search_max_date = to_date + timedelta(days=lookahead_days)
-
-                current_time = datetime.now()
-                if search_max_date > current_time:
-                    search_max_date = current_time
-
-                if to_date > search_max_date:
-                    search_max_date = to_date
-
-                status_placeholder.info(
-                    t("data_comparison_page.searching_api").format(
-                        start=from_date.date(),
-                        end=search_max_date.date(),
-                        months=search_lookahead_months,
-                    )
-                )
-
-                filter_params = {
-                    "min_date": from_date.isoformat(),
-                    "max_date": search_max_date.isoformat(),
-                }
-
-                if selected_cost_centers and len(selected_cost_centers) > 0:
-                    pass
-
-                report = client.get_receipt_splitting_report(**filter_params)
-
-                if selected_cost_centers and len(selected_cost_centers) > 0 and report:
-                    cost_center_field = None
-                    for field in ["costCenter", "CostCenter", "cost_center"]:
-                        if report and len(report) > 0 and field in report[0]:
-                            cost_center_field = field
-                            break
-
-                    if cost_center_field:
-                        report = [
-                            r
-                            for r in report
-                            if str(r.get(cost_center_field, ""))
-                            in selected_cost_centers
-                        ]
-                        if report:
-                            pass
-
-                if report:
-                    df_flowwer = pd.DataFrame(report)
-
-                    doc_id_col = None
-                    for col in ["documentId", "document_id", "DocumentId", "id", "Id"]:
-                        if col in df_flowwer.columns:
-                            doc_id_col = col
-                            break
-
-                    st.session_state.flowwer_doc_id_col = doc_id_col
-
-                    currency_col = None
-                    for col in [
-                        "currencyCode",
-                        "currency_code",
-                        "CurrencyCode",
-                        "currency",
-                    ]:
-                        if col in df_flowwer.columns:
-                            currency_col = col
-                            break
-
-                    if currency_col:
-                        df_flowwer["currencyCode"] = df_flowwer[currency_col]
+                        st.session_state.excel_data = df_mapped
+                        sync_status.write("✅ PowerApps synchronization complete.")
+                        datev_success = True
                     else:
+                        sync_status.write("⚠️ No records found in PowerApps.")
+                        st.session_state.excel_data = pd.DataFrame()
+                        datev_success = True
+                else:
+                    st.error("Dataverse Client not found.")
+            except Exception as e:
+                sync_status.update(label="❌ PowerApps Sync Failed", state="error")
+                st.error(f"PowerApps Sync Error: {e}")
+                datev_success = False
 
+            if datev_success:
+                try:
+                    sync_status.write("🌸 Connecting to Flowwer API...")
+                    lookahead_days = search_lookahead_months * 30
+                    search_max_date = to_date + timedelta(days=lookahead_days)
+                    current_time = datetime.now()
+                    if search_max_date > current_time: search_max_date = current_time
+                    if to_date > search_max_date: search_max_date = to_date
+
+                    sync_status.write(f"🔍 Searching documents up to {search_max_date.date()}...")
+                    filter_params = {"min_date": from_date.isoformat(), "max_date": search_max_date.isoformat()}
+                    report = client.get_receipt_splitting_report(**filter_params)
+
+                    if selected_cost_centers and len(selected_cost_centers) > 0 and report:
+                        cost_center_field = next((f for f in ["costCenter", "CostCenter", "cost_center"] if report and len(report) > 0 and f in report[0]), None)
+                        if cost_center_field:
+                            report = [r for r in report if str(r.get(cost_center_field, "")) in selected_cost_centers]
+
+                    if report:
+                        df_flowwer = pd.DataFrame(report)
+                        sync_status.write(f"📥 Downloaded {len(df_flowwer)} Flowwer records.")
+                        
+                        doc_id_col = next((c for c in ["documentId", "document_id", "id", "Id"] if c in df_flowwer.columns), None)
+                        st.session_state.flowwer_doc_id_col = doc_id_col
+                        
+                        currency_cache = st.session_state.get("currency_cache", {})
                         if doc_id_col:
-                            temp_invoice_col = None
-                            for dcol in ["invoiceDate", "InvoiceDate", "date", "Date"]:
-                                if dcol in df_flowwer.columns:
-                                    temp_invoice_col = dcol
-                                    break
-
-                            relevant_docs_mask = pd.Series([True] * len(df_flowwer))
-                            if temp_invoice_col:
-                                try:
-                                    temp_dates = pd.to_datetime(
-                                        df_flowwer[temp_invoice_col], errors="coerce"
-                                    )
-                                    relevant_docs_mask = (temp_dates >= from_date) & (
-                                        temp_dates <= to_date
-                                    )
-                                except:
-                                    pass
-
-                            unique_doc_ids = df_flowwer.loc[
-                                relevant_docs_mask, doc_id_col
-                            ].unique()
-
-                            currency_cache = st.session_state.get("currency_cache", {})
-                            missing_ids = [
-                                doc_id
-                                for doc_id in unique_doc_ids
-                                if doc_id not in currency_cache
-                            ]
-
-                            if missing_ids:
-
-                                def fetch_currency(d_id):
-                                    try:
-                                        details = client.get_document(d_id)
-                                        return d_id, (
-                                            details.get("currencyCode", "EUR")
-                                            if details
-                                            else "EUR"
-                                        )
-                                    except:
-                                        return d_id, "EUR"
-
-                                with st.spinner(
-                                    t("data_comparison_page.fetching_currency")
-                                ):
-                                    import concurrent.futures
-
-                                    results = {}
-
-                                    with concurrent.futures.ThreadPoolExecutor(
-                                        max_workers=10
-                                    ) as executor:
-                                        future_to_id = {
-                                            executor.submit(fetch_currency, did): did
-                                            for did in missing_ids
-                                        }
-
-                                        for future in concurrent.futures.as_completed(
-                                            future_to_id
-                                        ):
-                                            did, code = future.result()
-                                            currency_cache[did] = code
-
+                            sync_status.write("💸 Verifying currency codes...")
+                            unique_ids = df_flowwer[doc_id_col].unique()
+                            missing = [did for did in unique_ids if did not in currency_cache]
+                            if missing:
+                                import concurrent.futures
+                                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                                    f_to_id = {executor.submit(client.get_document, did): did for did in missing}
+                                    for f in concurrent.futures.as_completed(f_to_id):
+                                        did = f_to_id[f]
+                                        try:
+                                            res = f.result()
+                                            currency_cache[did] = res.get("currencyCode", "EUR") if res else "EUR"
+                                        except: currency_cache[did] = "EUR"
                                 st.session_state.currency_cache = currency_cache
+                        
+                        df_flowwer["currencyCode"] = df_flowwer[doc_id_col].map(currency_cache).fillna("EUR") if doc_id_col else "EUR"
+                        st.session_state.flowwer_data = df_flowwer
 
-                            df_flowwer["currencyCode"] = (
-                                df_flowwer[doc_id_col].map(currency_cache).fillna("EUR")
+                        cost_center_col = None
+                        for col in ["costCenter", "CostCenter", "cost_center"]:
+                            if col in df_flowwer.columns:
+                                cost_center_col = col
+                                break
+                        if cost_center_col:
+                            unique_cost_centers = sorted(
+                                df_flowwer[cost_center_col].dropna().unique().tolist()
                             )
                         else:
-                            df_flowwer["currencyCode"] = "EUR"
+                            unique_cost_centers = []
+                        st.session_state.available_cost_centers = unique_cost_centers
 
-                    st.session_state.flowwer_data = df_flowwer
-
-                    cost_center_col = None
-                    for col in ["costCenter", "CostCenter", "cost_center"]:
-                        if col in df_flowwer.columns:
-                            cost_center_col = col
-                            break
-                    if cost_center_col:
-                        unique_cost_centers = sorted(
-                            df_flowwer[cost_center_col].dropna().unique().tolist()
+                        sync_status.write(
+                            t("data_comparison_page.data_loaded_summary").format(
+                                datev_count=f"{len(st.session_state.excel_data):,}",
+                                flowwer_count=f"{len(df_flowwer):,}",
+                            )
                         )
+                        sync_status.update(label="✅ All systems synchronized!", state="complete", expanded=False)
+                        flowwer_success = True
                     else:
-                        unique_cost_centers = []
-                    st.session_state.available_cost_centers = unique_cost_centers
-
-                    currency_counts = df_flowwer["currencyCode"].value_counts()
-
-                    invoice_date_col = None
-                    for col in [
-                        "invoiceDate",
-                        "invoice_date",
-                        "InvoiceDate",
-                        "date",
-                        "Date",
-                    ]:
-                        if col in df_flowwer.columns:
-                            invoice_date_col = col
-                            break
-
-                    date_info = ""
-                    if invoice_date_col:
-                        df_flowwer["_temp_date"] = pd.to_datetime(
-                            df_flowwer[invoice_date_col], errors="coerce"
-                        )
-                        valid_dates = df_flowwer["_temp_date"].dropna()
-                        if len(valid_dates) > 0:
-                            actual_min = valid_dates.min()
-                            actual_max = valid_dates.max()
-                        df_flowwer.drop(columns=["_temp_date"], inplace=True)
-
-                    status_placeholder.success(
-                        t("data_comparison_page.data_loaded_summary").format(
-                            datev_count=f"{len(df_excel):,}",
-                            flowwer_count=f"{len(df_flowwer):,}",
-                        )
-                    )
-                    flowwer_success = True
-                else:
-                    status_placeholder.error(t("data_comparison_page.failed_flowwer"))
+                        sync_status.write("⚠️ Flowwer Sync: No data found.")
+                        st.session_state.flowwer_data = pd.DataFrame()
+                        sync_status.update(label="✅ All systems synchronized!", state="complete", expanded=False)
+                        flowwer_success = True
+                except Exception as e:
+                    sync_status.update(label="❌ Flowwer Sync Failed", state="error")
+                    st.error(f"Flowwer Sync Error: {e}")
                     flowwer_success = False
-            except Exception as e:
-                status_placeholder.error(
-                    t("data_comparison_page.error_flowwer").format(error=e)
-                )
-                flowwer_success = False
-        else:
-            status_placeholder.error(t("data_comparison_page.failed_generic"))
+            if not datev_success or not flowwer_success:
+                st.warning("One or more datasets failed to sync. Results may be incomplete.")
 
     if "flowwer_data" in st.session_state and st.session_state.flowwer_data is not None:
         df_flowwer_display = st.session_state.flowwer_data
@@ -905,7 +674,7 @@ def render_data_comparison_page(
                 if invoice_date_col:
                     df_flowwer_clean["Invoice_Date"] = pd.to_datetime(
                         df_flowwer_clean[invoice_date_col], errors="coerce"
-                    )
+                    ).dt.tz_localize(None)
                     missing_dates = df_flowwer_clean["Invoice_Date"].isna().sum()
                     if missing_dates > 0:
                         st.warning(
@@ -994,12 +763,12 @@ def render_data_comparison_page(
                             if isinstance(invoice_date, pd.Timestamp):
                                 date_str = invoice_date.strftime("%Y-%m-%d")
                             else:
-                                date_str = pd.to_datetime(invoice_date).strftime(
+                                date_str = pd.to_datetime(invoice_date).strftime(  # type: ignore
                                     "%Y-%m-%d"
                                 )
 
                             rate = get_pln_eur_rate(date_str)
-                            current_amount = float(df_flowwer_clean.loc[idx, "Amount"])
+                            current_amount = float(df_flowwer_clean.loc[idx, "Amount"]) # type: ignore
                             df_flowwer_clean.loc[idx, "Amount"] = current_amount / rate
 
                 if before_invoice_filter > 0 and after_invoice_filter == 0:
@@ -1149,60 +918,54 @@ def render_data_comparison_page(
                                 )
                                 total_amount_match = total_amount_diff <= 0.01
 
-                                if excel_is_paid or amount_match or total_amount_match:
+                                if excel_is_paid:
                                     exact_match = True
+                                else:
+                                
+                                    if date_match and cc_match and (amount_match or total_amount_match):
+                                        exact_match = True
 
-                                    match_amount = (
-                                        excel_amount
-                                        if amount_match
-                                        else total_excel_amount
-                                    )
-                                    match_diff = (
-                                        amount_diff
-                                        if amount_match
-                                        else total_amount_diff
-                                    )
+                                current_score = 0
+                                if amount_match: current_score += 4
+                                elif total_amount_match: current_score += 3
+                                if date_match: current_score += 2
+                                if cc_match: current_score += 1
 
-                                    best_match = {
-                                        "datev_date": excel_date,
-                                        "datev_cc": excel_cc,
-                                        "datev_text": excel_text,
-                                        "datev_amount": match_amount,
-                                        "date_match": date_match,
-                                        "cc_match": cc_match,
-                                        "text_match": True,
-                                        "amount_match": True,
-                                        "amount_diff": match_diff,
-                                        "datev_is_paid": excel_is_paid,
-                                    }
-                                    break
-
+                                update_best = False
                                 if best_match is None:
+                                    update_best = True
+                                else:
+                                    old_score = 0
+                                    if best_match.get("amount_match"): old_score += 4
+                                    elif best_match.get("is_total_match"): old_score += 3
+                                    if best_match.get("date_match"): old_score += 2
+                                    if best_match.get("cc_match"): old_score += 1
+                                    
+                                    if current_score > old_score:
+                                        update_best = True
+
+                                if update_best or exact_match:
+                                    use_total = (total_amount_match and not amount_match)
+                                    final_amount = total_excel_amount if use_total else excel_amount
+                                    final_diff = total_amount_diff if use_total else amount_diff
+                                    final_amount_match = amount_match or total_amount_match
+
                                     best_match = {
                                         "datev_date": excel_date,
                                         "datev_cc": excel_cc,
                                         "datev_text": excel_text,
-                                        "datev_amount": excel_amount,
-                                        "datev_is_paid": excel_is_paid,
+                                        "datev_amount": final_amount,
                                         "date_match": date_match,
                                         "cc_match": cc_match,
                                         "text_match": True,
-                                        "amount_match": False,
-                                        "amount_diff": amount_diff,
-                                    }
-                                elif amount_match:
-                                    best_match = {
-                                        "datev_date": excel_date,
-                                        "datev_cc": excel_cc,
-                                        "datev_text": excel_text,
-                                        "datev_amount": excel_amount,
+                                        "amount_match": final_amount_match,
+                                        "amount_diff": final_diff,
                                         "datev_is_paid": excel_is_paid,
-                                        "date_match": date_match,
-                                        "cc_match": cc_match,
-                                        "text_match": True,
-                                        "amount_match": True,
-                                        "amount_diff": amount_diff,
+                                        "is_total_match": use_total
                                     }
+                                
+                                if exact_match:
+                                    break
 
                             if exact_match:
                                 status = "Paid (DATEV)" if excel_is_paid else "Match"
@@ -1352,148 +1115,147 @@ def render_data_comparison_page(
                     unsafe_allow_html=True,
                 )
 
+                st.markdown("""
+                    <style>
+                    .metric-card {
+                        background: rgba(128, 128, 128, 0.05);
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(128, 128, 128, 0.2);
+                        border-radius: 16px;
+                        padding: 1.25rem;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.5rem;
+                        transition: all 0.3s ease;
+                        height: 100%;
+                    }
+                    .metric-card:hover {
+                        transform: translateY(-4px);
+                        background: rgba(128, 128, 128, 0.1);
+                        border-color: rgba(99, 102, 241, 0.5);
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+                    }
+                    .metric-label {
+                        font-size: 0.8rem;
+                        font-weight: 500;
+                        opacity: 0.8;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .metric-value {
+                        font-size: 1.75rem;
+                        font-weight: 700;
+                    }
+                    .metric-delta {
+                        font-size: 0.8rem;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.25rem;
+                        opacity: 0.9;
+                    }
+                    .delta-up { color: #10b981 !important; }
+                    .delta-down { color: #ef4444 !important; }
+                    </style>
+                """, unsafe_allow_html=True)
+
                 col1, col2, col3, col4, col5 = st.columns(5)
 
                 with col1:
-                    delta_value = (
-                        f"{(exact_matches/total_checked*100):.1f}%"
-                        if total_checked > 0
-                        else "N/A"
-                    )
-                    st.metric(
-                        t("data_comparison_page.exact_matches_metric"),
-                        f"{exact_matches:,}",
-                        delta=delta_value,
-                    )
-                with col2:
-                    delta_value = (
-                        f"{(paid_invoices/total_checked*100):.1f}%"
-                        if total_checked > 0
-                        else "N/A"
-                    )
-                    st.metric(
-                        t("data_comparison_page.paid_datev_metric"),
-                        f"{paid_invoices:,}",
-                        delta=delta_value,
-                        help=t("data_comparison_page.paid_help"),
-                    )
-                with col3:
-                    delta_value = (
-                        f"{(mismatches/total_checked*100):.1f}%"
-                        if total_checked > 0
-                        else "N/A"
-                    )
-                    st.metric(
-                        t("data_comparison_page.mismatches_metric"),
-                        f"{mismatches:,}",
-                        delta=delta_value,
-                        delta_color="inverse",
-                    )
-                with col4:
-                    delta_value = (
-                        f"{(not_in_datev/total_checked*100):.1f}%"
-                        if total_checked > 0
-                        else "N/A"
-                    )
-                    st.metric(
-                        t("data_comparison_page.not_in_datev_metric"),
-                        f"{not_in_datev:,}",
-                        delta=delta_value,
-                        delta_color="inverse",
-                    )
-                with col5:
-                    st.metric(
-                        t("data_comparison_page.not_in_flowwer_metric"),
-                        f"{excel_only_count:,}",
-                        help=t("data_comparison_page.not_in_flowwer_help"),
-                        delta_color="inverse",
-                    )
+                    delta_text = f"{(exact_matches/total_checked*100):.1f}%" if total_checked > 0 else "0%"
+                    st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">✅ {t('data_comparison_page.exact_matches_metric')}</div>
+                            <div class="metric-value">{exact_matches:,}</div>
+                            <div class="metric-delta delta-up">↑ {delta_text} coverage</div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-                st.markdown(
-                    f"""
-                    <div style="
-                        border-left: 3px solid #f59e0b;
-                    padding: 0.75rem 1.25rem;
-                    border-radius: 8px;
-                    margin: 2rem 0 1rem 0;
-                    background: rgba(245, 158, 11, 0.03);
-                ">
-                        <h3 style="margin: 0; color: #f59e0b; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">{t('data_comparison_page.mismatches_section_title')}</h3>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                with col2:
+                    delta_text = f"{(paid_invoices/total_checked*100):.1f}%" if total_checked > 0 else "0%"
+                    st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">💰 {t('data_comparison_page.paid_datev_metric')}</div>
+                            <div class="metric-value">{paid_invoices:,}</div>
+                            <div class="metric-delta delta-neutral">ℹ️ {delta_text} of total</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                with col3:
+                    delta_text = f"{(mismatches/total_checked*100):.1f}%" if total_checked > 0 else "0%"
+                    st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">⚠️ {t('data_comparison_page.mismatches_metric')}</div>
+                            <div class="metric-value">{mismatches:,}</div>
+                            <div class="metric-delta delta-down">↓ {delta_text} mismatch</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                with col4:
+                    delta_text = f"{(not_in_datev/total_checked*100):.1f}%" if total_checked > 0 else "0%"
+                    st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">❌ {t('data_comparison_page.not_in_datev_metric')}</div>
+                            <div class="metric-value">{not_in_datev:,}</div>
+                            <div class="metric-delta delta-down">! {delta_text} missing</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                with col5:
+                    st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">🔍 {t('data_comparison_page.not_in_flowwer_metric')}</div>
+                            <div class="metric-value">{excel_only_count:,}</div>
+                            <div class="metric-delta">Unmapped in API</div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
                 mismatch_df = df_results[df_results["Status"] == "Mismatch"]
+                date_only_mismatch = len(mismatch_df[~mismatch_df["Date_Match"] & mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]]) if not mismatch_df.empty else 0
+                cc_only_mismatch = len(mismatch_df[mismatch_df["Date_Match"] & ~mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]]) if not mismatch_df.empty else 0
+                amount_only_mismatch = len(mismatch_df[mismatch_df["Date_Match"] & mismatch_df["CC_Match"] & ~mismatch_df["Amount_Match"]]) if not mismatch_df.empty else 0
+                multiple_mismatch = len(mismatch_df[~(mismatch_df["Date_Match"] & mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]) & ~(~mismatch_df["Date_Match"] & mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]) & ~(mismatch_df["Date_Match"] & ~mismatch_df["CC_Match"] & mismatch_df["Amount_Match"]) & ~(mismatch_df["Date_Match"] & mismatch_df["CC_Match"] & ~mismatch_df["Amount_Match"])]) if not mismatch_df.empty else 0
 
-            if len(mismatch_df) > 0:
-                date_only_mismatch = len(
-                    mismatch_df[
-                        ~mismatch_df["Date_Match"]
-                        & mismatch_df["CC_Match"]
-                        & mismatch_df["Amount_Match"]
-                    ]
-                )
-                cc_only_mismatch = len(
-                    mismatch_df[
-                        mismatch_df["Date_Match"]
-                        & ~mismatch_df["CC_Match"]
-                        & mismatch_df["Amount_Match"]
-                    ]
-                )
-                amount_only_mismatch = len(
-                    mismatch_df[
-                        mismatch_df["Date_Match"]
-                        & mismatch_df["CC_Match"]
-                        & ~mismatch_df["Amount_Match"]
-                    ]
-                )
-                multiple_mismatch = len(
-                    mismatch_df[
-                        ~(
-                            mismatch_df["Date_Match"]
-                            & mismatch_df["CC_Match"]
-                            & mismatch_df["Amount_Match"]
-                        )
-                        & ~(
-                            ~mismatch_df["Date_Match"]
-                            & mismatch_df["CC_Match"]
-                            & mismatch_df["Amount_Match"]
-                        )
-                        & ~(
-                            mismatch_df["Date_Match"]
-                            & ~mismatch_df["CC_Match"]
-                            & mismatch_df["Amount_Match"]
-                        )
-                        & ~(
-                            mismatch_df["Date_Match"]
-                            & mismatch_df["CC_Match"]
-                            & ~mismatch_df["Amount_Match"]
-                        )
-                    ]
-                )
+                st.markdown("<br>", unsafe_allow_html=True)
+                chart_col1, chart_col2 = st.columns([1, 1])
 
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric(
-                        t("data_comparison_page.date_only_metric"),
-                        f"{date_only_mismatch:,}",
+                with chart_col1:
+                    status_counts = df_results["Status"].value_counts().reset_index()
+                    status_counts.columns = ["Status", "Count"]
+                    
+                    fig_pie = px.pie(
+                        status_counts, values='Count', names='Status', hole=0.6,
+                        color='Status', color_discrete_map={"Match": "#10b981", "Mismatch": "#f59e0b", "Not in DATEV": "#ef4444", "Paid (DATEV)": "#3b82f6"},
+                        title="📊 Reconciliation Overview"
                     )
-                with col2:
-                    st.metric(
-                        t("data_comparison_page.cc_only_metric"),
-                        f"{cc_only_mismatch:,}",
-                    )
-                with col3:
-                    st.metric(
-                        t("data_comparison_page.amount_only_metric"),
-                        f"{amount_only_mismatch:,}",
-                    )
-                with col4:
-                    st.metric(
-                        t("data_comparison_page.multiple_metric"),
-                        f"{multiple_mismatch:,}",
-                    )
+                    fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                    fig_pie.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+                with chart_col2:
+                    mismatch_data = {"Category": ["Date", "Cost Center", "Amount", "Multiple"], "Count": [date_only_mismatch, cc_only_mismatch, amount_only_mismatch, multiple_mismatch]}
+                    df_mismatch_viz = pd.DataFrame(mismatch_data)
+                    
+                    fig_bar = px.bar(df_mismatch_viz, x='Category', y='Count', color='Category', color_discrete_sequence=["#f59e0b", "#6366f1", "#10b981", "#ef4444"], title="🔍 Mismatch Breakdown")
+                    fig_bar.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_title="", yaxis_title="Invoices")
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                st.markdown(f"""
+                    <div style="border-left: 3px solid #f59e0b; padding: 0.75rem 1.25rem; border-radius: 8px; margin: 2rem 0 1rem 0; background: rgba(245, 158, 11, 0.03);">
+                        <h3 style="margin: 0; color: #f59e0b; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">{t('data_comparison_page.mismatches_section_title')}</h3>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                if len(mismatch_df) > 0:
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.markdown(f"""<div class="metric-card" style="border-left: 4px solid #f59e0b;"><div class="metric-label">{t('data_comparison_page.date_only_metric')}</div><div class="metric-value">{date_only_mismatch:,}</div><div class="metric-delta delta-neutral">📅 Timing diff</div></div>""", unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"""<div class="metric-card" style="border-left: 4px solid #6366f1;"><div class="metric-label">{t('data_comparison_page.cc_only_metric')}</div><div class="metric-value">{cc_only_mismatch:,}</div><div class="metric-delta delta-neutral">🏢 CC mismatch</div></div>""", unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(f"""<div class="metric-card" style="border-left: 4px solid #10b981;"><div class="metric-label">{t('data_comparison_page.amount_only_metric')}</div><div class="metric-value">{amount_only_mismatch:,}</div><div class="metric-delta delta-neutral">💶 Value diff</div></div>""", unsafe_allow_html=True)
+                    with col4:
+                        st.markdown(f"""<div class="metric-card" style="border-left: 4px solid #ef4444;"><div class="metric-label">{t('data_comparison_page.multiple_metric')}</div><div class="metric-value">{multiple_mismatch:,}</div><div class="metric-delta delta-down">❗ Complex issue</div></div>""", unsafe_allow_html=True)
 
                 st.markdown(
                     f"""
@@ -1705,14 +1467,11 @@ def render_data_comparison_page(
                                     if isinstance(invoice_date, pd.Timestamp):
                                         date_str = invoice_date.strftime("%Y-%m-%d")
                                     else:
-                                        date_str = pd.to_datetime(
-                                            invoice_date
-                                        ).strftime("%Y-%m-%d")
+                                        date_str = str(pd.to_datetime(invoice_date))[:10]  # type: ignore
 
                                     rate = get_pln_eur_rate(date_str)
-                                    current_amount = float(
-                                        df_flowwer_inspect.loc[idx, "Amount"]
-                                    )
+                                    amount_val = df_flowwer_inspect.loc[idx, "Amount"]
+                                    current_amount = float(amount_val) if amount_val is not None else 0.0  # type: ignore
                                     df_flowwer_inspect.loc[idx, "Amount"] = (
                                         current_amount / rate
                                     )

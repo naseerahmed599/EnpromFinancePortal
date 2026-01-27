@@ -60,6 +60,8 @@ from pages_modules.analytics import render_analytics_page
 from pages_modules.all_documents import render_all_documents_page
 from pages_modules.single_document import render_single_document_page
 from pages_modules.data_comparison import render_data_comparison_page
+from utils.dataverse_client import DataverseClient
+
 
 
 @st.cache_data(ttl=86400)
@@ -92,8 +94,19 @@ def get_pln_eur_rate(date_str):
 def to_excel(df: pd.DataFrame) -> bytes:
     """Convert DataFrame to Excel file bytes"""
     output = BytesIO()
+    df_clean = df.copy()
+    
+    for col in df_clean.columns:
+        if pd.api.types.is_datetime64_any_dtype(df_clean[col]):
+            # Check if column is timezone-aware and remove timezone info
+            try:
+                if df_clean[col].dt.tz is not None:  # type: ignore
+                    df_clean[col] = df_clean[col].dt.tz_localize(None)  # type: ignore
+            except (AttributeError, TypeError):
+                pass
+
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Data")
+        df_clean.to_excel(writer, index=False, sheet_name="Data")
     return output.getvalue()
 
 
@@ -788,6 +801,20 @@ if "correct_api_key" not in st.session_state:
 if "client" not in st.session_state:
     st.session_state.client = FlowwerAPIClient(api_key=None)
 
+if "dv_client" not in st.session_state:
+    dv_secrets = st.secrets.get("dataverse", st.secrets)
+    
+    tenant_id = dv_secrets.get("tenant_id")
+    client_id = dv_secrets.get("client_id")
+    client_secret = dv_secrets.get("client_secret")
+    
+    st.session_state.dv_client = DataverseClient(
+        resource_url="https://orgd93f721d.crm4.dynamics.com",
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+
 if "documents" not in st.session_state:
     st.session_state.documents = None
 
@@ -927,7 +954,7 @@ if not st.session_state.client.api_key:
             <div class="auth-logo-section">
                 <div class="auth-logo-wrapper">
                     <div class="auth-logo-inner">
-                        <img src="https://enprom.com/wp-content/uploads/2020/12/xlogo-poziome.png.pagespeed.ic.jXuMlmU90u.webp" alt="ENPROM" />
+                        <img src="https://enprom.com/wp-content/uploads/2020/12/logo-poziomy.svg" alt="ENPROM" />
                     </div>
                 </div>
             </div>
@@ -1282,7 +1309,7 @@ if not st.session_state.client.api_key:
 
 with st.sidebar:
     st.image(
-        "https://enprom.com/wp-content/uploads/2020/12/xlogo-poziome.png.pagespeed.ic.jXuMlmU90u.webp",
+        "https://enprom.com/wp-content/uploads/2020/12/logo-poziomy.svg",
         use_container_width=True,
     )
 
