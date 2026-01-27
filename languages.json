@@ -155,7 +155,14 @@
       "cc_filter_hint_text": "Load cost centers available during this period to enable filtering.",
       "load_cc_options_btn": "Load Cost Center Options",
       "loading_cc_spinner": "Fetching cost centers...",
-      "no_cc_found": "No cost centers found for this period."
+      "no_cc_found": "No cost centers found for this period.",
+      "sync_button": "🚀 Sync and Compare Data",
+      "clear_all_button": "🧹 Clear All",
+      "data_cleared": "✅ All cached data has been cleared successfully!",
+      "invalid_date_range": "❌ Invalid date range: 'From' date cannot be after 'To' date.",
+      "date_range_hint": "💡 Please select a valid date range where the start date comes before the end date.",
+      "tolerance_label": "€ Tolerance",
+      "tolerance_help": "Maximum acceptable difference (in EUR) to consider amounts as matching"
     },
     "receipt_report_page": {
       "title": "Receipt Splitting Report",
@@ -816,7 +823,14 @@
       "cc_filter_hint_text": "Laden Sie die für diesen Zeitraum verfügbaren Kostenstellen, um Filter zu aktivieren.",
       "load_cc_options_btn": "Kostenstellen-Optionen laden",
       "loading_cc_spinner": "Kostenstellen werden abgerufen...",
-      "no_cc_found": "Keine Kostenstellen für diesen Zeitraum gefunden."
+      "no_cc_found": "Keine Kostenstellen für diesen Zeitraum gefunden.",
+      "sync_button": "🚀 Synchronisieren und Vergleichen",
+      "clear_all_button": "🧹 Alles löschen",
+      "data_cleared": "✅ Alle zwischengespeicherten Daten wurden erfolgreich gelöscht!",
+      "invalid_date_range": "❌ Ungültiger Zeitraum: 'Von'-Datum darf nicht nach 'Bis'-Datum liegen.",
+      "date_range_hint": "💡 Bitte wählen Sie einen gültigen Zeitraum, bei dem das Startdatum vor dem Enddatum liegt.",
+      "tolerance_label": "€ Toleranz",
+      "tolerance_help": "Maximal akzeptable Differenz (in EUR), um Beträge als übereinstimmend zu betrachten"
     },
     "receipt_report_page": {
       "title": "Belegaufteilungsbericht",
@@ -2020,7 +2034,14 @@
       "cc_filter_hint_text": "Załaduj centra kosztów dostępne w tym okresie, aby włączyć filtrowanie.",
       "load_cc_options_btn": "Załaduj Opcje Centrów Kosztów",
       "loading_cc_spinner": "Pobieranie centrów kosztów...",
-      "no_cc_found": "Nie znaleziono centrów kosztów w tym okresie."
+      "no_cc_found": "Nie znaleziono centrów kosztów w tym okresie.",
+      "sync_button": "🚀 Synchronizuj i Porównaj Dane",
+      "clear_all_button": "🧹 Wyczyść Wszystko",
+      "data_cleared": "✅ Wszystkie dane w pamięci podręcznej zostały pomyślnie usunięte!",
+      "invalid_date_range": "❌ Nieprawidłowy zakres dat: Data 'Od' nie może być późniejsza niż data 'Do'.",
+      "date_range_hint": "💡 Proszę wybrać prawidłowy zakres dat, w którym data początkowa jest wcześniejsza niż data końcowa.",
+      "tolerance_label": "€ Tolerancja",
+      "tolerance_help": "Maksymalna akceptowalna różnica (w EUR), aby uznać kwoty za zgodne"
     }
   }
 }
