@@ -1,103 +1,71 @@
-# Flowwer API Client
+# ENPROM Finance Portal
 
-Python client for interacting with the Flowwer REST API.
+Professional Business Intelligence and Document Management system for ENPROM GmbH, integrated with the Flowwer REST API.
 
-##  API Credentials
+## 🌟 Overview
 
-- **Account Name:** `enprom-gmbh`
-- **API Key:** `[Contact repository owner for API key]`
-- **Base URL:** `https://enprom-gmbh.flowwer.de`
-- **API Documentation:** `https://enprom-gmbh.flowwer.de/swagger`
+The **ENPROM Finance Portal** is a sophisticated Streamlit application designed to streamline financial workflows. It provides the ENPROM team with real-time insights into document processing, advanced analytics, and seamless integration with accounting standards like DATEV.
 
-> **Note:** For security reasons, the API key is not included in this repository. 
-> Store your API key in an environment variable or a `.env` file (not committed to git).
+### Key Capabilities
 
-##  Quick Start
+*   **Financial Analytics**: Real-time dashboards for monitoring KPIs and spending patterns.
+*   **Workflow Management**: Centralized view of document stages, approvals, and signable items.
+*   **Data Integrity**: Advanced comparison tools for reconciling Flowwer data with external accounting records.
+*   **Multi-Language Support**: Fully localized in English, German, and Polish.
 
-### 1. Install Requirements
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
+
+Ensure you have Python 3.9+ installed, then run:
 
 ```bash
-pip install requests
+pip install -r requirements.txt
 ```
 
-### 2. Run the Interactive Test Script
+### 2. Configuration
+
+You will need a valid Flowwer API key. You can provide this through the application interface upon startup, or set it as an environment variable:
 
 ```bash
-python test_flowwer_api.py
+export FLOWWER_API_KEY="your-api-key-here"
 ```
 
-The script will automatically use the pre-configured API key.
+### 3. Launching the Portal
 
-### 3. Use in Your Own Code
+Start the application using:
+
+```bash
+streamlit run enprom_financial_app.py
+```
+
+---
+
+## 📖 Documentation
+
+For a deep dive into the system architecture, folder structure, and development standards, please refer to the full **[DOCUMENTATION.md](DOCUMENTATION.md)**.
+
+## 🛠️ API Client Usage
+
+If you are using the underlying `FlowwerAPIClient` for standalone scripts:
 
 ```python
-from flowwer_api_client import FlowwerAPIClient, DocumentHelper
-import os
+from flowwer_api_client import FlowwerAPIClient
 
-# Initialize client with API key from environment variable
-client = FlowwerAPIClient()
-client.api_key = os.getenv("FLOWWER_API_KEY")  # Set this in your environment
-client.session.headers.update({'X-FLOWWER-ApiKey': client.api_key})
+# Initialize the client
+client = FlowwerAPIClient(api_key="your-key")
 
-# Get all documents
+# Get documents
 documents = client.get_all_documents()
-
-# Get specific document
-doc = client.get_document(123456)
-
-# Get companies and flows
-companies = client.get_companies_with_flows()
-
-# Download a document
-client.download_document(doc_id, unique_id, "output.pdf")
-
-# Upload a document
-result = client.upload_document("invoice.pdf", flow_id=5, company_id=1)
 ```
 
-**Setting up the API key:**
+For more details on the API client specifically, see the original technical guide or explore the code in [flowwer_api_client.py](flowwer_api_client.py).
 
-```bash
-# On macOS/Linux
-export FLOWWER_API_KEY="your-api-key-here"
+---
 
-# On Windows
-set FLOWWER_API_KEY=your-api-key-here
-```
-
-Or create a `.env` file (add to `.gitignore`):
-```
-FLOWWER_API_KEY=your-api-key-here
-```
-
-##  Available Methods
-
-### FlowwerAPIClient
-
-#### Authentication
-- `authenticate(username, password)` - Generate a new API key (optional, you can use the pre-configured key)
-
-#### Read Operations
-- `get_all_documents(include_processed, include_deleted)` - Get all documents
-- `get_document(document_id)` - Get single document details
-- `get_companies_with_flows()` - Get all companies with active flows
-- `download_document(document_id, unique_id, output_path)` - Download document PDF
-
-#### Write Operations
-- `upload_document(file_path, flow_id, company_id, filename)` - Upload a document
-- `approve_document(document_id, at_stage, nominees)` - Approve a document
-
-### DocumentHelper
-
-- `print_document_summary(document)` - Print formatted document info
-- `filter_documents_by_date(documents, start_date, end_date)` - Filter by date range
-- `filter_documents_by_company(documents, company_name)` - Filter by company
-- `filter_documents_by_stage(documents, stage)` - Filter by stage
-- `export_to_csv(documents, output_path)` - Export documents to CSV
-
-##  Testing with Postman
-
-See [POSTMAN_GUIDE.md](POSTMAN_GUIDE.md) for complete Postman testing instructions.
+© 2025 ENPROM GmbH | Made by the ENPROM Team
 
 Quick steps:
 1. Import the collection from POSTMAN_GUIDE.md

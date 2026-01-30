@@ -61,3 +61,7 @@ main_Oliver.py
 # API keys and secrets (add any file that might contain API keys)
 *api_key*
 *secret*
+
+# Documentation
+*DOCUMENTATION.md
+*DOCUMENTATION.docx
