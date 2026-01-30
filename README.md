@@ -8,10 +8,10 @@ The **ENPROM Finance Portal** is a sophisticated Streamlit application designed 
 
 ### Key Capabilities
 
-*   **Financial Analytics**: Real-time dashboards for monitoring KPIs and spending patterns.
-*   **Workflow Management**: Centralized view of document stages, approvals, and signable items.
-*   **Data Integrity**: Advanced comparison tools for reconciling Flowwer data with external accounting records.
-*   **Multi-Language Support**: Fully localized in English, German, and Polish.
+- **Financial Analytics**: Real-time dashboards for monitoring KPIs and spending patterns.
+- **Workflow Management**: Centralized view of document stages, approvals, and signable items.
+- **Data Integrity**: Advanced comparison tools for reconciling Flowwer data with external accounting records.
+- **Multi-Language Support**: Fully localized in English, German, and Polish.
 
 ---
 
@@ -68,13 +68,15 @@ For more details on the API client specifically, see the original technical guid
 © 2025 ENPROM GmbH | Made by the ENPROM Team
 
 Quick steps:
+
 1. Import the collection from POSTMAN_GUIDE.md
 2. The API key is already configured
 3. Start testing endpoints!
 
-##  Document Stages
+## Document Stages
 
 Documents in Flowwer go through various stages:
+
 - `Draft` - Initial upload
 - `Stage1` - `Stage5` - Approval stages
 - `Rejected` - Document rejected
@@ -82,7 +84,7 @@ Documents in Flowwer go through various stages:
 - `Processed` - Document processed
 - `DeletedAfterRejection` - Deleted after rejection
 
-##  Payment States
+## Payment States
 
 - `Unset` - Not set
 - `ToBePaid` - Needs payment
@@ -92,7 +94,7 @@ Documents in Flowwer go through various stages:
 - `DoneWithoutPayment` - No payment needed
 - `ToBePaidExternal` - External payment
 
-##  FTP Access (Optional)
+## FTP Access (Optional)
 
 For automated file uploads via FTP:
 
@@ -102,7 +104,7 @@ Username: enprom-gmbh+ApiKeyUser
 Password: [Use your API key]
 ```
 
-##  Example: Get and Export Documents
+## Example: Get and Export Documents
 
 ```python
 from flowwer_api_client import FlowwerAPIClient, DocumentHelper
@@ -118,8 +120,8 @@ documents = client.get_all_documents(include_processed=False)
 
 # Filter by date range
 filtered = DocumentHelper.filter_documents_by_date(
-    documents, 
-    "2024-01-01", 
+    documents,
+    "2024-01-01",
     "2024-12-31"
 )
 
@@ -131,7 +133,7 @@ for doc in filtered[:10]:
     DocumentHelper.print_document_summary(doc)
 ```
 
-##  Example: Download Invoices
+## Example: Download Invoices
 
 ```python
 from flowwer_api_client import FlowwerAPIClient
@@ -147,7 +149,7 @@ doc = client.get_document(123456)
 if doc:
     unique_id = doc.get('uniqueId')
     filename = doc.get('simpleName', 'document.pdf')
-    
+
     # Download the PDF
     client.download_document(123456, unique_id, filename)
 ```
@@ -155,6 +157,7 @@ if doc:
 ## Error Handling
 
 Common response codes:
+
 - `200` - Success
 - `401` - Unauthorized (check API key)
 - `403` - Forbidden (insufficient permissions)
@@ -168,6 +171,7 @@ Common response codes:
 If you've modified code (especially `flowwer_api_client.py`) but changes aren't being picked up by Streamlit:
 
 **Quick Fix:**
+
 ```bash
 # Run the clear cache script
 ./clear_cache.sh
@@ -178,24 +182,27 @@ find . -name "__pycache__" -type d -exec rm -r {} + 2>/dev/null || true
 ```
 
 **Then restart Streamlit:**
+
 1. Stop the current process (Ctrl+C)
 2. Run: `streamlit run enprom_financial_app.py`
 
 **Why this happens:**
+
 - Python stores compiled bytecode (`.pyc` files) in `__pycache__` directories
 - Streamlit may not always reload all modules on code changes
 - Restarting forces Python to reload all modules from source
 
 **When to use:**
+
 - After modifying `flowwer_api_client.py` or other imported modules
 - When API calls behave unexpectedly after code changes
 - When you see old error messages or old behavior persisting
 
-##  Support
+## Support
 
 For API support, contact: support@flowwer.de
 
-##  Files
+## Files
 
 - `flowwer_api_client.py` - Main API client library
 - `test_flowwer_api.py` - Interactive test script
